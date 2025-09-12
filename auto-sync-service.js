@@ -42,7 +42,72 @@ class AutoSyncService {
         // 设置页面事件监听
         this.setupPageEventListeners();
         
+        // 启动智能同步管理
+        this.startSmartSync();
+        
         console.log('✅ 全自动同步服务初始化完成');
+    }
+    
+    /**
+     * 启动智能同步管理
+     */
+    startSmartSync() {
+        // 如果已启用同步，立即执行一次初始同步
+        if (this.isEnabled && navigator.onLine) {
+            setTimeout(() => {
+                this.performSync('初始同步');
+            }, 5000); // 5秒后执行初始同步
+        }
+        
+        // 设置智能同步策略
+        this.setupSmartSyncStrategy();
+    }
+    
+    /**
+     * 设置智能同步策略
+     */
+    setupSmartSyncStrategy() {
+        // 检测用户活动模式
+        let userActiveTime = Date.now();
+        let isUserActive = true;
+        
+        // 监听用户活动
+        ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(event => {
+            document.addEventListener(event, () => {
+                userActiveTime = Date.now();
+                if (!isUserActive) {
+                    isUserActive = true;
+                    console.log('🟢 用户重新活跃，恢复正常同步');
+                }
+            }, true);
+        });
+        
+        // 检查用户活跃状态
+        setInterval(() => {
+            const timeSinceActivity = Date.now() - userActiveTime;
+            const wasActive = isUserActive;
+            isUserActive = timeSinceActivity < 300000; // 5分钟内有活动
+            
+            if (wasActive && !isUserActive) {
+                console.log('🔴 用户进入非活跃状态，降低同步频率');
+            }
+            
+            // 根据用户活跃状态调整同步策略
+            this.adjustSyncFrequency(isUserActive);
+        }, 60000); // 每分钟检查一次
+    }
+    
+    /**
+     * 根据用户活跃状态调整同步频率
+     */
+    adjustSyncFrequency(isActive) {
+        if (isActive) {
+            // 用户活跃时：正常同步频率
+            this.syncInterval = 30000; // 30秒
+        } else {
+            // 用户非活跃时：降低同步频率以节省资源
+            this.syncInterval = 300000; // 5分钟
+        }
     }
     
     /**
