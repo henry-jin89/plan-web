@@ -248,7 +248,7 @@ class UniversalAutoSync {
     }
     
     forceRefreshStatus() {
-        console.log('=== 开始强制刷新同步状态 ===');
+        console.log('开始强制刷新同步状态');
         
         // 立即检查所有可能的同步状态
         let syncEnabled = false;
@@ -335,7 +335,7 @@ class UniversalAutoSync {
             }
         }
         
-        console.log('=== 检测结果 ===');
+        console.log('检测结果:');
         console.log('同步状态:', syncEnabled);
         console.log('检测方法:', detectionMethod);
         console.log('当前autoSyncEnabled:', this.autoSyncEnabled);
@@ -349,7 +349,7 @@ class UniversalAutoSync {
             console.log('ℹ️ 状态无变化，保持: ' + (syncEnabled ? '已启用' : '未启用'));
         }
         
-        console.log('=== 强制刷新完成 ===');
+        console.log('强制刷新完成');
     }
     
     setupChangeListeners() {
