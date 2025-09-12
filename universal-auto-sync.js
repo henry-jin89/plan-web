@@ -472,7 +472,27 @@ class UniversalAutoSync {
         // 监听localStorage变化
         const originalSetItem = localStorage.setItem;
         localStorage.setItem = function(key, value) {
-            if (key.startsWith('planData_')) {
+            // 监听所有应用相关的数据变化
+            const syncableKeys = [
+                'planData_',
+                'habitTrackerData',
+                'gratitude_history',
+                'mood_history', // 修复：mood_tracker.html实际使用的键名
+                'mood_tracker_data', // 保留兼容性
+                'reflection_templates',
+                'reflection_history',
+                'reflection_to_dayplan', // 反思到日计划的数据传递
+                'monthlyEvents',
+                'customTemplates',
+                'syncConfig', // 同步配置（跨设备同步配置）
+                'reflection_' // 动态键名
+            ];
+            
+            const shouldSync = syncableKeys.some(pattern => {
+                return key.startsWith(pattern) || key === pattern;
+            });
+            
+            if (shouldSync) {
                 window.universalAutoSync.onDataChange(key);
             }
             originalSetItem.apply(this, arguments);
@@ -497,6 +517,26 @@ class UniversalAutoSync {
     onDataChange(key) {
         this.changeDetected = true;
         console.log('检测到数据变化:', key);
+        
+        // 如果同步已启用，触发防抖同步
+        if (this.autoSyncEnabled && !this.syncInProgress) {
+            this.debounceSync();
+        }
+    }
+    
+    // 防抖同步函数
+    debounceSync() {
+        if (this.syncTimer) {
+            clearTimeout(this.syncTimer);
+        }
+        
+        // 5秒后执行同步
+        this.syncTimer = setTimeout(() => {
+            if (this.autoSyncEnabled && !this.syncInProgress && navigator.onLine) {
+                console.log('执行自动同步...');
+                this.manualSync();
+            }
+        }, 5000);
     }
     
     async manualSync() {
