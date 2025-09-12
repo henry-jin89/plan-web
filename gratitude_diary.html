@@ -578,6 +578,13 @@
             try {
                 console.log('💾 执行自动保存感恩...');
                 const gratitudeHistory = getGratitudeHistory();
+                
+                // 双重验证确保是数组
+                if (!Array.isArray(gratitudeHistory)) {
+                    console.error('❌ gratitudeHistory 不是数组:', typeof gratitudeHistory);
+                    throw new Error('历史数据格式错误');
+                }
+                
                 console.log('📚 当前历史记录数量:', gratitudeHistory.length);
                 
                 const todayIndex = gratitudeHistory.findIndex(record => record.date === currentGratitudeData.date);
@@ -611,6 +618,21 @@
 
         function loadTodayGratitude() {
             const gratitudeHistory = getGratitudeHistory();
+            
+            // 确保是数组
+            if (!Array.isArray(gratitudeHistory)) {
+                console.error('❌ loadTodayGratitude: gratitudeHistory 不是数组');
+                // 创建默认的空白项
+                const gratitudeList = document.getElementById('gratitude-list');
+                if (gratitudeList) {
+                    gratitudeList.innerHTML = '';
+                    for (let i = 0; i < 3; i++) {
+                        addGratitudeItem();
+                    }
+                }
+                return;
+            }
+            
             const todayRecord = gratitudeHistory.find(record => record.date === currentGratitudeData.date);
             
             if (todayRecord) {
@@ -656,15 +678,47 @@
         function getGratitudeHistory() {
             try {
                 const stored = localStorage.getItem('gratitude_history');
-                return stored ? JSON.parse(stored) : [];
+                console.log('📚 从localStorage读取的原始数据:', stored);
+                
+                if (!stored) {
+                    console.log('📝 没有历史数据，返回空数组');
+                    return [];
+                }
+                
+                const parsed = JSON.parse(stored);
+                console.log('🔍 解析后的数据类型:', typeof parsed, '是否为数组:', Array.isArray(parsed));
+                
+                // 确保返回的是数组
+                if (Array.isArray(parsed)) {
+                    return parsed;
+                } else {
+                    console.warn('⚠️ 数据不是数组格式，重置为空数组');
+                    localStorage.removeItem('gratitude_history'); // 清除无效数据
+                    return [];
+                }
             } catch (error) {
-                console.error('读取感恩历史失败:', error);
+                console.error('❌ 读取感恩历史失败:', error);
+                console.log('🔧 清除损坏的数据');
+                localStorage.removeItem('gratitude_history');
                 return [];
             }
         }
 
         function updateGratitudeStats() {
             const gratitudeHistory = getGratitudeHistory();
+            
+            // 确保是数组
+            if (!Array.isArray(gratitudeHistory)) {
+                console.error('❌ updateGratitudeStats: gratitudeHistory 不是数组');
+                // 设置默认统计值
+                document.getElementById('total-gratitudes').textContent = '0';
+                document.getElementById('streak-days').textContent = '0';
+                document.getElementById('gratitude-streak-count').textContent = '0';
+                document.getElementById('this-month').textContent = '0';
+                document.getElementById('avg-daily').textContent = '0';
+                return;
+            }
+            
             const validRecords = gratitudeHistory.filter(record => 
                 record.gratitudes && record.gratitudes.length > 0
             );
@@ -772,7 +826,19 @@
         }
 
         function loadGratitudeHistory() {
-            const gratitudeHistory = getGratitudeHistory().slice(0, 7); // 显示最近7天
+            const allHistory = getGratitudeHistory();
+            
+            // 确保是数组
+            if (!Array.isArray(allHistory)) {
+                console.error('❌ loadGratitudeHistory: allHistory 不是数组');
+                const historyContainer = document.getElementById('gratitude-history');
+                if (historyContainer) {
+                    historyContainer.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;">数据格式错误，请刷新页面重试</div>';
+                }
+                return;
+            }
+            
+            const gratitudeHistory = allHistory.slice(0, 7); // 显示最近7天
             const historyContainer = document.getElementById('gratitude-history');
             
             if (gratitudeHistory.length === 0) {
