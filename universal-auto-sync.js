@@ -46,28 +46,49 @@ class UniversalAutoSync {
         // 设置页面事件监听
         this.setupPageEventListeners();
         
+        // 设置定期状态更新
+        this.setupStatusUpdater();
+        
         this.isInitialized = true;
         console.log('✅ 通用自动同步管理器初始化完成');
     }
     
     async checkSyncConfig() {
         try {
-            // 检查是否已有同步配置
-            const syncConfig = localStorage.getItem('syncConfig');
-            if (syncConfig) {
-                const config = JSON.parse(syncConfig);
-                if (config && config.enabled) {
+            // 等待主同步服务加载完成
+            let retryCount = 0;
+            while (retryCount < 10) {
+                // 检查是否已有同步配置
+                const syncConfig = localStorage.getItem('syncConfig');
+                if (syncConfig) {
+                    const config = JSON.parse(syncConfig);
+                    if (config && config.enabled) {
+                        this.autoSyncEnabled = true;
+                        console.log('✅ 发现自动同步配置');
+                        return;
+                    }
+                }
+                
+                // 检查同步服务
+                if (window.syncService && window.syncService.getSyncStatus) {
+                    const status = window.syncService.getSyncStatus();
+                    if (status.enabled) {
+                        this.autoSyncEnabled = true;
+                        console.log('✅ 同步服务已启用');
+                        return;
+                    }
+                }
+                
+                // 检查自动同步服务
+                if (window.autoSyncService && window.autoSyncService.isEnabled) {
                     this.autoSyncEnabled = true;
-                    console.log('✅ 发现自动同步配置');
+                    console.log('✅ 自动同步服务已启用');
                     return;
                 }
-            }
-            
-            // 检查同步服务
-            if (window.syncService && window.syncService.getSyncStatus && window.syncService.getSyncStatus().enabled) {
-                this.autoSyncEnabled = true;
-                console.log('✅ 同步服务已启用');
-                return;
+                
+                // 等待500ms后重试
+                await this.delay(500);
+                retryCount++;
             }
             
             console.log('ℹ️ 未发现自动同步配置');
@@ -331,6 +352,41 @@ class UniversalAutoSync {
                 this.checkAndSync();
             }
         }, 300000); // 5分钟
+    }
+    
+    setupStatusUpdater() {
+        // 每5秒更新一次同步状态
+        setInterval(() => {
+            this.refreshSyncStatus();
+        }, 5000);
+        
+        // 监听存储变化
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'syncConfig') {
+                this.refreshSyncStatus();
+            }
+        });
+        
+        // 监听自定义同步事件
+        window.addEventListener('sync-complete', () => {
+            this.refreshSyncStatus();
+            this.lastSyncTime = Date.now();
+        });
+        
+        window.addEventListener('sync-enabled', () => {
+            this.refreshSyncStatus();
+        });
+    }
+    
+    async refreshSyncStatus() {
+        const oldStatus = this.autoSyncEnabled;
+        await this.checkSyncConfig();
+        
+        // 如果状态发生变化，更新UI
+        if (oldStatus !== this.autoSyncEnabled) {
+            this.updateStatusBadge();
+            console.log(`🔄 同步状态已更新: ${this.autoSyncEnabled ? '已启用' : '未启用'}`);
+        }
     }
     
     setupPageEventListeners() {
