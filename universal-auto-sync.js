@@ -248,33 +248,108 @@ class UniversalAutoSync {
     }
     
     forceRefreshStatus() {
-        console.log('强制刷新同步状态...');
+        console.log('=== 开始强制刷新同步状态 ===');
         
         // 立即检查所有可能的同步状态
         let syncEnabled = false;
+        let detectionMethod = '';
         
-        // 检查window对象
-        if (window.syncService && window.syncService.getSyncStatus) {
+        // 方法1: 检查window.syncService
+        console.log('检查window.syncService:', !!window.syncService);
+        if (window.syncService) {
+            console.log('window.syncService存在，检查getSyncStatus方法:', typeof window.syncService.getSyncStatus);
+            if (window.syncService.getSyncStatus) {
+                try {
+                    const status = window.syncService.getSyncStatus();
+                    console.log('syncService状态:', status);
+                    if (status && status.enabled) {
+                        syncEnabled = true;
+                        detectionMethod = 'syncService';
+                        console.log('✅ 方法1成功: syncService检测到同步已启用');
+                        
+                        // 获取最后同步时间
+                        if (status.lastSync) {
+                            this.lastSyncTime = new Date(status.lastSync).getTime();
+                            console.log('获取到最后同步时间:', status.lastSync);
+                        }
+                    } else {
+                        console.log('❌ 方法1失败: status.enabled =', status ? status.enabled : 'status为空');
+                    }
+                } catch (e) {
+                    console.log('❌ 方法1异常:', e);
+                }
+            }
+        }
+        
+        // 方法2: 检查localStorage中的syncConfig
+        if (!syncEnabled) {
+            console.log('尝试方法2: 检查localStorage syncConfig');
             try {
-                const status = window.syncService.getSyncStatus();
-                if (status && status.enabled) {
-                    syncEnabled = true;
-                    console.log('强制检查: syncService同步已启用');
-                    
-                    // 获取最后同步时间
-                    if (status.lastSync) {
-                        this.lastSyncTime = new Date(status.lastSync).getTime();
+                const syncConfig = localStorage.getItem('syncConfig');
+                console.log('localStorage syncConfig:', syncConfig);
+                if (syncConfig) {
+                    const config = JSON.parse(syncConfig);
+                    console.log('解析后的syncConfig:', config);
+                    if (config && config.enabled) {
+                        syncEnabled = true;
+                        detectionMethod = 'localStorage';
+                        console.log('✅ 方法2成功: localStorage检测到同步已启用');
                     }
                 }
-            } catch (e) {}
+            } catch (e) {
+                console.log('❌ 方法2异常:', e);
+            }
         }
+        
+        // 方法3: 检查是否有同步按钮状态显示为"已启用"
+        if (!syncEnabled) {
+            console.log('尝试方法3: 检查页面同步按钮状态');
+            const syncButtons = document.querySelectorAll('button');
+            for (const button of syncButtons) {
+                if (button.textContent && button.textContent.includes('同步已启用')) {
+                    syncEnabled = true;
+                    detectionMethod = 'button状态';
+                    console.log('✅ 方法3成功: 从按钮状态检测到同步已启用');
+                    break;
+                }
+            }
+        }
+        
+        // 方法4: 检查页面是否有同步日志
+        if (!syncEnabled) {
+            console.log('尝试方法4: 检查是否有同步完成日志');
+            // 如果能看到同步日志，说明同步功能是启用的
+            const logElements = document.querySelectorAll('*');
+            for (const element of logElements) {
+                if (element.textContent && (
+                    element.textContent.includes('同步完成') || 
+                    element.textContent.includes('手动同步完成') ||
+                    element.textContent.includes('数据已更新')
+                )) {
+                    syncEnabled = true;
+                    detectionMethod = '同步日志';
+                    console.log('✅ 方法4成功: 从同步日志检测到同步已启用');
+                    this.lastSyncTime = Date.now(); // 设置当前时间为最后同步时间
+                    break;
+                }
+            }
+        }
+        
+        console.log('=== 检测结果 ===');
+        console.log('同步状态:', syncEnabled);
+        console.log('检测方法:', detectionMethod);
+        console.log('当前autoSyncEnabled:', this.autoSyncEnabled);
         
         // 更新状态
         if (this.autoSyncEnabled !== syncEnabled) {
             this.autoSyncEnabled = syncEnabled;
             this.updateStatusBadge();
-            console.log('强制更新同步状态: ' + (syncEnabled ? '已启用' : '未启用'));
+            console.log('🔄 状态已更新: ' + (syncEnabled ? '已启用' : '未启用') + ' (通过' + detectionMethod + '检测)');
+        } else {
+            console.log('ℹ️ 状态无变化，保持: ' + (syncEnabled ? '已启用' : '未启用'));
         }
+        
+        console.log('=== 强制刷新完成 ===');
     }
     
     setupChangeListeners() {
