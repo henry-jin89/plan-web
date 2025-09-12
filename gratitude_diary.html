@@ -617,61 +617,87 @@
         }
 
         function loadTodayGratitude() {
+            console.log('🔄 开始加载今日感恩记录...');
+            console.log('📅 今日日期:', currentGratitudeData.date);
+            
             const gratitudeHistory = getGratitudeHistory();
             
             // 确保是数组
             if (!Array.isArray(gratitudeHistory)) {
                 console.error('❌ loadTodayGratitude: gratitudeHistory 不是数组');
-                // 创建默认的空白项
+                // 确保默认框为空
                 const gratitudeList = document.getElementById('gratitude-list');
                 if (gratitudeList) {
-                    gratitudeList.innerHTML = '';
-                    for (let i = 0; i < 3; i++) {
-                        addGratitudeItem();
-                    }
+                    const existingInputs = gratitudeList.querySelectorAll('.gratitude-input');
+                    existingInputs.forEach(input => input.value = '');
                 }
                 return;
             }
             
+            console.log('📚 历史记录总数:', gratitudeHistory.length);
             const todayRecord = gratitudeHistory.find(record => record.date === currentGratitudeData.date);
+            console.log('🔍 今日记录查找结果:', todayRecord ? '找到' : '未找到');
             
             if (todayRecord) {
+                console.log('📅 找到今日记录，开始恢复数据:', todayRecord);
                 currentGratitudeData = { ...todayRecord };
                 
-                // 恢复感恩项
+                // 恢复感恩项 - 不清空HTML中的默认框，而是填充内容
                 const gratitudeList = document.getElementById('gratitude-list');
-                gratitudeList.innerHTML = '';
+                const existingInputs = gratitudeList.querySelectorAll('.gratitude-input');
                 
                 if (todayRecord.gratitudes && todayRecord.gratitudes.length > 0) {
+                    console.log('📝 恢复感恩内容:', todayRecord.gratitudes);
+                    
+                    // 先清空现有内容
+                    existingInputs.forEach(input => input.value = '');
+                    
+                    // 填充保存的感恩内容
                     todayRecord.gratitudes.forEach((gratitude, index) => {
-                        const item = document.createElement('div');
-                        item.className = 'gratitude-item';
-                        item.innerHTML = `
-                            <textarea class="gratitude-input" oninput="updateGratitude(this)">${gratitude}</textarea>
-                            <button class="remove-btn" onclick="removeGratitude(this)" title="删除">×</button>
-                        `;
-                        gratitudeList.appendChild(item);
+                        if (index < existingInputs.length) {
+                            // 使用现有的输入框
+                            existingInputs[index].value = gratitude;
+                        } else {
+                            // 需要添加新的输入框
+                            const newItem = addGratitudeItem();
+                            if (newItem) {
+                                const newInput = newItem.querySelector('.gratitude-input');
+                                if (newInput) {
+                                    newInput.value = gratitude;
+                                }
+                            }
+                        }
                     });
+                    
+                    console.log('✅ 感恩内容恢复完成');
                 } else {
-                    // 添加默认的空白项
-                    console.log('➕ 添加默认的3个空白感恩项');
-                    for (let i = 0; i < 3; i++) {
-                        addGratitudeItem();
-                    }
+                    console.log('📝 没有保存的感恩内容，保持默认空白框');
+                    // 清空现有输入框
+                    existingInputs.forEach(input => input.value = '');
                 }
                 
                 // 恢复总结
-                if (todayRecord.summary) {
-                    document.getElementById('gratitude-summary').value = todayRecord.summary;
+                const summaryElement = document.getElementById('gratitude-summary');
+                if (summaryElement && todayRecord.summary) {
+                    summaryElement.value = todayRecord.summary;
+                    console.log('📄 恢复感恩总结:', todayRecord.summary);
                 }
             } else {
-                // 添加默认的空白项
-                console.log('🆕 没有今日记录，创建默认的3个空白感恩项');
+                // 没有今日记录，确保默认框为空
+                console.log('🆕 没有今日记录，保持HTML中的默认空白框');
                 const gratitudeList = document.getElementById('gratitude-list');
-                gratitudeList.innerHTML = '';
-                for (let i = 0; i < 3; i++) {
-                    addGratitudeItem();
+                const existingInputs = gratitudeList.querySelectorAll('.gratitude-input');
+                
+                // 清空所有现有输入框的内容
+                existingInputs.forEach(input => input.value = '');
+                
+                // 清空总结框
+                const summaryElement = document.getElementById('gratitude-summary');
+                if (summaryElement) {
+                    summaryElement.value = '';
                 }
+                
+                console.log('✅ 默认框已清空，准备接受新输入');
             }
         }
 
