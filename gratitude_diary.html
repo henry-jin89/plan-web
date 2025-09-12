@@ -577,12 +577,12 @@
         function autoSaveGratitude() {
             try {
                 console.log('💾 执行自动保存感恩...');
-                const gratitudeHistory = getGratitudeHistory();
+                let gratitudeHistory = getGratitudeHistory();
                 
                 // 双重验证确保是数组
                 if (!Array.isArray(gratitudeHistory)) {
-                    console.error('❌ gratitudeHistory 不是数组:', typeof gratitudeHistory);
-                    throw new Error('历史数据格式错误');
+                    console.warn('⚠️ gratitudeHistory 不是数组，强制初始化为空数组');
+                    gratitudeHistory = [];
                 }
                 
                 console.log('📚 当前历史记录数量:', gratitudeHistory.length);
@@ -718,9 +718,19 @@
                 if (Array.isArray(parsed)) {
                     return parsed;
                 } else {
-                    console.warn('⚠️ 数据不是数组格式，重置为空数组');
-                    localStorage.removeItem('gratitude_history'); // 清除无效数据
-                    return [];
+                    console.warn('⚠️ 数据不是数组格式，尝试转换为数组');
+                    // 尝试将非数组数据转换为数组格式
+                    if (parsed && typeof parsed === 'object') {
+                        // 如果是单个对象，转换为数组
+                        const converted = [parsed];
+                        localStorage.setItem('gratitude_history', JSON.stringify(converted));
+                        console.log('🔄 已将对象转换为数组格式');
+                        return converted;
+                    } else {
+                        console.warn('⚠️ 无法转换，重置为空数组');
+                        localStorage.removeItem('gratitude_history'); // 清除无效数据
+                        return [];
+                    }
                 }
             } catch (error) {
                 console.error('❌ 读取感恩历史失败:', error);
