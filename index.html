@@ -1054,6 +1054,11 @@ window.APP_VERSION = Date.now();
                             
                             logElement.innerHTML += '<div style="color: #4caf50;">[完成] 自动同步已启用！</div>';
                             
+                            // 通知其他组件状态变化
+                            window.dispatchEvent(new CustomEvent('sync-enabled', {
+                                detail: { provider, settings }
+                            }));
+                            
                             // 延迟关闭modal
                             setTimeout(() => {
                                 this.closeSimpleConfig();
