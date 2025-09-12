@@ -301,6 +301,47 @@ class UniversalAutoSync {
             }
         }
         
+        // 方法2.5: 检查所有可能的localStorage同步配置键
+        if (!syncEnabled) {
+            console.log('尝试方法2.5: 扫描所有localStorage项');
+            try {
+                // 检查所有可能存储同步配置的键
+                const possibleKeys = [
+                    'syncConfig',
+                    'syncService_config', 
+                    'autoSyncConfig',
+                    'sync_settings',
+                    'planData_syncConfig'
+                ];
+                
+                for (const key of possibleKeys) {
+                    const value = localStorage.getItem(key);
+                    if (value) {
+                        console.log('发现配置键:', key, '值:', value);
+                        try {
+                            const config = JSON.parse(value);
+                            if (config && (config.enabled || config.isEnabled)) {
+                                syncEnabled = true;
+                                detectionMethod = 'localStorage扫描(' + key + ')';
+                                console.log('✅ 方法2.5成功: 通过' + key + '检测到同步已启用');
+                                break;
+                            }
+                        } catch (e) {
+                            // 不是JSON，检查是否包含enabled关键字
+                            if (value.includes('enabled') || value.includes('true')) {
+                                syncEnabled = true;
+                                detectionMethod = 'localStorage关键字(' + key + ')';
+                                console.log('✅ 方法2.5成功: 通过' + key + '关键字检测到同步已启用');
+                                break;
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                console.log('❌ 方法2.5异常:', e);
+            }
+        }
+        
         // 方法3: 检查是否有同步按钮状态显示为"已启用"
         if (!syncEnabled) {
             console.log('尝试方法3: 检查页面同步按钮状态');
@@ -315,9 +356,49 @@ class UniversalAutoSync {
             }
         }
         
-        // 方法4: 检查页面是否有同步日志
+        // 方法4: 详细扫描localStorage所有项
         if (!syncEnabled) {
-            console.log('尝试方法4: 检查是否有同步完成日志');
+            console.log('尝试方法4: 详细扫描localStorage所有项');
+            try {
+                const allKeys = Object.keys(localStorage);
+                console.log('localStorage中的所有键:', allKeys);
+                
+                for (const key of allKeys) {
+                    const value = localStorage.getItem(key);
+                    // 检查键名或值是否包含同步相关信息
+                    if ((key.toLowerCase().includes('sync') || 
+                         key.toLowerCase().includes('github') || 
+                         key.toLowerCase().includes('drive')) ||
+                        (value && (value.includes('github.com') || 
+                                  value.includes('ghp_') || 
+                                  value.includes('enabled') ||
+                                  value.includes('lastSync')))) {
+                        console.log('发现同步相关项:', key, '→', value.substring(0, 100) + (value.length > 100 ? '...' : ''));
+                        syncEnabled = true;
+                        detectionMethod = 'localStorage深度扫描(' + key + ')';
+                        console.log('✅ 方法4成功: 通过深度扫描检测到同步配置');
+                        
+                        // 尝试从value中提取最后同步时间
+                        if (value.includes('lastSync')) {
+                            try {
+                                const match = value.match(/"lastSync":"([^"]+)"/);
+                                if (match) {
+                                    this.lastSyncTime = new Date(match[1]).getTime();
+                                    console.log('提取到最后同步时间:', match[1]);
+                                }
+                            } catch (e) {}
+                        }
+                        break;
+                    }
+                }
+            } catch (e) {
+                console.log('❌ 方法4异常:', e);
+            }
+        }
+        
+        // 方法5: 检查页面是否有同步日志（兜底方案）
+        if (!syncEnabled) {
+            console.log('尝试方法5: 检查是否有同步完成日志');
             // 如果能看到同步日志，说明同步功能是启用的
             const logElements = document.querySelectorAll('*');
             for (const element of logElements) {
@@ -328,7 +409,7 @@ class UniversalAutoSync {
                 )) {
                     syncEnabled = true;
                     detectionMethod = '同步日志';
-                    console.log('✅ 方法4成功: 从同步日志检测到同步已启用');
+                    console.log('✅ 方法5成功: 从同步日志检测到同步已启用');
                     this.lastSyncTime = Date.now(); // 设置当前时间为最后同步时间
                     break;
                 }
