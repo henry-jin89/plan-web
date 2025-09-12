@@ -55,45 +55,96 @@ class UniversalAutoSync {
     
     async checkSyncConfig() {
         try {
+            console.log('🔍 检查同步配置状态...');
+            
             // 等待主同步服务加载完成
             let retryCount = 0;
-            while (retryCount < 10) {
-                // 检查是否已有同步配置
+            while (retryCount < 15) { // 增加重试次数
+                let syncEnabled = false;
+                
+                // 方法1: 检查localStorage的同步配置
                 const syncConfig = localStorage.getItem('syncConfig');
                 if (syncConfig) {
-                    const config = JSON.parse(syncConfig);
-                    if (config && config.enabled) {
-                        this.autoSyncEnabled = true;
-                        console.log('✅ 发现自动同步配置');
-                        return;
+                    try {
+                        const config = JSON.parse(syncConfig);
+                        if (config && config.enabled) {
+                            syncEnabled = true;
+                            console.log('✅ 方法1: localStorage发现同步配置已启用');
+                        }
+                    } catch (e) {
+                        console.log('⚠️ localStorage同步配置解析失败:', e);
                     }
                 }
                 
-                // 检查同步服务
-                if (window.syncService && window.syncService.getSyncStatus) {
-                    const status = window.syncService.getSyncStatus();
-                    if (status.enabled) {
-                        this.autoSyncEnabled = true;
-                        console.log('✅ 同步服务已启用');
-                        return;
+                // 方法2: 检查window.syncService
+                if (!syncEnabled && window.syncService) {
+                    try {
+                        if (typeof window.syncService.getSyncStatus === 'function') {
+                            const status = window.syncService.getSyncStatus();
+                            if (status && status.enabled) {
+                                syncEnabled = true;
+                                console.log('✅ 方法2: window.syncService检测到同步已启用');
+                            }
+                        }
+                    } catch (e) {
+                        console.log('⚠️ window.syncService检查失败:', e);
                     }
                 }
                 
-                // 检查自动同步服务
-                if (window.autoSyncService && window.autoSyncService.isEnabled) {
+                // 方法3: 检查window.autoSyncService  
+                if (!syncEnabled && window.autoSyncService) {
+                    try {
+                        if (window.autoSyncService.isEnabled) {
+                            syncEnabled = true;
+                            console.log('✅ 方法3: window.autoSyncService检测到同步已启用');
+                        }
+                    } catch (e) {
+                        console.log('⚠️ window.autoSyncService检查失败:', e);
+                    }
+                }
+                
+                // 方法4: 检查是否有同步相关的localStorage项目
+                if (!syncEnabled) {
+                    const syncKeys = Object.keys(localStorage).filter(key => 
+                        key.includes('sync') || key.includes('Sync') || key.includes('github') || key.includes('drive')
+                    );
+                    if (syncKeys.length > 0) {
+                        console.log('📋 发现同步相关存储项:', syncKeys);
+                        // 进一步检查是否真的配置了同步
+                        for (const key of syncKeys) {
+                            try {
+                                const value = localStorage.getItem(key);
+                                if (value && (value.includes('enabled') || value.includes('token') || value.includes('github'))) {
+                                    syncEnabled = true;
+                                    console.log(`✅ 方法4: 通过${key}检测到同步配置`);
+                                    break;
+                                }
+                            } catch (e) {}
+                        }
+                    }
+                }
+                
+                if (syncEnabled) {
                     this.autoSyncEnabled = true;
-                    console.log('✅ 自动同步服务已启用');
+                    this.updateStatusBadge();
                     return;
                 }
                 
                 // 等待500ms后重试
                 await this.delay(500);
                 retryCount++;
+                
+                if (retryCount % 5 === 0) {
+                    console.log(`🔄 第${retryCount}次检查同步状态，继续等待...`);
+                }
             }
             
-            console.log('ℹ️ 未发现自动同步配置');
+            console.log('ℹ️ 经过多次检查，未发现自动同步配置');
+            this.autoSyncEnabled = false;
+            this.updateStatusBadge();
         } catch (error) {
             console.log('⚠️ 检查同步配置时出错:', error);
+            this.autoSyncEnabled = false;
         }
     }
     
@@ -178,6 +229,9 @@ class UniversalAutoSync {
     }
     
     showSyncMenu() {
+        // 先强制刷新一次状态
+        this.forceRefreshStatus();
+        
         // 移除已存在的菜单
         const existingMenu = document.getElementById('sync-menu');
         if (existingMenu) {
@@ -254,6 +308,19 @@ class UniversalAutoSync {
                     transition: all 0.3s ease;
                 " onmouseover="this.style.background='#e0e0e0'" onmouseout="this.style.background='#f5f5f5'">
                     ⚙️ 同步设置
+                </button>
+                
+                <button onclick="universalAutoSync.forceRefreshStatus(); universalAutoSync.showSyncMenu();" style="
+                    background: #ff9800;
+                    color: white;
+                    border: 1px solid #ff9800;
+                    padding: 8px 12px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    transition: all 0.3s ease;
+                " onmouseover="this.style.background='#f57c00'" onmouseout="this.style.background='#ff9800'">
+                    🔄 刷新状态
                 </button>
             </div>
         `;
@@ -386,6 +453,65 @@ class UniversalAutoSync {
         if (oldStatus !== this.autoSyncEnabled) {
             this.updateStatusBadge();
             console.log(`🔄 同步状态已更新: ${this.autoSyncEnabled ? '已启用' : '未启用'}`);
+        }
+    }
+    
+    forceRefreshStatus() {
+        console.log('🔄 强制刷新同步状态...');
+        
+        // 立即检查所有可能的同步状态
+        let syncEnabled = false;
+        
+        // 检查localStorage
+        try {
+            const syncConfig = localStorage.getItem('syncConfig');
+            if (syncConfig) {
+                const config = JSON.parse(syncConfig);
+                if (config && config.enabled) {
+                    syncEnabled = true;
+                    console.log('💡 强制检查: localStorage同步已启用');
+                }
+            }
+        } catch (e) {}
+        
+        // 检查window对象
+        if (!syncEnabled) {
+            if (window.syncService && window.syncService.getSyncStatus) {
+                try {
+                    const status = window.syncService.getSyncStatus();
+                    if (status && status.enabled) {
+                        syncEnabled = true;
+                        console.log('💡 强制检查: syncService同步已启用');
+                        
+                        // 获取最后同步时间
+                        if (status.lastSync) {
+                            this.lastSyncTime = new Date(status.lastSync).getTime();
+                        }
+                    }
+                } catch (e) {}
+            }
+        }
+        
+        // 检查是否有GitHub相关配置
+        if (!syncEnabled) {
+            try {
+                const keys = Object.keys(localStorage);
+                for (const key of keys) {
+                    const value = localStorage.getItem(key);
+                    if (value && (value.includes('github.com') || value.includes('ghp_') || value.includes('"enabled":true'))) {
+                        syncEnabled = true;
+                        console.log('💡 强制检查: 通过GitHub配置检测到同步已启用');
+                        break;
+                    }
+                }
+            } catch (e) {}
+        }
+        
+        // 更新状态
+        if (this.autoSyncEnabled !== syncEnabled) {
+            this.autoSyncEnabled = syncEnabled;
+            this.updateStatusBadge();
+            console.log(`⚡ 强制更新同步状态: ${syncEnabled ? '已启用' : '未启用'}`);
         }
     }
     
