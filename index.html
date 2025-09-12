@@ -478,6 +478,758 @@ window.APP_VERSION = Date.now();
     <script src="sync-providers.js?v=20241211"></script>
     <script src="google-drive-sync.js?v=20241211"></script>
     <script src="web-main.js?v=20241211"></script>
+    
+    <!-- 自动同步增强脚本 -->
+    <script>
+        // 智能自动同步管理器
+        class SmartAutoSync {
+            constructor() {
+                this.isInitialized = false;
+                this.autoSyncEnabled = false;
+                this.quickSetupMode = false;
+                this.init();
+            }
+            
+            async init() {
+                if (this.isInitialized) return;
+                
+                console.log('🚀 启动智能自动同步管理器...');
+                
+                // 检查是否已有同步配置
+                await this.checkExistingConfig();
+                
+                // 如果没有配置，显示快速设置引导
+                if (!this.autoSyncEnabled) {
+                    this.showQuickSetupGuide();
+                } else {
+                    this.showSyncStatus();
+                }
+                
+                this.isInitialized = true;
+            }
+            
+            async checkExistingConfig() {
+                try {
+                    // 检查本地存储的同步配置
+                    const syncConfig = localStorage.getItem('syncConfig');
+                    if (syncConfig) {
+                        const config = JSON.parse(syncConfig);
+                        if (config && config.enabled) {
+                            this.autoSyncEnabled = true;
+                            console.log('✅ 发现已配置的自动同步');
+                            return;
+                        }
+                    }
+                    
+                    // 检查是否有自动同步服务正在运行
+                    if (window.autoSyncService && window.autoSyncService.isEnabled) {
+                        this.autoSyncEnabled = true;
+                        console.log('✅ 自动同步服务正在运行');
+                        return;
+                    }
+                    
+                    console.log('ℹ️ 未发现自动同步配置');
+                } catch (error) {
+                    console.log('⚠️ 检查同步配置时出错:', error);
+                }
+            }
+            
+            showQuickSetupGuide() {
+                // 在页面顶部添加快速设置提示条
+                const existingGuide = document.getElementById('quick-sync-guide');
+                if (existingGuide) return;
+                
+                const guideBar = document.createElement('div');
+                guideBar.id = 'quick-sync-guide';
+                guideBar.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    background: linear-gradient(135deg, #667eea, #764ba2);
+                    color: white;
+                    padding: 12px 20px;
+                    z-index: 9999;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+                    animation: slideDown 0.5s ease;
+                `;
+                
+                guideBar.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 20px; height: 20px; background: #ffc107; border-radius: 50%; display: flex; align-items: center; justify-content: center; animation: pulse 2s infinite;">
+                            ⚡
+                        </div>
+                        <span style="font-weight: 500;">
+                            🚀 想要在所有设备间自动同步数据吗？
+                        </span>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="smartAutoSync.startQuickSetup()" style="
+                            background: rgba(255,255,255,0.2);
+                            border: 1px solid rgba(255,255,255,0.3);
+                            color: white;
+                            padding: 6px 16px;
+                            border-radius: 20px;
+                            cursor: pointer;
+                            font-size: 14px;
+                            transition: all 0.3s ease;
+                        " onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                            🔧 快速设置
+                        </button>
+                        <button onclick="smartAutoSync.dismissGuide()" style="
+                            background: transparent;
+                            border: 1px solid rgba(255,255,255,0.3);
+                            color: white;
+                            padding: 6px 16px;
+                            border-radius: 20px;
+                            cursor: pointer;
+                            font-size: 14px;
+                            transition: all 0.3s ease;
+                        " onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">
+                            ❌ 稍后
+                        </button>
+                    </div>
+                `;
+                
+                // 添加CSS动画
+                if (!document.getElementById('quick-sync-style')) {
+                    const style = document.createElement('style');
+                    style.id = 'quick-sync-style';
+                    style.textContent = `
+                        @keyframes slideDown {
+                            from { transform: translateY(-100%); }
+                            to { transform: translateY(0); }
+                        }
+                        @keyframes pulse {
+                            0%, 100% { transform: scale(1); }
+                            50% { transform: scale(1.1); }
+                        }
+                        .main-content {
+                            transition: margin-top 0.5s ease;
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+                
+                document.body.insertBefore(guideBar, document.body.firstChild);
+                
+                // 调整主内容区域边距
+                const mainContent = document.querySelector('.main-content');
+                if (mainContent) {
+                    mainContent.style.marginTop = '70px';
+                }
+                
+                // 5分钟后自动隐藏（如果用户没有操作）
+                setTimeout(() => {
+                    if (document.getElementById('quick-sync-guide')) {
+                        this.dismissGuide();
+                    }
+                }, 300000);
+            }
+            
+            startQuickSetup() {
+                this.quickSetupMode = true;
+                this.dismissGuide();
+                this.showQuickSetupModal();
+            }
+            
+            showQuickSetupModal() {
+                const modal = document.createElement('div');
+                modal.id = 'quick-setup-modal';
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0,0,0,0.5);
+                    z-index: 10000;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 20px;
+                    animation: fadeIn 0.3s ease;
+                `;
+                
+                modal.innerHTML = `
+                    <div style="
+                        background: white;
+                        padding: 30px;
+                        border-radius: 15px;
+                        max-width: 500px;
+                        width: 100%;
+                        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                        animation: scaleIn 0.3s ease;
+                    ">
+                        <h2 style="text-align: center; margin-bottom: 20px; color: #333; font-size: 24px;">
+                            🚀 快速设置自动同步
+                        </h2>
+                        
+                        <p style="text-align: center; color: #666; margin-bottom: 30px; line-height: 1.6;">
+                            选择一种同步方式，让您的计划数据在所有设备间自动保持同步
+                        </p>
+                        
+                        <div style="display: grid; gap: 15px;">
+                            <button onclick="smartAutoSync.setupProvider('github')" style="
+                                display: flex;
+                                align-items: center;
+                                gap: 15px;
+                                padding: 15px;
+                                border: 2px solid #e0e0e0;
+                                border-radius: 10px;
+                                background: white;
+                                cursor: pointer;
+                                transition: all 0.3s ease;
+                                width: 100%;
+                                text-align: left;
+                            " onmouseover="this.style.borderColor='#1976d2'; this.style.background='#f5f5f5'" onmouseout="this.style.borderColor='#e0e0e0'; this.style.background='white'">
+                                <div style="width: 40px; height: 40px; background: #333; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 20px;">
+                                    📱
+                                </div>
+                                <div>
+                                    <div style="font-weight: 600; color: #333; margin-bottom: 4px;">GitHub 同步</div>
+                                    <div style="font-size: 14px; color: #666;">免费可靠，支持版本控制（推荐）</div>
+                                </div>
+                            </button>
+                            
+                            <button onclick="smartAutoSync.setupProvider('drive')" style="
+                                display: flex;
+                                align-items: center;
+                                gap: 15px;
+                                padding: 15px;
+                                border: 2px solid #e0e0e0;
+                                border-radius: 10px;
+                                background: white;
+                                cursor: pointer;
+                                transition: all 0.3s ease;
+                                width: 100%;
+                                text-align: left;
+                            " onmouseover="this.style.borderColor='#1976d2'; this.style.background='#f5f5f5'" onmouseout="this.style.borderColor='#e0e0e0'; this.style.background='white'">
+                                <div style="width: 40px; height: 40px; background: #4285f4; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 20px;">
+                                    ☁️
+                                </div>
+                                <div>
+                                    <div style="font-weight: 600; color: #333; margin-bottom: 4px;">Google Drive</div>
+                                    <div style="font-size: 14px; color: #666;">简单易用，15GB免费空间</div>
+                                </div>
+                            </button>
+                            
+                            <button onclick="smartAutoSync.setupProvider('lenovo')" style="
+                                display: flex;
+                                align-items: center;
+                                gap: 15px;
+                                padding: 15px;
+                                border: 2px solid #e0e0e0;
+                                border-radius: 10px;
+                                background: white;
+                                cursor: pointer;
+                                transition: all 0.3s ease;
+                                width: 100%;
+                                text-align: left;
+                            " onmouseover="this.style.borderColor='#1976d2'; this.style.background='#f5f5f5'" onmouseout="this.style.borderColor='#e0e0e0'; this.style.background='white'">
+                                <div style="width: 40px; height: 40px; background: #e60012; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 20px;">
+                                    🏠
+                                </div>
+                                <div>
+                                    <div style="font-weight: 600; color: #333; margin-bottom: 4px;">联想个人云</div>
+                                    <div style="font-size: 14px; color: #666;">私有安全，高速稳定</div>
+                                </div>
+                            </button>
+                        </div>
+                        
+                        <div style="text-align: center; margin-top: 25px;">
+                            <button onclick="smartAutoSync.closeQuickSetup()" style="
+                                background: #f5f5f5;
+                                border: 1px solid #e0e0e0;
+                                color: #666;
+                                padding: 10px 20px;
+                                border-radius: 6px;
+                                cursor: pointer;
+                                margin-right: 10px;
+                            ">
+                                暂时跳过
+                            </button>
+                            <button onclick="smartAutoSync.openDetailedSettings()" style="
+                                background: #1976d2;
+                                border: 1px solid #1976d2;
+                                color: white;
+                                padding: 10px 20px;
+                                border-radius: 6px;
+                                cursor: pointer;
+                            ">
+                                高级设置
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                // 添加modal动画
+                if (!document.getElementById('modal-animations')) {
+                    const style = document.createElement('style');
+                    style.id = 'modal-animations';
+                    style.textContent = `
+                        @keyframes fadeIn {
+                            from { opacity: 0; }
+                            to { opacity: 1; }
+                        }
+                        @keyframes scaleIn {
+                            from { transform: scale(0.8); opacity: 0; }
+                            to { transform: scale(1); opacity: 1; }
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+                
+                document.body.appendChild(modal);
+            }
+            
+            setupProvider(provider) {
+                console.log('设置同步提供商:', provider);
+                this.closeQuickSetup();
+                
+                // 显示简化的配置界面
+                this.showSimpleConfig(provider);
+            }
+            
+            showSimpleConfig(provider) {
+                const configData = {
+                    github: {
+                        title: 'GitHub 同步设置',
+                        icon: '📱',
+                        color: '#333',
+                        fields: [
+                            { 
+                                name: 'token', 
+                                label: 'Personal Access Token', 
+                                type: 'password', 
+                                placeholder: 'ghp_xxxxxxxxxxxxxxxxxxxx',
+                                help: '在 GitHub Settings → Developer settings → Personal access tokens 创建'
+                            },
+                            { 
+                                name: 'owner', 
+                                label: '用户名', 
+                                type: 'text', 
+                                placeholder: 'your-username',
+                                help: '您的GitHub用户名'
+                            },
+                            { 
+                                name: 'repo', 
+                                label: '仓库名', 
+                                type: 'text', 
+                                placeholder: 'plan-data',
+                                help: '用于存储数据的仓库（建议私有仓库）'
+                            }
+                        ]
+                    },
+                    drive: {
+                        title: 'Google Drive 设置',
+                        icon: '☁️',
+                        color: '#4285f4',
+                        fields: [
+                            { 
+                                name: 'accessToken', 
+                                label: '访问令牌', 
+                                type: 'password', 
+                                placeholder: '点击下方按钮获取',
+                                help: '通过Google OAuth获取'
+                            }
+                        ]
+                    },
+                    lenovo: {
+                        title: '联想个人云设置',
+                        icon: '🏠',
+                        color: '#e60012',
+                        fields: [
+                            { 
+                                name: 'url', 
+                                label: 'WebDAV地址', 
+                                type: 'url', 
+                                placeholder: 'http://192.168.1.100:5005',
+                                help: '联想个人云的WebDAV访问地址'
+                            },
+                            { 
+                                name: 'username', 
+                                label: '用户名', 
+                                type: 'text', 
+                                placeholder: 'planSync',
+                                help: '在联想云上创建的用户账号'
+                            },
+                            { 
+                                name: 'password', 
+                                label: '密码', 
+                                type: 'password', 
+                                placeholder: '用户密码',
+                                help: '对应用户的密码'
+                            }
+                        ]
+                    }
+                };
+                
+                const config = configData[provider];
+                if (!config) return;
+                
+                const modal = document.createElement('div');
+                modal.id = 'simple-config-modal';
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0,0,0,0.5);
+                    z-index: 10001;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 20px;
+                    animation: fadeIn 0.3s ease;
+                `;
+                
+                modal.innerHTML = `
+                    <div style="
+                        background: white;
+                        padding: 30px;
+                        border-radius: 15px;
+                        max-width: 500px;
+                        width: 100%;
+                        max-height: 80vh;
+                        overflow-y: auto;
+                        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                        animation: scaleIn 0.3s ease;
+                    ">
+                        <div style="text-align: center; margin-bottom: 25px;">
+                            <div style="width: 60px; height: 60px; background: ${config.color}; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 30px; margin: 0 auto 15px;">
+                                ${config.icon}
+                            </div>
+                            <h2 style="margin: 0; color: #333; font-size: 24px;">${config.title}</h2>
+                        </div>
+                        
+                        <div id="config-fields">
+                            ${config.fields.map((field, index) => `
+                                <div style="margin-bottom: 20px;">
+                                    <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #333;">
+                                        ${field.label}
+                                    </label>
+                                    <input 
+                                        type="${field.type}" 
+                                        id="field-${field.name}" 
+                                        placeholder="${field.placeholder}"
+                                        style="
+                                            width: 100%;
+                                            padding: 12px;
+                                            border: 2px solid #e0e0e0;
+                                            border-radius: 8px;
+                                            font-size: 14px;
+                                            box-sizing: border-box;
+                                            transition: border-color 0.3s ease;
+                                        "
+                                        onfocus="this.style.borderColor='#1976d2'"
+                                        onblur="this.style.borderColor='#e0e0e0'"
+                                    >
+                                    <div style="font-size: 12px; color: #666; margin-top: 5px;">
+                                        ${field.help}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        
+                        ${provider === 'drive' ? `
+                            <div style="text-align: center; margin: 20px 0;">
+                                <button onclick="smartAutoSync.authenticateGoogleDrive()" style="
+                                    background: #4285f4;
+                                    border: none;
+                                    color: white;
+                                    padding: 10px 20px;
+                                    border-radius: 6px;
+                                    cursor: pointer;
+                                    font-size: 14px;
+                                ">
+                                    🔐 获取Google Drive授权
+                                </button>
+                            </div>
+                        ` : ''}
+                        
+                        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 25px;">
+                            <button onclick="smartAutoSync.closeSimpleConfig()" style="
+                                background: #f5f5f5;
+                                border: 1px solid #e0e0e0;
+                                color: #666;
+                                padding: 12px 20px;
+                                border-radius: 6px;
+                                cursor: pointer;
+                            ">
+                                取消
+                            </button>
+                            <button onclick="smartAutoSync.testAndSaveConfig('${provider}')" style="
+                                background: #4caf50;
+                                border: 1px solid #4caf50;
+                                color: white;
+                                padding: 12px 20px;
+                                border-radius: 6px;
+                                cursor: pointer;
+                            ">
+                                🧪 测试并保存
+                            </button>
+                        </div>
+                        
+                        <div id="config-log" style="
+                            margin-top: 20px;
+                            padding: 15px;
+                            background: #f8f9fa;
+                            border-radius: 8px;
+                            font-family: monospace;
+                            font-size: 12px;
+                            max-height: 150px;
+                            overflow-y: auto;
+                            display: none;
+                        "></div>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+            }
+            
+            async testAndSaveConfig(provider) {
+                const logElement = document.getElementById('config-log');
+                logElement.style.display = 'block';
+                logElement.innerHTML = '<div style="color: #1976d2;">[测试] 正在验证配置...</div>';
+                
+                // 收集配置数据
+                const settings = {};
+                const fields = document.querySelectorAll('#config-fields input');
+                fields.forEach(field => {
+                    const name = field.id.replace('field-', '');
+                    settings[name] = field.value.trim();
+                });
+                
+                try {
+                    // 验证必填字段
+                    let valid = true;
+                    if (provider === 'github') {
+                        if (!settings.token || !settings.owner || !settings.repo) {
+                            valid = false;
+                            logElement.innerHTML += '<div style="color: #f44336;">[错误] 请填写所有必需字段</div>';
+                        }
+                    } else if (provider === 'lenovo') {
+                        if (!settings.url || !settings.username || !settings.password) {
+                            valid = false;
+                            logElement.innerHTML += '<div style="color: #f44336;">[错误] 请填写所有必需字段</div>';
+                        }
+                    }
+                    
+                    if (!valid) return;
+                    
+                    // 测试连接
+                    logElement.innerHTML += '<div style="color: #1976d2;">[测试] 正在测试连接...</div>';
+                    
+                    let provider_instance;
+                    switch(provider) {
+                        case 'github':
+                            settings.branch = settings.branch || 'main';
+                            provider_instance = new GitHubSyncProvider(settings);
+                            break;
+                        case 'drive':
+                            provider_instance = new GoogleDriveSyncProvider(settings);
+                            break;
+                        case 'lenovo':
+                            settings.timeout = 30000;
+                            settings.enableBackup = true;
+                            provider_instance = new LenovoCloudSyncProvider(settings);
+                            break;
+                    }
+                    
+                    const testResult = await provider_instance.testConnection();
+                    if (testResult) {
+                        logElement.innerHTML += '<div style="color: #4caf50;">[成功] 连接测试通过！</div>';
+                        
+                        // 保存配置
+                        logElement.innerHTML += '<div style="color: #1976d2;">[保存] 正在保存配置...</div>';
+                        
+                        if (window.syncService) {
+                            await window.syncService.enableSync(provider, settings);
+                            this.autoSyncEnabled = true;
+                            
+                            logElement.innerHTML += '<div style="color: #4caf50;">[完成] 自动同步已启用！</div>';
+                            
+                            // 延迟关闭modal
+                            setTimeout(() => {
+                                this.closeSimpleConfig();
+                                this.showSuccessMessage(provider);
+                            }, 2000);
+                        } else {
+                            throw new Error('同步服务未初始化');
+                        }
+                    } else {
+                        throw new Error('连接测试失败');
+                    }
+                    
+                } catch (error) {
+                    logElement.innerHTML += \`<div style="color: #f44336;">[错误] \${error.message}</div>\`;
+                    
+                    // 提供错误诊断
+                    if (provider === 'github') {
+                        if (error.message.includes('401')) {
+                            logElement.innerHTML += '<div style="color: #ff9800;">[建议] Token可能无效或已过期</div>';
+                        } else if (error.message.includes('404')) {
+                            logElement.innerHTML += '<div style="color: #ff9800;">[建议] 仓库不存在，请先创建仓库</div>';
+                        }
+                    }
+                }
+            }
+            
+            showSuccessMessage(provider) {
+                const providerNames = {
+                    github: 'GitHub',
+                    drive: 'Google Drive',
+                    lenovo: '联想个人云'
+                };
+                
+                const message = document.createElement('div');
+                message.style.cssText = `
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: white;
+                    padding: 30px;
+                    border-radius: 15px;
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                    z-index: 10002;
+                    text-align: center;
+                    animation: scaleIn 0.3s ease;
+                `;
+                
+                message.innerHTML = `
+                    <div style="color: #4caf50; font-size: 48px; margin-bottom: 15px;">✅</div>
+                    <h3 style="margin: 0 0 10px 0; color: #333;">设置完成！</h3>
+                    <p style="margin: 0; color: #666; line-height: 1.5;">
+                        ${providerNames[provider]} 自动同步已启用<br>
+                        您的数据现在会在所有设备间自动保持同步
+                    </p>
+                `;
+                
+                document.body.appendChild(message);
+                
+                // 3秒后自动移除
+                setTimeout(() => {
+                    if (message.parentNode) {
+                        message.parentNode.removeChild(message);
+                    }
+                    // 刷新同步状态显示
+                    this.showSyncStatus();
+                }, 3000);
+            }
+            
+            showSyncStatus() {
+                // 移除设置引导
+                this.dismissGuide();
+                
+                // 显示同步状态栏
+                const existingBar = document.getElementById('syncStatusBar');
+                if (existingBar) {
+                    existingBar.style.display = 'flex';
+                }
+            }
+            
+            dismissGuide() {
+                const guide = document.getElementById('quick-sync-guide');
+                if (guide) {
+                    guide.style.animation = 'slideUp 0.5s ease forwards';
+                    setTimeout(() => {
+                        if (guide.parentNode) {
+                            guide.parentNode.removeChild(guide);
+                        }
+                        // 恢复主内容区域边距
+                        const mainContent = document.querySelector('.main-content');
+                        if (mainContent) {
+                            mainContent.style.marginTop = '40px';
+                        }
+                    }, 500);
+                }
+                
+                // 添加slideUp动画
+                if (!document.getElementById('slideup-animation')) {
+                    const style = document.createElement('style');
+                    style.id = 'slideup-animation';
+                    style.textContent = `
+                        @keyframes slideUp {
+                            from { transform: translateY(0); opacity: 1; }
+                            to { transform: translateY(-100%); opacity: 0; }
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+            }
+            
+            closeQuickSetup() {
+                const modal = document.getElementById('quick-setup-modal');
+                if (modal && modal.parentNode) {
+                    modal.parentNode.removeChild(modal);
+                }
+            }
+            
+            closeSimpleConfig() {
+                const modal = document.getElementById('simple-config-modal');
+                if (modal && modal.parentNode) {
+                    modal.parentNode.removeChild(modal);
+                }
+            }
+            
+            openDetailedSettings() {
+                this.closeQuickSetup();
+                window.open('sync-settings.html', '_blank');
+            }
+            
+            // Google Drive OAuth简化版
+            async authenticateGoogleDrive() {
+                const clientId = prompt('请输入您的Google Drive API客户端ID\\n（在Google Cloud Console中获取）:');
+                if (!clientId) return;
+                
+                const redirectUri = window.location.origin + window.location.pathname;
+                const scope = 'https://www.googleapis.com/auth/drive.file';
+                
+                const authUrl = \`https://accounts.google.com/o/oauth2/v2/auth?\` +
+                    \`client_id=\${encodeURIComponent(clientId)}&\` +
+                    \`redirect_uri=\${encodeURIComponent(redirectUri)}&\` +
+                    \`scope=\${encodeURIComponent(scope)}&\` +
+                    \`response_type=token&\` +
+                    \`state=google_drive_auth\`;
+                
+                const authWindow = window.open(authUrl, 'google_auth', 'width=500,height=600');
+                
+                const checkAuth = setInterval(() => {
+                    try {
+                        if (authWindow.closed) {
+                            clearInterval(checkAuth);
+                            return;
+                        }
+                        
+                        const url = authWindow.location.href;
+                        if (url.includes('access_token=')) {
+                            const token = url.match(/access_token=([^&]+)/)[1];
+                            document.getElementById('field-accessToken').value = token;
+                            authWindow.close();
+                            clearInterval(checkAuth);
+                            
+                            const logElement = document.getElementById('config-log');
+                            if (logElement) {
+                                logElement.style.display = 'block';
+                                logElement.innerHTML = '<div style="color: #4caf50;">[授权] Google Drive 授权成功！</div>';
+                            }
+                        }
+                    } catch (e) {
+                        // 跨域限制，忽略错误
+                    }
+                }, 1000);
+            }
+        }
+        
+        // 创建全局实例
+        window.smartAutoSync = new SmartAutoSync();
+    </script>
     <script>
         // 同步功能初始化
         document.addEventListener('DOMContentLoaded', function() {
