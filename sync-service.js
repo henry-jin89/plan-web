@@ -249,9 +249,14 @@ class SyncService {
         const otherKeys = [
             'habitTrackerData',
             'gratitude_history',
-            'mood_tracker_data',
+            'mood_history', // 修复：mood_tracker.html实际使用的键名
+            'mood_tracker_data', // 保留兼容性
             'reflection_templates',
-            'customTemplates'
+            'reflection_history',
+            'reflection_to_dayplan', // 反思到日计划的数据传递
+            'monthlyEvents',
+            'customTemplates',
+            'syncConfig' // 同步配置（跨设备同步配置）
         ];
         
         otherKeys.forEach(key => {
@@ -262,6 +267,28 @@ class SyncService {
                 } catch (error) {
                     console.error(`解析${key}数据失败:`, error);
                 }
+            }
+        });
+
+        // 获取动态键名数据（如reflection_YYYY-MM-DD）
+        const dynamicPatterns = [
+            'reflection_' // reflection_2024-01-01 格式
+        ];
+        
+        dynamicPatterns.forEach(pattern => {
+            const dynamicData = {};
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith(pattern)) {
+                    try {
+                        dynamicData[key] = JSON.parse(localStorage.getItem(key));
+                    } catch (error) {
+                        console.error(`解析动态数据${key}失败:`, error);
+                    }
+                }
+            });
+            if (Object.keys(dynamicData).length > 0) {
+                data.dynamicData = data.dynamicData || {};
+                data.dynamicData[pattern] = dynamicData;
             }
         });
 
@@ -286,9 +313,14 @@ class SyncService {
             const otherKeys = [
                 'habitTrackerData',
                 'gratitude_history',
-                'mood_tracker_data',
+                'mood_history', // 修复：mood_tracker.html实际使用的键名
+                'mood_tracker_data', // 保留兼容性
                 'reflection_templates',
-                'customTemplates'
+                'reflection_history',
+                'reflection_to_dayplan', // 反思到日计划的数据传递
+                'monthlyEvents',
+                'customTemplates',
+                'syncConfig' // 同步配置（跨设备同步配置）
             ];
             
             otherKeys.forEach(key => {
@@ -296,6 +328,16 @@ class SyncService {
                     localStorage.setItem(key, JSON.stringify(data[key]));
                 }
             });
+
+            // 更新动态数据
+            if (data.dynamicData) {
+                Object.keys(data.dynamicData).forEach(pattern => {
+                    const patternData = data.dynamicData[pattern];
+                    Object.keys(patternData).forEach(key => {
+                        localStorage.setItem(key, JSON.stringify(patternData[key]));
+                    });
+                });
+            }
 
             console.log('✅ 本地数据已更新');
             
@@ -453,9 +495,14 @@ class ConflictResolver {
         const dataKeys = [
             'habitTrackerData',
             'gratitude_history',
-            'mood_tracker_data',
+            'mood_history', // 修复：mood_tracker.html实际使用的键名
+            'mood_tracker_data', // 保留兼容性
             'reflection_templates',
-            'customTemplates'
+            'reflection_history',
+            'reflection_to_dayplan', // 反思到日计划的数据传递
+            'monthlyEvents',
+            'customTemplates',
+            'syncConfig' // 同步配置（跨设备同步配置）
         ];
 
         dataKeys.forEach(key => {
@@ -463,6 +510,21 @@ class ConflictResolver {
                 merged[key] = this.mergeGenericData(localData[key], remoteData[key]);
             }
         });
+
+        // 合并动态数据
+        if (localData.dynamicData || remoteData.dynamicData) {
+            merged.dynamicData = {};
+            const allPatterns = new Set([
+                ...Object.keys(localData.dynamicData || {}),
+                ...Object.keys(remoteData.dynamicData || {})
+            ]);
+            
+            allPatterns.forEach(pattern => {
+                const localPattern = localData.dynamicData?.[pattern] || {};
+                const remotePattern = remoteData.dynamicData?.[pattern] || {};
+                merged.dynamicData[pattern] = this.mergeDateBasedData(localPattern, remotePattern);
+            });
+        }
 
         console.log('✅ 数据合并完成');
         return merged;
