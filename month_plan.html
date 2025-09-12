@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <script src="config.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>月计划 - 智能计划管理系统</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="container">
+        <!-- 页面头部 -->
+        <div class="page-header">
+            <a href="index.html" class="back-to-home">← 返回主页</a>
+            <h1 class="page-title">📈 月计划管理</h1>
+            <div style="display: flex; gap: 8px;">
+                <a href="week_plan.html" class="btn-main" style="font-size: 0.9em;">周计划</a>
+                <a href="quarter_plan.html" class="btn-main" style="font-size: 0.9em;">季度计划</a>
+            </div>
+        </div>
+
+        <!-- 智能控制栏 -->
+        <div class="plan-smartbar">
+            <button type="button" class="ai-assistant-btn">🤖 AI助手</button>
+            
+            <div class="progress-bar" style="flex: 1;">
+                <div style="background:#eee;border-radius:8px;height:18px;overflow:hidden;">
+                    <div id="month-progress-inner" class="progress-inner" style="width: 0%;"></div>
+                </div>
+                <div style="font-size:0.9em;color:#666;margin-top:3px;">
+                    <span id="month-progress-text">本月进度 0%</span>
+                </div>
+            </div>
+            
+            <button type="button" id="month-prev">←</button>
+            <input type="month" id="month_date" style="width:150px;padding:4px;">
+            <button type="button" id="month-next">→</button>
+        </div>
+
+        <!-- 操作栏 -->
+        <div class="save-bar">
+            <button type="button" class="save-btn" data-type="month">💾 保存计划</button>
+            <button type="button" class="save-view-btn" data-type="month">📚 历史记录</button>
+            <button type="button" id="month-analytics-btn">📊 月度分析</button>
+            <button type="button" id="month-template-btn">📋 模板插入</button>
+            <button type="button" id="month-carry-over-btn" style="background: #fff3e0; color: #ef6c00;" title="将本月未完成的任务结转到下月预览">📋 结转任务</button>
+        </div>
+
+        <!-- 月度目标 -->
+        <div class="plan-item-header">
+            <label>🎯 月度核心目标</label>
+        </div>
+        <textarea id="month_goals" placeholder="设定本月要达成的主要目标...
+
+例如：
+• 完成重要项目里程碑
+• 学习新技能并达到特定水平
+• 改善工作或生活习惯
+• 建立新的人际关系或合作" style="min-height: 120px;"></textarea>
+
+        <!-- 里程碑规划 -->
+        <div class="plan-item-header">
+            <label>🏁 重要里程碑</label>
+        </div>
+        <div id="month_milestones" class="todo-list-container" data-placeholder="[ ] 本月的重要里程碑和关键节点..."></div>
+
+        <!-- 习惯培养 -->
+        <div class="plan-item-header">
+            <label>🔄 习惯培养计划</label>
+        </div>
+        <div id="month_habits" class="todo-list-container" data-placeholder="[ ] 本月要培养或改善的习惯..."></div>
+
+        <!-- 学习成长 -->
+        <div class="plan-item-header">
+            <label>📚 学习成长规划</label>
+        </div>
+        <textarea id="month_learning" placeholder="本月的学习和成长计划...
+
+可以包括：
+• 专业技能提升
+• 新知识领域探索
+• 读书学习目标
+• 培训课程安排" style="min-height: 100px;"></textarea>
+
+        <!-- 月度反思 -->
+        <div class="plan-item-header">
+            <label>📝 月度总结与反思</label>
+        </div>
+        <textarea id="month_reflection" placeholder="月度总结与反思...
+
+回顾内容：
+• 本月达成的重要目标
+• 遇到的挑战和学到的经验
+• 个人成长和进步
+• 下月需要改进的方向" style="min-height: 120px;"></textarea>
+
+        <!-- 下月预览 -->
+        <div class="plan-item-header">
+            <label>🔮 下月预览规划</label>
+        </div>
+        <textarea id="next_month_preview" placeholder="下月计划预览和准备...
+
+可以包括：
+• 从本月结转的未完成任务
+• 下月的重要目标和计划
+• 需要提前准备的事项
+• 新的机会和挑战" style="min-height: 150px;"></textarea>
+    </div>
+
+    <script src="common.js"></script>
+    <script>
+        // 月计划简化实现
+        let currentMonth = new Date().toISOString().slice(0, 7);
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initMonthPlan();
+        });
+
+        function initMonthPlan() {
+            document.getElementById('month_date').value = currentMonth;
+            
+            // 启用待办事项功能
+            const containers = document.querySelectorAll('.todo-list-container');
+            containers.forEach(container => {
+                TodoUtils.enableTodoFunctionality(container);
+            });
+            
+            // 设置事件监听器
+            document.getElementById('month-prev').addEventListener('click', () => navigateMonth(-1));
+            document.getElementById('month-next').addEventListener('click', () => navigateMonth(1));
+            document.getElementById('month_date').addEventListener('change', handleMonthChange);
+            document.querySelector('.save-btn').addEventListener('click', saveMonthPlan);
+            document.querySelector('.save-view-btn').addEventListener('click', showMonthHistory);
+            document.getElementById('month-analytics-btn').addEventListener('click', showMonthAnalytics);
+            document.getElementById('month-template-btn').addEventListener('click', showTemplateSelector);
+            document.getElementById('month-carry-over-btn').addEventListener('click', carryOverMonthTasks);
+            
+            loadMonthPlan();
+            updateProgress();
+        }
+
+        function navigateMonth(months) {
+            const date = new Date(currentMonth + '-01');
+            date.setMonth(date.getMonth() + months);
+            currentMonth = date.toISOString().slice(0, 7);
+            document.getElementById('month_date').value = currentMonth;
+            loadMonthPlan();
+            updateProgress();
+        }
+
+        function handleMonthChange() {
+            currentMonth = document.getElementById('month_date').value;
+            loadMonthPlan();
+            updateProgress();
+        }
+
+        function saveMonthPlan() {
+            const data = {
+                goals: document.getElementById('month_goals').value,
+                milestones: getTodoContent('month_milestones'),
+                habits: getTodoContent('month_habits'),
+                learning: document.getElementById('month_learning').value,
+                reflection: document.getElementById('month_reflection').value,
+                nextMonthPreview: document.getElementById('next_month_preview').value
+            };
+
+            const success = StorageUtils.savePlan('month', currentMonth, data);
+            if (success) {
+                MessageUtils.success('月计划保存成功！');
+            }
+        }
+
+        function loadMonthPlan() {
+            const data = StorageUtils.loadPlan('month', currentMonth);
+            if (data) {
+                document.getElementById('month_goals').value = data.goals || '';
+                document.getElementById('month_learning').value = data.learning || '';
+                document.getElementById('month_reflection').value = data.reflection || '';
+                document.getElementById('next_month_preview').value = data.nextMonthPreview || '';
+                
+                loadTodoContent('month_milestones', data.milestones);
+                loadTodoContent('month_habits', data.habits);
+            } else {
+                clearFields();
+            }
+        }
+
+        function clearFields() {
+            document.getElementById('month_goals').value = '';
+            document.getElementById('month_learning').value = '';
+            document.getElementById('month_reflection').value = '';
+            document.getElementById('next_month_preview').value = '';
+            document.getElementById('month_milestones').innerHTML = '';
+            document.getElementById('month_habits').innerHTML = '';
+        }
+
+        function loadTodoContent(containerId, content) {
+            const container = document.getElementById(containerId);
+            if (container && content) {
+                container.textContent = content;
+                TodoUtils.renderTodos(container);
+            }
+        }
+
+        function getTodoContent(containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return '';
+            
+            const tasks = container.querySelectorAll('.task-item');
+            const lines = [];
+            
+            tasks.forEach(task => {
+                const checkbox = task.querySelector('.custom-checkbox');
+                const text = task.querySelector('.task-text').textContent;
+                const isChecked = checkbox.classList.contains('checked');
+                lines.push(`[${isChecked ? 'x' : ' '}] ${text}`);
+            });
+            
+            return lines.join('\n');
+        }
+
+        function updateProgress() {
+            const progress = ProgressUtils.calculateMonthProgress();
+            document.getElementById('month-progress-inner').style.width = `${progress}%`;
+            document.getElementById('month-progress-text').textContent = `本月进度 ${progress}%`;
+        }
+
+        function showMonthHistory() {
+            MessageUtils.info('月计划历史记录功能正在开发中...');
+        }
+
+        function showMonthAnalytics() {
+            const goals = document.getElementById('month_goals').value;
+            const learning = document.getElementById('month_learning').value;
+            const reflection = document.getElementById('month_reflection').value;
+            const nextMonthPreview = document.getElementById('next_month_preview').value;
+            const milestones = getTodoContent('month_milestones');
+            const habits = getTodoContent('month_habits');
+
+            // 计算统计数据
+            const stats = calculateMonthStats(goals, learning, reflection, nextMonthPreview, milestones, habits);
+            
+            // 创建分析内容
+            const analysisContent = createAnalysisContent(stats);
+            
+            // 显示模态框
+            ModalUtils.show('📊 月度分析报告', analysisContent, 'large');
+        }
+
+        function calculateMonthStats(goals, learning, reflection, nextMonthPreview, milestones, habits) {
+            const milestoneLines = milestones.split('\n').filter(line => line.trim());
+            const habitLines = habits.split('\n').filter(line => line.trim());
+            
+            const milestoneCompleted = milestoneLines.filter(line => line.includes('[x]')).length;
+            const habitCompleted = habitLines.filter(line => line.includes('[x]')).length;
+            
+            const totalWords = (goals + learning + reflection + nextMonthPreview).split(/\s+/).filter(word => word.trim()).length;
+            
+            return {
+                totalMilestones: milestoneLines.length,
+                completedMilestones: milestoneCompleted,
+                milestoneProgress: milestoneLines.length > 0 ? Math.round((milestoneCompleted / milestoneLines.length) * 100) : 0,
+                totalHabits: habitLines.length,
+                completedHabits: habitCompleted,
+                habitProgress: habitLines.length > 0 ? Math.round((habitCompleted / habitLines.length) * 100) : 0,
+                wordCount: totalWords,
+                hasGoals: goals.trim().length > 0,
+                hasLearning: learning.trim().length > 0,
+                hasReflection: reflection.trim().length > 0,
+                hasNextMonthPreview: nextMonthPreview.trim().length > 0,
+                monthProgress: ProgressUtils.calculateMonthProgress(),
+                month: document.getElementById('month_date').value
+            };
+        }
+
+        function createAnalysisContent(stats) {
+            const monthName = new Date(stats.month + '-01').toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' });
+            
+            return `
+                <div style="padding: 20px; line-height: 1.6;">
+                    <h4 style="color: #1976d2; margin-bottom: 20px;">🗓️ ${monthName} 分析报告</h4>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px;">
+                        <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 24px; font-weight: bold; color: #1976d2;">${stats.milestoneProgress}%</div>
+                            <div style="color: #666; margin-top: 5px;">里程碑完成率</div>
+                            <div style="font-size: 0.9em; color: #888;">${stats.completedMilestones}/${stats.totalMilestones} 项</div>
+                        </div>
+                        
+                        <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 24px; font-weight: bold; color: #2e7d32;">${stats.habitProgress}%</div>
+                            <div style="color: #666; margin-top: 5px;">习惯完成率</div>
+                            <div style="font-size: 0.9em; color: #888;">${stats.completedHabits}/${stats.totalHabits} 项</div>
+                        </div>
+                        
+                        <div style="background: #fff3e0; padding: 15px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 24px; font-weight: bold; color: #f57c00;">${stats.monthProgress}%</div>
+                            <div style="color: #666; margin-top: 5px;">月份进度</div>
+                            <div style="font-size: 0.9em; color: #888;">时间进度</div>
+                        </div>
+                        
+                        <div style="background: #f3e5f5; padding: 15px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 24px; font-weight: bold; color: #7b1fa2;">${stats.wordCount}</div>
+                            <div style="color: #666; margin-top: 5px;">总字数</div>
+                            <div style="font-size: 0.9em; color: #888;">计划内容</div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <h5 style="color: #333; margin-bottom: 10px;">📋 计划完整性</h5>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <span style="padding: 4px 8px; border-radius: 4px; font-size: 0.9em; ${stats.hasGoals ? 'background: #c8e6c9; color: #2e7d32;' : 'background: #ffcdd2; color: #c62828;'}">
+                                ${stats.hasGoals ? '✅' : '❌'} 月度目标
+                            </span>
+                            <span style="padding: 4px 8px; border-radius: 4px; font-size: 0.9em; ${stats.hasLearning ? 'background: #c8e6c9; color: #2e7d32;' : 'background: #ffcdd2; color: #c62828;'}">
+                                ${stats.hasLearning ? '✅' : '❌'} 学习计划
+                            </span>
+                            <span style="padding: 4px 8px; border-radius: 4px; font-size: 0.9em; ${stats.hasReflection ? 'background: #c8e6c9; color: #2e7d32;' : 'background: #ffcdd2; color: #c62828;'}">
+                                ${stats.hasReflection ? '✅' : '❌'} 反思总结
+                            </span>
+                            <span style="padding: 4px 8px; border-radius: 4px; font-size: 0.9em; ${stats.hasNextMonthPreview ? 'background: #c8e6c9; color: #2e7d32;' : 'background: #ffcdd2; color: #c62828;'}">
+                                ${stats.hasNextMonthPreview ? '✅' : '❌'} 下月预览
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <h5 style="color: #333; margin-bottom: 10px;">💡 智能建议</h5>
+                        <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; border-left: 4px solid #1976d2;">
+                            ${generateMonthSuggestions(stats)}
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button onclick="exportMonthData()" style="background: #1976d2; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">
+                            📄 导出分析报告
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function generateMonthSuggestions(stats) {
+            const suggestions = [];
+            
+            if (stats.milestoneProgress < 50) {
+                suggestions.push('• 建议重新评估里程碑的难度和时间安排，将大目标分解为更小的步骤');
+            }
+            
+            if (stats.habitProgress < 70) {
+                suggestions.push('• 考虑减少习惯数量，专注于最重要的2-3个习惯');
+            }
+            
+            if (!stats.hasGoals) {
+                suggestions.push('• 设定明确的月度目标，帮助指导日常行动');
+            }
+            
+            if (!stats.hasLearning) {
+                suggestions.push('• 制定学习计划，持续提升个人能力');
+            }
+            
+            if (stats.monthProgress > 80 && stats.milestoneProgress > 80) {
+                suggestions.push('• 恭喜！本月执行情况良好，可以考虑适当增加挑战难度');
+            }
+            
+            if (suggestions.length === 0) {
+                suggestions.push('• 计划执行情况良好，继续保持现有节奏');
+            }
+            
+            return suggestions.join('<br>');
+        }
+
+        function exportMonthData() {
+            const data = {
+                month: document.getElementById('month_date').value,
+                goals: document.getElementById('month_goals').value,
+                milestones: getTodoContent('month_milestones'),
+                habits: getTodoContent('month_habits'),
+                learning: document.getElementById('month_learning').value,
+                reflection: document.getElementById('month_reflection').value,
+                nextMonthPreview: document.getElementById('next_month_preview').value,
+                exportTime: new Date().toISOString()
+            };
+            
+            const filename = `月计划_${data.month}.json`;
+            ExportUtils.exportToJSON(data, filename);
+            MessageUtils.success('月计划数据已导出！');
+        }
+
+        // 月度计划模板数据
+        const monthTemplates = {
+            comprehensive: {
+                name: "📈 全面发展计划",
+                description: "适合追求全方位成长的用户",
+                data: {
+                    goals: `本月核心目标：
+• 完成重要项目的关键里程碑
+• 提升个人技能水平
+• 改善生活质量和工作效率
+• 建立健康的生活习惯`,
+                    milestones: `[ ] 完成项目第一阶段开发
+[ ] 通过重要考试或认证
+[ ] 完成月度KPI指标
+[ ] 建立新的合作关系`,
+                    habits: `[ ] 每天阅读30分钟
+[ ] 每周运动3次以上
+[ ] 每天记录感恩日记
+[ ] 每周进行一次复盘`,
+                    learning: `学习成长计划：
+• 专业技能：深入学习相关领域的新技术或方法
+• 软技能：提升沟通表达和团队协作能力
+• 读书计划：完成2-3本专业或成长类书籍
+• 在线课程：参与相关培训或讲座`,
+                    reflection: `月度反思模板：
+• 本月最大的成就和突破
+• 遇到的主要挑战及解决方案
+• 个人成长和能力提升情况
+• 下月需要重点关注的领域`,
+                    nextMonthPreview: `下月计划预览：
+• 继续推进未完成的重要项目
+• 新的学习目标和技能提升计划
+• 重要的时间节点和里程碑安排
+• 需要提前准备的资源和条件`
+                }
+            },
+            career: {
+                name: "💼 职业发展计划",
+                description: "专注于职业成长和技能提升",
+                data: {
+                    goals: `职业发展目标：
+• 完成重要项目交付
+• 提升核心职业技能
+• 扩展职业网络
+• 获得认可和晋升机会`,
+                    milestones: `[ ] 完成季度项目目标
+[ ] 获得新技能认证
+[ ] 参加行业会议或培训
+[ ] 完成职业发展评估`,
+                    habits: `[ ] 每天学习新技能1小时
+[ ] 每周写技术博客或总结
+[ ] 每月参加1次行业活动
+[ ] 定期与导师或同事交流`,
+                    learning: `职业技能提升：
+• 核心技术：深入学习工作相关的专业技能
+• 管理能力：学习项目管理和团队领导
+• 行业洞察：关注行业趋势和最佳实践
+• 软技能：提升演讲、写作和沟通能力`,
+                    reflection: `职业发展反思：
+• 本月在工作中的主要成就
+• 技能提升和能力发展情况
+• 职业目标的进展评估
+• 下月职业发展重点规划`,
+                    nextMonthPreview: `下月职业发展规划：
+• 重点项目和工作任务安排
+• 新技能学习和认证计划
+• 行业交流和网络拓展活动
+• 职业发展机会的把握和准备`
+                }
+            },
+            health: {
+                name: "🏃‍♀️ 健康生活计划",
+                description: "专注于身心健康和生活品质",
+                data: {
+                    goals: `健康生活目标：
+• 建立规律的运动习惯
+• 改善饮食结构和作息
+• 提升心理健康水平
+• 增强体质和免疫力`,
+                    milestones: `[ ] 完成月度运动目标
+[ ] 建立健康饮食习惯
+[ ] 改善睡眠质量
+[ ] 完成健康体检`,
+                    habits: `[ ] 每天运动30分钟以上
+[ ] 每天喝足够的水（8杯）
+[ ] 晚上11点前入睡
+[ ] 每天进行冥想或放松`,
+                    learning: `健康知识学习：
+• 营养学：学习科学的饮食搭配
+• 运动科学：了解正确的锻炼方法
+• 心理健康：学习压力管理和情绪调节
+• 生活方式：培养健康的生活习惯`,
+                    reflection: `健康生活反思：
+• 本月身体状况和体能变化
+• 运动和饮食习惯的改善情况
+• 心理健康和压力管理状况
+• 下月健康计划的调整方向`,
+                    nextMonthPreview: `下月健康生活规划：
+• 运动计划的升级和调整
+• 饮食营养的进一步优化
+• 新的健康习惯建立目标
+• 身心健康的综合提升计划`
+                }
+            },
+            learning: {
+                name: "📚 学习成长计划",
+                description: "专注于知识学习和个人成长",
+                data: {
+                    goals: `学习成长目标：
+• 掌握新的知识和技能
+• 提升思维能力和认知水平
+• 培养良好的学习习惯
+• 建立知识体系和框架`,
+                    milestones: `[ ] 完成重要课程学习
+[ ] 通过专业考试或认证
+[ ] 完成读书计划目标
+[ ] 写作总结和分享`,
+                    habits: `[ ] 每天阅读至少1小时
+[ ] 每周写学习笔记和总结
+[ ] 每月分享学习心得
+[ ] 定期复习和巩固知识`,
+                    learning: `知识学习规划：
+• 专业领域：深入学习本专业的前沿知识
+• 跨界学习：探索其他感兴趣的领域
+• 方法论：学习高效的学习方法和思维模式
+• 实践应用：将学到的知识应用到实际中`,
+                    reflection: `学习成长反思：
+• 本月学习的新知识和技能
+• 学习方法和效率的改进情况
+• 知识应用和实践的效果
+• 下月学习计划的优化调整`,
+                    nextMonthPreview: `下月学习成长规划：
+• 新的学习领域和技能目标
+• 深化已学知识的实践应用
+• 学习方法和效率的持续改进
+• 知识分享和交流的机会安排`
+                }
+            },
+            minimal: {
+                name: "✨ 简约实用计划",
+                description: "简洁高效，适合忙碌的生活节奏",
+                data: {
+                    goals: `本月重点目标：
+• 专注完成1-2个重要任务
+• 保持工作生活平衡
+• 提升执行效率`,
+                    milestones: `[ ] 完成核心工作任务
+[ ] 保持健康的生活状态`,
+                    habits: `[ ] 每天列出重要任务清单
+[ ] 保持规律作息
+[ ] 定期整理和复盘`,
+                    learning: `持续改进：
+• 关注工作效率提升方法
+• 学习时间管理技巧`,
+                    reflection: `简要总结：
+• 本月完成的重要事项
+• 需要改进的地方
+• 下月重点关注方向`,
+                    nextMonthPreview: `下月重点规划：
+• 延续本月的重要工作
+• 新的优先级任务安排
+• 简化和优化的改进计划`
+                }
+            },
+            student: {
+                name: "🎓 学生成长计划",
+                description: "专为学生群体设计的学习成长模板",
+                data: {
+                    goals: `本月学习目标：
+• 提升学术成绩和专业能力
+• 培养良好的学习习惯
+• 参与课外活动和社会实践
+• 为未来发展做好准备`,
+                    milestones: `[ ] 完成重要作业和项目
+[ ] 准备期中/期末考试
+[ ] 参加学术竞赛或活动
+[ ] 完成实习或实践项目`,
+                    habits: `[ ] 每天按时完成作业
+[ ] 坚持早起和规律作息
+[ ] 每周复习和预习课程
+[ ] 定期整理学习笔记`,
+                    learning: `学习成长规划：
+• 专业课程：深入理解核心概念和知识点
+• 技能提升：学习实用的工具和方法
+• 语言学习：提升外语水平和表达能力
+• 综合素质：培养批判思维和创新能力`,
+                    reflection: `学习成长反思：
+• 本月学习成果和学术进步
+• 学习方法和效率的改善
+• 课外活动和实践经验
+• 下月学习计划的调整优化`,
+                    nextMonthPreview: `下月学习规划：
+• 新课程的学习准备和规划
+• 重要考试和作业的时间安排
+• 实习或项目的申请和准备
+• 个人发展和能力提升计划`
+                }
+            },
+            entrepreneur: {
+                name: "🚀 创业发展计划",
+                description: "适合创业者和自由职业者的发展规划",
+                data: {
+                    goals: `本月创业目标：
+• 推进核心业务发展
+• 扩大客户基础和市场份额
+• 提升产品或服务质量
+• 建立可持续的盈利模式`,
+                    milestones: `[ ] 完成产品迭代或服务升级
+[ ] 获得新客户或合作伙伴
+[ ] 达成月度营收目标
+[ ] 完成团队建设或招聘`,
+                    habits: `[ ] 每天关注市场动态和竞争对手
+[ ] 定期与客户沟通和反馈
+[ ] 每周分析业务数据和指标
+[ ] 持续学习行业知识和技能`,
+                    learning: `创业技能提升：
+• 商业模式：优化和完善商业模式设计
+• 市场营销：学习有效的营销策略和方法
+• 财务管理：掌握财务分析和资金管理
+• 领导力：提升团队管理和决策能力`,
+                    reflection: `创业发展反思：
+• 本月业务发展和成果评估
+• 市场反馈和客户满意度
+• 团队协作和管理效果
+• 下月发展策略的调整优化`,
+                    nextMonthPreview: `下月创业规划：
+• 新的业务机会和市场拓展
+• 产品或服务的进一步优化
+• 资金筹措和投资计划
+• 团队发展和人才引进策略`
+                }
+            },
+            family: {
+                name: "👨‍👩‍👧‍👦 家庭生活计划",
+                description: "注重家庭和谐与生活品质的综合规划",
+                data: {
+                    goals: `本月家庭目标：
+• 增进家庭成员之间的感情
+• 改善家庭生活质量和环境
+• 平衡工作与家庭时间
+• 为家庭未来发展做规划`,
+                    milestones: `[ ] 安排家庭聚会或旅行
+[ ] 完成家庭重要决策或规划
+[ ] 改善家居环境或设施
+[ ] 参与孩子的教育和成长`,
+                    habits: `[ ] 每天与家人进行有质量的交流
+[ ] 每周安排家庭活动时间
+[ ] 定期整理和维护家居环境
+[ ] 关注家庭成员的健康和需求`,
+                    learning: `家庭成长学习：
+• 亲子教育：学习科学的育儿方法和理念
+• 家庭理财：掌握家庭财务管理和投资
+• 生活技能：提升烹饪、园艺等生活技能
+• 关系维护：学习家庭沟通和冲突解决`,
+                    reflection: `家庭生活反思：
+• 本月家庭关系和氛围变化
+• 家庭活动和共同时光的质量
+• 家庭成员的成长和需求满足
+• 下月家庭发展的重点方向`,
+                    nextMonthPreview: `下月家庭规划：
+• 家庭重要节日和活动安排
+• 家庭成员的个人发展支持
+• 家居环境和生活品质提升
+• 家庭长远目标的推进计划`
+                }
+            },
+            creative: {
+                name: "🎨 创意生活计划",
+                description: "激发创造力和艺术灵感的个性化规划",
+                data: {
+                    goals: `本月创意目标：
+• 完成重要的创意作品或项目
+• 提升艺术技能和表达能力
+• 寻找创作灵感和新的表现形式
+• 建立创意社群和合作网络`,
+                    milestones: `[ ] 完成一个创意作品或项目
+[ ] 参加艺术展览或创意活动
+[ ] 学习新的创作技法或工具
+[ ] 建立创意合作或交流关系`,
+                    habits: `[ ] 每天进行创作练习或思考
+[ ] 定期欣赏优秀的艺术作品
+[ ] 记录创意灵感和想法
+[ ] 参与创意社群的交流分享`,
+                    learning: `创意技能提升：
+• 艺术技法：学习绘画、设计、写作等技能
+• 创意思维：培养创新思维和想象力
+• 工具掌握：熟练使用创作软件和工具
+• 市场认知：了解创意产业和商业模式`,
+                    reflection: `创意生活反思：
+• 本月创作成果和艺术进步
+• 创意灵感的来源和激发方式
+• 技能提升和表达能力发展
+• 下月创作方向和目标调整`,
+                    nextMonthPreview: `下月创意规划：
+• 新的创作主题和项目构想
+• 技能学习和工具掌握计划
+• 创意展示和分享机会安排
+• 创意变现和职业发展探索`
+                }
+            }
+        };
+
+        function showTemplateSelector() {
+            const templateList = Object.keys(monthTemplates).map(key => {
+                const template = monthTemplates[key];
+                return `
+                    <div class="template-item" style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; margin-bottom: 15px; cursor: pointer; transition: all 0.2s;" 
+                         onclick="applyTemplate('${key}')">
+                        <h4 style="margin: 0 0 8px 0; color: #1976d2; font-size: 1.1em;">${template.name}</h4>
+                        <p style="margin: 0; color: #666; font-size: 0.9em;">${template.description}</p>
+                    </div>
+                `;
+            }).join('');
+
+            const content = `
+                <div style="padding: 20px;">
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="color: #333; margin-bottom: 10px;">选择模板类型</h4>
+                        <p style="color: #666; font-size: 0.9em; margin-bottom: 20px;">
+                            选择适合的模板快速开始您的月度计划。应用模板会覆盖当前内容，请确认后操作。
+                        </p>
+                    </div>
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        ${templateList}
+                    </div>
+                    <div style="text-align: center; margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee;">
+                        <button onclick="closeTemplateModal()" style="background: #666; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-right: 10px;">
+                            取消
+                        </button>
+                        <button onclick="showTemplatePreview()" style="background: #1976d2; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">
+                            预览模板
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            window.currentTemplateModal = ModalUtils.show('📋 选择月度计划模板', content, 'large');
+
+            // 添加鼠标悬停效果
+            setTimeout(() => {
+                const templateItems = document.querySelectorAll('.template-item');
+                templateItems.forEach(item => {
+                    item.addEventListener('mouseenter', function() {
+                        this.style.backgroundColor = '#f5f5f5';
+                        this.style.borderColor = '#1976d2';
+                        this.style.transform = 'translateY(-2px)';
+                        this.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+                    });
+                    
+                    item.addEventListener('mouseleave', function() {
+                        this.style.backgroundColor = '';
+                        this.style.borderColor = '#e0e0e0';
+                        this.style.transform = 'translateY(0)';
+                        this.style.boxShadow = '';
+                    });
+                });
+            }, 100);
+        }
+
+        function applyTemplate(templateKey) {
+            const template = monthTemplates[templateKey];
+            if (!template) {
+                MessageUtils.error('模板不存在！');
+                return;
+            }
+
+            // 显示确认对话框
+            const confirmContent = `
+                <div style="padding: 20px; text-align: center;">
+                    <div style="font-size: 3em; margin-bottom: 15px;">⚠️</div>
+                    <h4 style="color: #333; margin-bottom: 15px;">确认应用模板</h4>
+                    <p style="color: #666; margin-bottom: 20px;">
+                        应用 <strong>${template.name}</strong> 将会覆盖当前所有计划内容。<br>
+                        此操作无法撤销，请确认是否继续？
+                    </p>
+                    <div>
+                        <button onclick="closeConfirmModal()" style="background: #666; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin-right: 15px;">
+                            取消
+                        </button>
+                        <button onclick="confirmApplyTemplate('${templateKey}')" style="background: #d32f2f; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">
+                            确认应用
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            // 关闭模板选择器
+            if (window.currentTemplateModal) {
+                ModalUtils.hide(window.currentTemplateModal);
+            }
+
+            window.confirmModal = ModalUtils.show('确认操作', confirmContent, 'medium');
+        }
+
+        function confirmApplyTemplate(templateKey) {
+            const template = monthTemplates[templateKey];
+            
+            // 应用模板数据
+            document.getElementById('month_goals').value = template.data.goals;
+            document.getElementById('month_learning').value = template.data.learning;
+            document.getElementById('month_reflection').value = template.data.reflection;
+            document.getElementById('next_month_preview').value = template.data.nextMonthPreview;
+            
+            // 应用待办事项模板
+            applyTodoTemplate('month_milestones', template.data.milestones);
+            applyTodoTemplate('month_habits', template.data.habits);
+            
+            // 关闭确认对话框
+            if (window.confirmModal) {
+                ModalUtils.hide(window.confirmModal);
+            }
+            
+            MessageUtils.success(`${template.name} 模板已应用成功！`);
+        }
+
+        function applyTodoTemplate(containerId, todoContent) {
+            const container = document.getElementById(containerId);
+            if (container && todoContent) {
+                container.textContent = todoContent;
+                TodoUtils.renderTodos(container);
+            }
+        }
+
+        function showTemplatePreview() {
+            MessageUtils.info('模板预览功能即将推出，敬请期待！');
+        }
+
+        function closeTemplateModal() {
+            if (window.currentTemplateModal) {
+                ModalUtils.hide(window.currentTemplateModal);
+            }
+        }
+
+        function closeConfirmModal() {
+            if (window.confirmModal) {
+                ModalUtils.hide(window.confirmModal);
+            }
+        }
+
+        // 月度任务结转功能
+        function carryOverMonthTasks() {
+            try {
+                console.log('🔄 开始执行月度任务结转...');
+                
+                // 获取当前月的所有未完成任务
+                const incompleteTasks = [];
+                
+                // 检查里程碑任务
+                const milestoneContainer = document.getElementById('month_milestones');
+                console.log('🔍 检查里程碑容器:', milestoneContainer);
+                if (milestoneContainer) {
+                    const milestoneTasks = milestoneContainer.querySelectorAll('.task-item');
+                    console.log('📋 找到里程碑任务数量:', milestoneTasks.length);
+                    
+                    milestoneTasks.forEach((task, index) => {
+                        const checkbox = task.querySelector('.custom-checkbox');
+                        const taskText = task.querySelector('.task-text');
+                        
+                        console.log(`📝 里程碑任务 ${index + 1}:`, {
+                            hasCheckbox: !!checkbox,
+                            hasTaskText: !!taskText,
+                            checkboxClasses: checkbox ? Array.from(checkbox.classList) : null,
+                            taskTextContent: taskText ? taskText.textContent : null
+                        });
+                        
+                        if (checkbox && taskText) {
+                            const text = taskText.textContent.trim();
+                            const isCompleted = checkbox.classList.contains('checked');
+                            
+                            console.log(`✅ 任务详情: "${text}", 已完成: ${isCompleted}`);
+                            
+                            if (!isCompleted && text) {
+                                incompleteTasks.push({
+                                    text: text,
+                                    source: '重要里程碑'
+                                });
+                                console.log(`➕ 添加未完成任务: "${text}"`);
+                            }
+                        }
+                    });
+                }
+                
+                // 检查习惯培养任务
+                const habitContainer = document.getElementById('month_habits');
+                console.log('🔍 检查习惯容器:', habitContainer);
+                if (habitContainer) {
+                    const habitTasks = habitContainer.querySelectorAll('.task-item');
+                    console.log('📋 找到习惯任务数量:', habitTasks.length);
+                    
+                    habitTasks.forEach((task, index) => {
+                        const checkbox = task.querySelector('.custom-checkbox');
+                        const taskText = task.querySelector('.task-text');
+                        
+                        console.log(`📝 习惯任务 ${index + 1}:`, {
+                            hasCheckbox: !!checkbox,
+                            hasTaskText: !!taskText,
+                            checkboxClasses: checkbox ? Array.from(checkbox.classList) : null,
+                            taskTextContent: taskText ? taskText.textContent : null
+                        });
+                        
+                        if (checkbox && taskText) {
+                            const text = taskText.textContent.trim();
+                            const isCompleted = checkbox.classList.contains('checked');
+                            
+                            console.log(`✅ 任务详情: "${text}", 已完成: ${isCompleted}`);
+                            
+                            if (!isCompleted && text) {
+                                incompleteTasks.push({
+                                    text: text,
+                                    source: '习惯培养'
+                                });
+                                console.log(`➕ 添加未完成任务: "${text}"`);
+                            }
+                        }
+                    });
+                }
+                
+                // 如果没有找到渲染的任务项，检查容器的原始文本内容
+                if (incompleteTasks.length === 0) {
+                    console.log('🔍 没有找到渲染的任务项，检查容器原始内容...');
+                    
+                    // 检查里程碑容器的原始内容
+                    if (milestoneContainer && milestoneContainer.textContent.trim()) {
+                        const milestoneText = milestoneContainer.textContent.trim();
+                        console.log('📝 里程碑原始内容:', milestoneText);
+                        
+                        const milestoneLines = milestoneText.split('\n').filter(line => line.trim());
+                        milestoneLines.forEach(line => {
+                            if (line.match(/^\[\s\]/)) {  // 未完成的任务
+                                const text = line.replace(/^\[\s\]\s*/, '').trim();
+                                if (text) {
+                                    incompleteTasks.push({
+                                        text: text,
+                                        source: '重要里程碑'
+                                    });
+                                    console.log(`➕ 从原始内容添加里程碑任务: "${text}"`);
+                                }
+                            }
+                        });
+                    }
+                    
+                    // 检查习惯容器的原始内容
+                    if (habitContainer && habitContainer.textContent.trim()) {
+                        const habitText = habitContainer.textContent.trim();
+                        console.log('📝 习惯原始内容:', habitText);
+                        
+                        const habitLines = habitText.split('\n').filter(line => line.trim());
+                        habitLines.forEach(line => {
+                            if (line.match(/^\[\s\]/)) {  // 未完成的任务
+                                const text = line.replace(/^\[\s\]\s*/, '').trim();
+                                if (text) {
+                                    incompleteTasks.push({
+                                        text: text,
+                                        source: '习惯培养'
+                                    });
+                                    console.log(`➕ 从原始内容添加习惯任务: "${text}"`);
+                                }
+                            }
+                        });
+                    }
+                }
+                
+                console.log('📋 最终找到未完成任务数量:', incompleteTasks.length);
+                console.log('📋 未完成任务详情:', incompleteTasks);
+                
+                if (incompleteTasks.length === 0) {
+                    MessageUtils.success('恭喜！本月所有任务都已完成，无需结转任务！🎉');
+                    return;
+                }
+                
+                // 生成结转任务的文本
+                let carryOverText = '📋 从本月结转的未完成任务：\n\n';
+                
+                // 按来源分组
+                const tasksBySource = {};
+                incompleteTasks.forEach(task => {
+                    if (!tasksBySource[task.source]) {
+                        tasksBySource[task.source] = [];
+                    }
+                    tasksBySource[task.source].push(task.text);
+                });
+                
+                // 生成结转文本
+                Object.keys(tasksBySource).forEach(source => {
+                    carryOverText += `${source}的未完成任务：\n`;
+                    tasksBySource[source].forEach(task => {
+                        carryOverText += `[ ] ${task}\n`;
+                    });
+                    carryOverText += '\n';
+                });
+                
+                carryOverText += '💡 下月建议：\n';
+                carryOverText += '• 重新评估任务优先级和难度\n';
+                carryOverText += '• 考虑将大任务分解为小步骤\n';
+                carryOverText += '• 合理安排下月的时间分配\n';
+                carryOverText += '• 总结本月执行中的经验教训\n';
+                
+                // 将结转的任务添加到"下月预览"区域
+                const nextMonthPreview = document.getElementById('next_month_preview');
+                if (nextMonthPreview) {
+                    const currentContent = nextMonthPreview.value || '';
+                    let newContent = carryOverText;
+                    
+                    if (currentContent.trim()) {
+                        newContent = carryOverText + '\n' + '─'.repeat(50) + '\n\n' + currentContent;
+                    }
+                    
+                    nextMonthPreview.value = newContent;
+                    
+                    // 触发自动保存
+                    const inputEvent = new Event('input', { bubbles: true });
+                    nextMonthPreview.dispatchEvent(inputEvent);
+                }
+                
+                // 滚动到下月预览区域
+                if (nextMonthPreview) {
+                    nextMonthPreview.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center' 
+                    });
+                    
+                    // 短暂高亮显示
+                    nextMonthPreview.style.backgroundColor = 'rgba(255, 235, 59, 0.2)';
+                    setTimeout(() => {
+                        nextMonthPreview.style.backgroundColor = '';
+                    }, 2000);
+                }
+                
+                console.log('✅ 月度任务结转完成');
+                MessageUtils.success(`成功结转 ${incompleteTasks.length} 个未完成任务到下月预览！`);
+                
+                // 显示详细的结转摘要
+                setTimeout(() => {
+                    const summary = Object.keys(tasksBySource).map(source => 
+                        `${source}: ${tasksBySource[source].length}个任务`
+                    ).join(', ');
+                    
+                    MessageUtils.info(`结转详情: ${summary}`);
+                }, 1500);
+                
+            } catch (error) {
+                console.error('❌ 月度任务结转时出错:', error);
+                MessageUtils.error('结转任务失败，请重试');
+            }
+        }
+    </script>
+</body>
+
+</html>
+

@@ -1,0 +1,2925 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <script src="config.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>季度计划 - 智能计划管理系统</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .template-btn {
+            background: var(--theme-color);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-left: 8px;
+        }
+        .template-btn:hover {
+            background: #1976d2;
+            transform: translateY(-1px);
+        }
+        .plan-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- 页面头部 -->
+        <div class="page-header">
+            <a href="index.html" class="back-to-home">← 返回主页</a>
+            <h1 class="page-title">🎯 季度计划管理</h1>
+            <div style="display: flex; gap: 8px;">
+                <a href="month_plan.html" class="btn-main" style="font-size: 0.9em;">月计划</a>
+                <a href="year_plan.html" class="btn-main" style="font-size: 0.9em;">年计划</a>
+            </div>
+        </div>
+
+        <!-- 智能控制栏 -->
+        <div class="plan-smartbar">
+            <button type="button" class="ai-assistant-btn">🤖 AI助手</button>
+            
+            <div class="progress-bar" style="flex: 1;">
+                <div style="background:#eee;border-radius:8px;height:18px;overflow:hidden;">
+                    <div id="quarter-progress-inner" class="progress-inner" style="width: 0%;"></div>
+                </div>
+                <div style="font-size:0.9em;color:#666;margin-top:3px;">
+                    <span id="quarter-progress-text">本季度进度 0%</span>
+                </div>
+            </div>
+            
+            <button type="button" id="quarter-prev">←</button>
+            <select id="quarter_select" style="width:120px;padding:4px;">
+                <option value="1">第1季度</option>
+                <option value="2">第2季度</option>
+                <option value="3">第3季度</option>
+                <option value="4">第4季度</option>
+            </select>
+            <input type="number" id="quarter_year" min="2020" max="2050" style="width:80px;padding:4px;text-align:center;">
+            <button type="button" id="quarter-next">→</button>
+        </div>
+
+        <!-- 操作栏 -->
+        <div class="save-bar">
+            <button type="button" id="quarter-template-btn" class="btn-main" style="background: #ff9800;">📋 使用模板</button>
+            <button type="button" class="save-btn" data-type="quarter">💾 保存计划</button>
+            <button type="button" class="save-view-btn" data-type="quarter">📚 历史记录</button>
+            <button type="button" id="okr-assistant-btn">🎯 OKR助手</button>
+        </div>
+
+        <!-- 季度OKR -->
+        <div class="plan-item-header">
+            <label>🎯 季度OKR目标</label>
+        </div>
+        <textarea id="quarter_objectives" placeholder="设定本季度的核心目标 (Objectives)...
+
+例如：
+• 提升团队协作效率
+• 增强个人专业技能
+• 改善产品用户体验
+• 建立健康生活习惯" style="min-height: 120px;"></textarea>
+
+        <!-- 关键结果 -->
+        <div class="plan-item-header">
+            <label>📊 关键结果 (Key Results)</label>
+        </div>
+        <div id="quarter_key_results" class="todo-list-container" data-placeholder="[ ] 可衡量的关键结果..."></div>
+
+        <!-- 月度分解 -->
+        <div class="plan-item-header">
+            <label>📅 月度里程碑</label>
+            <button type="button" class="template-btn" onclick="showMilestoneTemplates()" title="使用模板">📋 模板</button>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 24px;">
+            <!-- 第一个月 -->
+            <div style="background: rgba(255,255,255,0.9); border-radius: 12px; padding: 16px; border-left: 4px solid #2196f3;">
+                <h4 style="margin: 0 0 12px 0; color: #2196f3;" id="month1-title">第1个月</h4>
+                <div id="month1_milestones" class="todo-list-container" data-placeholder="[ ] 第1个月的里程碑..." style="min-height: 100px;"></div>
+            </div>
+
+            <!-- 第二个月 -->
+            <div style="background: rgba(255,255,255,0.9); border-radius: 12px; padding: 16px; border-left: 4px solid #4caf50;">
+                <h4 style="margin: 0 0 12px 0; color: #4caf50;" id="month2-title">第2个月</h4>
+                <div id="month2_milestones" class="todo-list-container" data-placeholder="[ ] 第2个月的里程碑..." style="min-height: 100px;"></div>
+            </div>
+
+            <!-- 第三个月 -->
+            <div style="background: rgba(255,255,255,0.9); border-radius: 12px; padding: 16px; border-left: 4px solid #ff9800;">
+                <h4 style="margin: 0 0 12px 0; color: #ff9800;" id="month3-title">第3个月</h4>
+                <div id="month3_milestones" class="todo-list-container" data-placeholder="[ ] 第3个月的里程碑..." style="min-height: 100px;"></div>
+            </div>
+        </div>
+
+        <!-- 季度回顾 -->
+        <div class="plan-item-header">
+            <label>📝 季度回顾</label>
+            <button type="button" class="template-btn" onclick="showReviewTemplates()" title="使用模板">📋 模板</button>
+        </div>
+        <textarea id="quarter_review" placeholder="季度回顾与总结...
+
+回顾内容：
+• OKR完成情况评估
+• 重要成果和突破
+• 遇到的挑战和解决方案
+• 团队协作和个人成长
+• 下季度改进计划" style="min-height: 120px;"></textarea>
+    </div>
+
+    <script src="common.js"></script>
+    <script>
+        // 季度计划简化实现
+        let currentQuarter = getCurrentQuarter();
+        let currentYear = new Date().getFullYear();
+
+        function getCurrentQuarter() {
+            return Math.ceil((new Date().getMonth() + 1) / 3);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initQuarterPlan();
+        });
+
+        function initQuarterPlan() {
+            document.getElementById('quarter_select').value = currentQuarter;
+            document.getElementById('quarter_year').value = currentYear;
+            updateMonthTitles();
+            
+            // 启用待办事项功能
+            const containers = document.querySelectorAll('.todo-list-container');
+            containers.forEach(container => {
+                TodoUtils.enableTodoFunctionality(container);
+            });
+            
+            // 设置事件监听器
+            document.getElementById('quarter-prev').addEventListener('click', () => navigateQuarter(-1));
+            document.getElementById('quarter-next').addEventListener('click', () => navigateQuarter(1));
+            document.getElementById('quarter_select').addEventListener('change', handleQuarterChange);
+            document.getElementById('quarter_year').addEventListener('change', handleYearChange);
+            document.querySelector('.save-btn').addEventListener('click', saveQuarterPlan);
+            document.querySelector('.save-view-btn').addEventListener('click', showQuarterHistory);
+            document.getElementById('okr-assistant-btn').addEventListener('click', showOKRAssistant);
+            document.querySelector('.ai-assistant-btn').addEventListener('click', showQuarterAIAssistant);
+            document.getElementById('quarter-template-btn').addEventListener('click', showQuarterTemplateSelector);
+            
+            loadQuarterPlan();
+            updateProgress();
+        }
+
+        function navigateQuarter(quarters) {
+            currentQuarter += quarters;
+            if (currentQuarter < 1) {
+                currentQuarter = 4;
+                currentYear--;
+            } else if (currentQuarter > 4) {
+                currentQuarter = 1;
+                currentYear++;
+            }
+            
+            document.getElementById('quarter_select').value = currentQuarter;
+            document.getElementById('quarter_year').value = currentYear;
+            updateMonthTitles();
+            loadQuarterPlan();
+            updateProgress();
+        }
+
+        function handleQuarterChange() {
+            currentQuarter = parseInt(document.getElementById('quarter_select').value);
+            updateMonthTitles();
+            loadQuarterPlan();
+            updateProgress();
+        }
+
+        function handleYearChange() {
+            currentYear = parseInt(document.getElementById('quarter_year').value);
+            loadQuarterPlan();
+            updateProgress();
+        }
+
+        function updateMonthTitles() {
+            const quarterMonths = {
+                1: ['1月', '2月', '3月'],
+                2: ['4月', '5月', '6月'],
+                3: ['7月', '8月', '9月'],
+                4: ['10月', '11月', '12月']
+            };
+            
+            const months = quarterMonths[currentQuarter];
+            document.getElementById('month1-title').textContent = months[0];
+            document.getElementById('month2-title').textContent = months[1];
+            document.getElementById('month3-title').textContent = months[2];
+        }
+
+        function saveQuarterPlan() {
+            const quarterKey = `${currentYear}-Q${currentQuarter}`;
+            const data = {
+                objectives: document.getElementById('quarter_objectives').value,
+                keyResults: getTodoContent('quarter_key_results'),
+                month1Milestones: getTodoContent('month1_milestones'),
+                month2Milestones: getTodoContent('month2_milestones'),
+                month3Milestones: getTodoContent('month3_milestones'),
+                review: document.getElementById('quarter_review').value
+            };
+
+            const success = StorageUtils.savePlan('quarter', quarterKey, data);
+            if (success) {
+                MessageUtils.success('季度计划保存成功！');
+            }
+        }
+
+        function loadQuarterPlan() {
+            const quarterKey = `${currentYear}-Q${currentQuarter}`;
+            const data = StorageUtils.loadPlan('quarter', quarterKey);
+            
+            if (data) {
+                document.getElementById('quarter_objectives').value = data.objectives || '';
+                document.getElementById('quarter_review').value = data.review || '';
+                
+                loadTodoContent('quarter_key_results', data.keyResults);
+                loadTodoContent('month1_milestones', data.month1Milestones);
+                loadTodoContent('month2_milestones', data.month2Milestones);
+                loadTodoContent('month3_milestones', data.month3Milestones);
+            } else {
+                clearFields();
+            }
+        }
+
+        function clearFields() {
+            document.getElementById('quarter_objectives').value = '';
+            document.getElementById('quarter_review').value = '';
+            
+            const containers = ['quarter_key_results', 'month1_milestones', 'month2_milestones', 'month3_milestones'];
+            containers.forEach(id => {
+                document.getElementById(id).innerHTML = '';
+            });
+        }
+
+        function loadTodoContent(containerId, content) {
+            const container = document.getElementById(containerId);
+            if (container && content) {
+                container.textContent = content;
+                TodoUtils.renderTodos(container);
+            }
+        }
+
+        function getTodoContent(containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return '';
+            
+            const tasks = container.querySelectorAll('.task-item');
+            const lines = [];
+            
+            tasks.forEach(task => {
+                const checkbox = task.querySelector('.custom-checkbox');
+                const text = task.querySelector('.task-text').textContent;
+                const isChecked = checkbox.classList.contains('checked');
+                lines.push(`[${isChecked ? 'x' : ' '}] ${text}`);
+            });
+            
+            return lines.join('\n');
+        }
+
+        function updateProgress() {
+            // 简化的季度进度计算
+            const quarterMonth = (currentQuarter - 1) * 3;
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            
+            let progress = 0;
+            if (currentMonth >= quarterMonth && currentMonth < quarterMonth + 3) {
+                const dayOfQuarter = (currentMonth - quarterMonth) * 30 + now.getDate();
+                progress = Math.min(Math.round((dayOfQuarter / 90) * 100), 100);
+            } else if (currentMonth >= quarterMonth + 3) {
+                progress = 100;
+            }
+            
+            document.getElementById('quarter-progress-inner').style.width = `${progress}%`;
+            document.getElementById('quarter-progress-text').textContent = `本季度进度 ${progress}%`;
+        }
+
+        function showQuarterHistory() {
+            const history = StorageUtils.getHistory('quarter');
+            
+            if (history.length === 0) {
+                MessageUtils.info('暂无季度计划历史记录');
+                return;
+            }
+
+            const content = `
+                <div style="margin-bottom: 20px;">
+                    <h4 style="color: var(--theme-color); margin-bottom: 16px;">📚 季度计划历史记录</h4>
+                    <p style="color: #666;">查看您之前的季度计划和回顾总结：</p>
+                </div>
+
+                <div style="max-height: 500px; overflow-y: auto;">
+                    ${history.map((entry, index) => `
+                        <div class="history-item" style="background: white; border: 2px solid #e0e0e0; border-radius: 12px; padding: 20px; margin-bottom: 16px; transition: all 0.3s ease; cursor: pointer;" onclick="loadHistoryEntry(${index})">
+                            <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 12px;">
+                                <div style="flex: 1;">
+                                    <h5 style="margin: 0; color: var(--theme-color); font-size: 1.1em;">${entry.date}</h5>
+                                    <div style="color: #666; font-size: 0.9em; margin-top: 4px;">
+                                        ${new Date(entry.timestamp).toLocaleString('zh-CN')}
+                                    </div>
+                                </div>
+                                <button class="btn-danger" onclick="deleteHistoryEntry(event, ${index})" style="padding: 4px 8px; font-size: 0.8em;">删除</button>
+                            </div>
+                            
+                            <div style="background: rgba(25, 118, 210, 0.05); padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+                                <div style="color: #666; font-size: 0.9em; line-height: 1.5;">${entry.summary}</div>
+                            </div>
+                            
+                            <div style="display: flex; gap: 8px; margin-top: 12px;">
+                                <span style="background: rgba(33, 150, 243, 0.1); color: #2196f3; padding: 4px 8px; border-radius: 4px; font-size: 0.8em;">
+                                    📊 ${(entry.data.keyResults && entry.data.keyResults.match(/\\[.\\]/g) || []).length} 个KR
+                                </span>
+                                <span style="background: rgba(76, 175, 80, 0.1); color: #4caf50; padding: 4px 8px; border-radius: 4px; font-size: 0.8em;">
+                                    🗓️ ${((entry.data.month1Milestones && entry.data.month1Milestones.match(/\\[.\\]/g) || []).length + 
+                                          (entry.data.month2Milestones && entry.data.month2Milestones.match(/\\[.\\]/g) || []).length + 
+                                          (entry.data.month3Milestones && entry.data.month3Milestones.match(/\\[.\\]/g) || []).length)} 个里程碑
+                                </span>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <div style="text-align: center; margin-top: 20px;">
+                    <button class="btn-main" onclick="exportHistory()">📄 导出历史</button>
+                    <button class="btn-main" onclick="closeModal()" style="margin-left: 12px;">关闭</button>
+                </div>
+
+                <style>
+                    .history-item:hover {
+                        border-color: var(--theme-color);
+                        transform: translateY(-2px);
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                    }
+                    .btn-danger {
+                        background: #f44336;
+                        color: white;
+                        border: none;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        transition: background 0.3s ease;
+                    }
+                    .btn-danger:hover {
+                        background: #d32f2f;
+                    }
+                </style>
+            `;
+
+            ModalUtils.show('季度计划历史记录', content, 'large');
+        }
+
+        // 加载历史记录
+        function loadHistoryEntry(index) {
+            const history = StorageUtils.getHistory('quarter');
+            const entry = history[index];
+            
+            if (!entry) return;
+
+            // 确认是否要加载历史记录
+            const confirmed = confirm(`确定要加载 ${entry.date} 的季度计划吗？当前未保存的修改将会丢失。`);
+            if (!confirmed) return;
+
+            const data = entry.data;
+            
+            // 加载目标
+            document.getElementById('quarter_objectives').value = data.objectives || '';
+            document.getElementById('quarter_review').value = data.review || '';
+            
+            // 加载关键结果
+            loadTodoContent('quarter_key_results', data.keyResults);
+            loadTodoContent('month1_milestones', data.month1Milestones);
+            loadTodoContent('month2_milestones', data.month2Milestones);
+            loadTodoContent('month3_milestones', data.month3Milestones);
+
+            // 关闭模态框
+            closeModal();
+            
+            MessageUtils.success(`已加载 ${entry.date} 的季度计划`);
+        }
+
+        // 删除历史记录
+        function deleteHistoryEntry(event, index) {
+            event.stopPropagation();
+            
+            const history = StorageUtils.getHistory('quarter');
+            const entry = history[index];
+            
+            const confirmed = confirm(`确定要删除 ${entry.date} 的历史记录吗？此操作不可撤销。`);
+            if (!confirmed) return;
+
+            const success = StorageUtils.deleteHistory('quarter', index);
+            if (success) {
+                MessageUtils.success('历史记录已删除');
+                // 重新显示历史记录
+                setTimeout(() => {
+                    closeModal();
+                    showQuarterHistory();
+                }, 500);
+            } else {
+                MessageUtils.error('删除历史记录失败');
+            }
+        }
+
+        // 导出历史记录
+        function exportHistory() {
+            const history = StorageUtils.getHistory('quarter');
+            
+            if (history.length === 0) {
+                MessageUtils.info('暂无历史记录可导出');
+                return;
+            }
+
+            const exportData = {
+                type: 'quarter_plan_history',
+                exportTime: new Date().toISOString(),
+                totalRecords: history.length,
+                records: history
+            };
+
+            const filename = `季度计划历史记录_${DateUtils.formatDate(new Date())}.json`;
+            ExportUtils.exportToJSON(exportData, filename);
+            
+            MessageUtils.success('历史记录导出成功！');
+        }
+
+        function showOKRAssistant() {
+            const content = `
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <h3 style="color: var(--theme-color); margin-bottom: 16px;">🎯 OKR制定助手</h3>
+                    <p style="color: #666;">让AI帮助您制定SMART目标</p>
+                </div>
+                
+                <div style="background: rgba(25,118,210,0.05); padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+                    <h4 style="margin: 0 0 8px 0; color: var(--theme-color);">💡 OKR制定原则</h4>
+                    <ul style="margin: 0; padding-left: 20px; color: #666;">
+                        <li>目标要有挑战性但可实现</li>
+                        <li>关键结果要可量化和可衡量</li>
+                        <li>设定3-5个关键结果</li>
+                        <li>定期回顾和调整</li>
+                    </ul>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                    <button class="ai-feature-btn" onclick="generateOKRSuggestions()">
+                        <div class="feature-icon">🎯</div>
+                        <div class="feature-title">目标建议</div>
+                    </button>
+                    
+                    <button class="ai-feature-btn" onclick="generateKRSuggestions()">
+                        <div class="feature-icon">📊</div>
+                        <div class="feature-title">关键结果</div>
+                    </button>
+                </div>
+                
+                <style>
+                    .ai-feature-btn {
+                        background: white;
+                        border: 2px solid #e0e0e0;
+                        border-radius: 12px;
+                        padding: 20px;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        text-align: center;
+                    }
+                    .ai-feature-btn:hover {
+                        border-color: var(--theme-color);
+                        transform: translateY(-2px);
+                    }
+                    .feature-icon { font-size: 2em; margin-bottom: 8px; }
+                    .feature-title { font-weight: 600; color: var(--theme-color); }
+                </style>
+            `;
+            
+            ModalUtils.show('OKR制定助手', content);
+        }
+
+        function generateOKRSuggestions() {
+            generateQuarterObjectives();
+        }
+
+        function generateKRSuggestions() {
+            generateKeyResults();
+        }
+
+        // 季度AI助手主界面
+        function showQuarterAIAssistant() {
+            const content = `
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <h3 style="color: var(--theme-color); margin-bottom: 16px;">🤖 季度计划AI助手</h3>
+                    <p style="color: #666;">让AI助您制定高质量的季度计划和OKR目标</p>
+                </div>
+                
+                <div style="background: rgba(25,118,210,0.05); padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+                    <h4 style="margin: 0 0 8px 0; color: var(--theme-color);">💡 AI助手能力</h4>
+                    <ul style="margin: 0; padding-left: 20px; color: #666; line-height: 1.6;">
+                        <li>智能生成季度OKR目标建议</li>
+                        <li>制定可量化的关键结果指标</li>
+                        <li>分析现有计划并提供优化建议</li>
+                        <li>生成月度里程碑分解计划</li>
+                        <li>提供行业最佳实践指导</li>
+                    </ul>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 20px;">
+                    <button class="ai-feature-btn" onclick="generateQuarterObjectives()">
+                        <div class="feature-icon">🎯</div>
+                        <div class="feature-title">智能目标建议</div>
+                        <div class="feature-desc">基于行业趋势生成OKR目标</div>
+                    </button>
+                    
+                    <button class="ai-feature-btn" onclick="generateKeyResults()">
+                        <div class="feature-icon">📊</div>
+                        <div class="feature-title">关键结果指标</div>
+                        <div class="feature-desc">制定SMART原则的KR指标</div>
+                    </button>
+                    
+                    <button class="ai-feature-btn" onclick="generateMilestones()">
+                        <div class="feature-icon">🗓️</div>
+                        <div class="feature-title">里程碑规划</div>
+                        <div class="feature-desc">智能分解月度执行计划</div>
+                    </button>
+                    
+                    <button class="ai-feature-btn" onclick="analyzeCurrentPlan()">
+                        <div class="feature-icon">🔍</div>
+                        <div class="feature-title">计划分析</div>
+                        <div class="feature-desc">评估现有计划可行性</div>
+                    </button>
+                    
+                    <button class="ai-feature-btn" onclick="generateQuarterTemplate()">
+                        <div class="feature-icon">📋</div>
+                        <div class="feature-title">模板生成</div>
+                        <div class="feature-desc">创建标准化计划模板</div>
+                    </button>
+                    
+                    <button class="ai-feature-btn" onclick="getBestPractices()">
+                        <div class="feature-icon">💎</div>
+                        <div class="feature-title">最佳实践</div>
+                        <div class="feature-desc">学习行业成功经验</div>
+                    </button>
+                </div>
+                
+                <div style="background: rgba(255, 193, 7, 0.1); padding: 12px; border-radius: 8px; border-left: 4px solid #ffc107;">
+                    <p style="margin: 0; color: #856404; font-size: 0.9em;">
+                        💡 <strong>提示：</strong>点击上方功能按钮，AI将根据您的具体需求提供个性化建议
+                    </p>
+                </div>
+                
+                <style>
+                    .ai-feature-btn {
+                        background: white;
+                        border: 2px solid #e0e0e0;
+                        border-radius: 12px;
+                        padding: 20px;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        text-align: center;
+                        position: relative;
+                        overflow: hidden;
+                    }
+                    .ai-feature-btn:hover {
+                        border-color: var(--theme-color);
+                        transform: translateY(-2px);
+                        box-shadow: 0 4px 12px rgba(25, 118, 210, 0.15);
+                    }
+                    .ai-feature-btn:active {
+                        transform: translateY(0);
+                    }
+                    .feature-icon { 
+                        font-size: 2.2em; 
+                        margin-bottom: 12px;
+                        display: block;
+                    }
+                    .feature-title { 
+                        font-weight: 600; 
+                        color: var(--theme-color);
+                        margin-bottom: 8px;
+                        font-size: 1.1em;
+                    }
+                    .feature-desc {
+                        color: #666;
+                        font-size: 0.9em;
+                        line-height: 1.4;
+                    }
+                </style>
+            `;
+            
+            ModalUtils.show('季度计划AI助手', content, 'large');
+        }
+
+        // 智能生成季度目标
+        function generateQuarterObjectives() {
+            const suggestions = [
+                "提升团队协作效率30%，建立更高效的沟通机制和工作流程",
+                "完成核心产品功能开发，实现用户体验的显著提升",
+                "建立个人技能提升体系，掌握3项核心专业技能",
+                "优化工作生活平衡，建立可持续的健康生活方式",
+                "扩大业务影响力，在行业内建立专业声誉和网络",
+                "创新项目管理方法，提高项目交付质量和效率",
+                "培养领导力和团队管理能力，成为更好的团队领导者"
+            ];
+
+            const content = `
+                <div style="margin-bottom: 20px;">
+                    <h4 style="color: var(--theme-color); margin-bottom: 16px;">🎯 AI推荐的季度目标</h4>
+                    <p style="color: #666; margin-bottom: 16px;">以下是基于最佳实践生成的目标建议，您可以选择合适的目标或作为灵感来源：</p>
+                </div>
+
+                <div style="max-height: 400px; overflow-y: auto;">
+                    ${suggestions.map((suggestion, index) => `
+                        <div class="suggestion-item" style="background: rgba(25,118,210,0.05); margin-bottom: 12px; padding: 16px; border-radius: 8px; border-left: 4px solid var(--theme-color); cursor: pointer;" onclick="selectObjective('${suggestion.replace(/'/g, "\\'")}')">
+                            <div style="font-weight: 500; color: var(--theme-color); margin-bottom: 4px;">目标 ${index + 1}</div>
+                            <div style="color: #333; line-height: 1.5;">${suggestion}</div>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <div style="margin-top: 20px; padding: 16px; background: rgba(76, 175, 80, 0.1); border-radius: 8px;">
+                    <h5 style="color: #2e7d32; margin: 0 0 8px 0;">💡 制定目标的建议</h5>
+                    <ul style="margin: 0; padding-left: 20px; color: #2e7d32; line-height: 1.6;">
+                        <li>目标应该具有挑战性但可实现</li>
+                        <li>确保目标与公司/个人长期愿景一致</li>
+                        <li>每个季度建议设定3-5个核心目标</li>
+                        <li>目标描述要具体明确，避免模糊表述</li>
+                    </ul>
+                </div>
+
+                <div style="text-align: center; margin-top: 20px;">
+                    <button class="btn-main" onclick="customObjective()" style="margin-right: 12px;">✏️ 自定义目标</button>
+                    <button class="btn-main" onclick="closeModal()">完成选择</button>
+                </div>
+            `;
+
+            ModalUtils.show('智能目标建议', content, 'large');
+        }
+
+        // 选择目标
+        function selectObjective(objective) {
+            const objectivesField = document.getElementById('quarter_objectives');
+            const currentText = objectivesField.value;
+            
+            if (currentText.trim()) {
+                objectivesField.value = currentText + '\n\n• ' + objective;
+            } else {
+                objectivesField.value = '• ' + objective;
+            }
+            
+            MessageUtils.success('目标已添加到计划中！');
+            
+            // 触发自动保存
+            if (typeof window.saveDraft === 'function') {
+                window.saveDraft();
+            }
+        }
+
+        // 生成关键结果
+        function generateKeyResults() {
+            const krSuggestions = [
+                "将项目完成率提升至95%以上",
+                "团队满意度调研达到4.5分（5分制）",
+                "新功能用户采用率达到60%",
+                "减少bug数量50%，提升产品质量",
+                "完成3次团队培训，提升技能水平",
+                "建立5个行业合作伙伴关系",
+                "个人技能考核通过率达到90%",
+                "客户满意度NPS分数提升20分",
+                "运营效率提升25%，降低成本",
+                "完成2个创新项目的原型开发"
+            ];
+
+            const content = `
+                <div style="margin-bottom: 20px;">
+                    <h4 style="color: var(--theme-color); margin-bottom: 16px;">📊 可量化的关键结果建议</h4>
+                    <p style="color: #666; margin-bottom: 16px;">关键结果应该是具体的、可衡量的、有时限的成果指标：</p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; margin-bottom: 20px;">
+                    ${krSuggestions.map((kr, index) => `
+                        <div class="kr-suggestion" style="background: white; border: 2px solid #e0e0e0; padding: 16px; border-radius: 8px; cursor: pointer; transition: all 0.3s ease;" onclick="selectKeyResult('${kr.replace(/'/g, "\\'")}')">
+                            <div style="font-weight: 500; color: var(--theme-color); margin-bottom: 4px;">KR ${index + 1}</div>
+                            <div style="color: #333;">${kr}</div>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <div style="background: rgba(255, 152, 0, 0.1); padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+                    <h5 style="color: #e65100; margin: 0 0 8px 0;">🎯 SMART原则提醒</h5>
+                    <div style="color: #e65100; line-height: 1.6;">
+                        <strong>S</strong>pecific (具体的) | <strong>M</strong>easurable (可衡量) | <strong>A</strong>chievable (可达成) | <strong>R</strong>elevant (相关的) | <strong>T</strong>ime-bound (有时限)
+                    </div>
+                </div>
+
+                <div style="text-align: center;">
+                    <button class="btn-main" onclick="customKeyResult()" style="margin-right: 12px;">✏️ 自定义KR</button>
+                    <button class="btn-main" onclick="closeModal()">完成选择</button>
+                </div>
+
+                <style>
+                    .kr-suggestion:hover {
+                        border-color: var(--theme-color);
+                        transform: translateY(-2px);
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                    }
+                </style>
+            `;
+
+            ModalUtils.show('关键结果建议', content, 'large');
+        }
+
+        // 选择关键结果
+        function selectKeyResult(kr) {
+            const krContainer = document.getElementById('quarter_key_results');
+            const currentContent = krContainer.textContent || '';
+            
+            let newContent;
+            if (currentContent.trim()) {
+                newContent = currentContent + '\n[ ] ' + kr;
+            } else {
+                newContent = '[ ] ' + kr;
+            }
+            
+            krContainer.textContent = newContent;
+            TodoUtils.renderTodos(krContainer);
+            
+            MessageUtils.success('关键结果已添加！');
+            
+            // 触发自动保存
+            if (typeof window.saveDraft === 'function') {
+                window.saveDraft();
+            }
+        }
+
+        // 生成里程碑计划
+        function generateMilestones() {
+            const milestoneTemplates = {
+                month1: [
+                    "制定详细执行计划和资源分配",
+                    "组建核心团队并明确职责分工",
+                    "完成基础设施和工具配置",
+                    "启动关键项目的第一阶段",
+                    "建立进度跟踪和反馈机制"
+                ],
+                month2: [
+                    "完成第一阶段成果验收",
+                    "评估进展并调整执行策略",
+                    "推进核心功能开发",
+                    "加强团队协作和沟通",
+                    "进行中期成果展示"
+                ],
+                month3: [
+                    "完成所有关键交付成果",
+                    "进行全面质量检查和优化",
+                    "总结经验并形成最佳实践",
+                    "准备季度总结和下季度规划",
+                    "庆祝团队成就并识别改进机会"
+                ]
+            };
+
+            const content = `
+                <div style="margin-bottom: 20px;">
+                    <h4 style="color: var(--theme-color); margin-bottom: 16px;">🗓️ 智能里程碑规划</h4>
+                    <p style="color: #666;">AI为您生成的三个月渐进式里程碑计划：</p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 20px;">
+                    <div style="background: rgba(33, 150, 243, 0.1); padding: 20px; border-radius: 12px; border-left: 4px solid #2196f3;">
+                        <h5 style="color: #2196f3; margin: 0 0 16px 0;">第一个月 - 启动阶段</h5>
+                        ${milestoneTemplates.month1.map(item => `
+                            <div style="margin-bottom: 8px; cursor: pointer; padding: 8px; border-radius: 4px; transition: background 0.2s;" 
+                                 onclick="addMilestone('month1', '${item.replace(/'/g, "\\'")}')">
+                                <span style="color: #2196f3;">▸</span> ${item}
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <div style="background: rgba(76, 175, 80, 0.1); padding: 20px; border-radius: 12px; border-left: 4px solid #4caf50;">
+                        <h5 style="color: #4caf50; margin: 0 0 16px 0;">第二个月 - 执行阶段</h5>
+                        ${milestoneTemplates.month2.map(item => `
+                            <div style="margin-bottom: 8px; cursor: pointer; padding: 8px; border-radius: 4px; transition: background 0.2s;" 
+                                 onclick="addMilestone('month2', '${item.replace(/'/g, "\\'")}')">
+                                <span style="color: #4caf50;">▸</span> ${item}
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <div style="background: rgba(255, 152, 0, 0.1); padding: 20px; border-radius: 12px; border-left: 4px solid #ff9800;">
+                        <h5 style="color: #ff9800; margin: 0 0 16px 0;">第三个月 - 收尾阶段</h5>
+                        ${milestoneTemplates.month3.map(item => `
+                            <div style="margin-bottom: 8px; cursor: pointer; padding: 8px; border-radius: 4px; transition: background 0.2s;" 
+                                 onclick="addMilestone('month3', '${item.replace(/'/g, "\\'")}')">
+                                <span style="color: #ff9800;">▸</span> ${item}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-top: 20px;">
+                    <button class="btn-main" onclick="addAllMilestones()">📅 添加全部里程碑</button>
+                    <button class="btn-main" onclick="closeModal()" style="margin-left: 12px;">完成</button>
+                </div>
+            `;
+
+            ModalUtils.show('里程碑规划建议', content, 'large');
+        }
+
+        // 添加里程碑
+        function addMilestone(month, milestone) {
+            const containerId = `${month}_milestones`;
+            const container = document.getElementById(containerId);
+            const currentContent = container.textContent || '';
+            
+            let newContent;
+            if (currentContent.trim()) {
+                newContent = currentContent + '\n[ ] ' + milestone;
+            } else {
+                newContent = '[ ] ' + milestone;
+            }
+            
+            container.textContent = newContent;
+            TodoUtils.renderTodos(container);
+            
+            MessageUtils.success(`里程碑已添加到${month === 'month1' ? '第一个月' : month === 'month2' ? '第二个月' : '第三个月'}！`);
+        }
+
+        // 添加所有里程碑
+        function addAllMilestones() {
+            const milestoneTemplates = {
+                month1_milestones: [
+                    "制定详细执行计划和资源分配",
+                    "组建核心团队并明确职责分工",
+                    "完成基础设施和工具配置",
+                    "启动关键项目的第一阶段",
+                    "建立进度跟踪和反馈机制"
+                ],
+                month2_milestones: [
+                    "完成第一阶段成果验收",
+                    "评估进展并调整执行策略",
+                    "推进核心功能开发",
+                    "加强团队协作和沟通",
+                    "进行中期成果展示"
+                ],
+                month3_milestones: [
+                    "完成所有关键交付成果",
+                    "进行全面质量检查和优化",
+                    "总结经验并形成最佳实践",
+                    "准备季度总结和下季度规划",
+                    "庆祝团队成就并识别改进机会"
+                ]
+            };
+
+            Object.keys(milestoneTemplates).forEach(containerId => {
+                const container = document.getElementById(containerId);
+                if (container) {
+                    const milestones = milestoneTemplates[containerId];
+                    const content = milestones.map(item => `[ ] ${item}`).join('\n');
+                    container.textContent = content;
+                    TodoUtils.renderTodos(container);
+                }
+            });
+
+            MessageUtils.success('所有里程碑已添加完成！');
+            
+            // 关闭模态框
+            const modal = document.querySelector('.modal-mask');
+            if (modal) {
+                ModalUtils.hide(modal);
+            }
+        }
+
+        // 分析当前计划
+        function analyzeCurrentPlan() {
+            const objectives = document.getElementById('quarter_objectives').value;
+            const keyResults = getTodoContent('quarter_key_results');
+            const month1 = getTodoContent('month1_milestones');
+            const month2 = getTodoContent('month2_milestones');
+            const month3 = getTodoContent('month3_milestones');
+            const review = document.getElementById('quarter_review').value;
+
+            // 计算分析指标
+            const objectiveWords = objectives.split(' ').length;
+            const krCount = (keyResults.match(/\[.\]/g) || []).length;
+            const totalMilestones = (month1.match(/\[.\]/g) || []).length + 
+                                   (month2.match(/\[.\]/g) || []).length + 
+                                   (month3.match(/\[.\]/g) || []).length;
+            const completedKRs = (keyResults.match(/\[x\]/gi) || []).length;
+            const completionRate = krCount > 0 ? Math.round((completedKRs / krCount) * 100) : 0;
+
+            // 生成建议
+            let suggestions = [];
+            if (objectiveWords < 20) suggestions.push("建议详化目标描述，增加具体背景和期望成果");
+            if (krCount < 3) suggestions.push("建议增加更多关键结果指标，确保目标可衡量");
+            if (krCount > 7) suggestions.push("关键结果过多，建议精简到3-5个核心指标");
+            if (totalMilestones < 9) suggestions.push("建议为每个月设定3-5个里程碑，确保执行有序");
+            if (!review.trim()) suggestions.push("建议填写季度回顾，总结经验和改进计划");
+
+            const content = `
+                <div style="margin-bottom: 20px;">
+                    <h4 style="color: var(--theme-color); margin-bottom: 16px;">🔍 计划分析报告</h4>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                    <div style="background: rgba(33, 150, 243, 0.1); padding: 16px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 2em; color: #2196f3; margin-bottom: 8px;">${objectiveWords}</div>
+                        <div style="color: #666;">目标描述字数</div>
+                    </div>
+                    <div style="background: rgba(76, 175, 80, 0.1); padding: 16px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 2em; color: #4caf50; margin-bottom: 8px;">${krCount}</div>
+                        <div style="color: #666;">关键结果数量</div>
+                    </div>
+                    <div style="background: rgba(255, 152, 0, 0.1); padding: 16px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 2em; color: #ff9800; margin-bottom: 8px;">${totalMilestones}</div>
+                        <div style="color: #666;">总里程碑数</div>
+                    </div>
+                    <div style="background: rgba(156, 39, 176, 0.1); padding: 16px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 2em; color: #9c27b0; margin-bottom: 8px;">${completionRate}%</div>
+                        <div style="color: #666;">完成进度</div>
+                    </div>
+                </div>
+
+                <div style="background: white; border: 2px solid #e0e0e0; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                    <h5 style="color: var(--theme-color); margin: 0 0 16px 0;">💡 AI优化建议</h5>
+                    ${suggestions.length > 0 ? `
+                        <ul style="margin: 0; padding-left: 20px; color: #666; line-height: 1.8;">
+                            ${suggestions.map(suggestion => `<li>${suggestion}</li>`).join('')}
+                        </ul>
+                    ` : `
+                        <div style="color: #4caf50; font-weight: 500;">
+                            🎉 您的季度计划结构完善，内容充实！继续保持这种高质量的规划习惯。
+                        </div>
+                    `}
+                </div>
+
+                <div style="background: rgba(76, 175, 80, 0.1); padding: 16px; border-radius: 8px;">
+                    <h5 style="color: #2e7d32; margin: 0 0 8px 0;">⭐ 计划质量评分</h5>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="flex: 1; background: rgba(76, 175, 80, 0.2); border-radius: 10px; height: 20px; overflow: hidden;">
+                            <div style="width: ${Math.min(85, (objectiveWords > 15 ? 25 : 0) + (krCount >= 3 ? 25 : 0) + (totalMilestones >= 9 ? 25 : 0) + (review.trim() ? 25 : 0))}%; height: 100%; background: #4caf50; transition: width 0.3s ease;"></div>
+                        </div>
+                        <div style="color: #2e7d32; font-weight: 600;">${Math.min(85, (objectiveWords > 15 ? 25 : 0) + (krCount >= 3 ? 25 : 0) + (totalMilestones >= 9 ? 25 : 0) + (review.trim() ? 25 : 0))}分</div>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-top: 20px;">
+                    <button class="btn-main" onclick="closeModal()">关闭分析</button>
+                </div>
+            `;
+
+            ModalUtils.show('计划分析报告', content, 'large');
+        }
+
+        // 生成计划模板
+        function generateQuarterTemplate() {
+            const templates = {
+                business: {
+                    name: "商业发展模板",
+                    objectives: "• 拓展新市场并建立品牌影响力\n• 提升产品竞争力和用户体验\n• 建立可持续的商业增长模式",
+                    keyResults: [
+                        "新客户获取量增长40%",
+                        "客户满意度NPS提升至50+",
+                        "产品月活跃用户增长30%",
+                        "营收环比增长25%"
+                    ],
+                    icon: "💼"
+                },
+                personal: {
+                    name: "个人成长模板",
+                    objectives: "• 提升核心专业技能和领导能力\n• 建立健康平衡的生活方式\n• 扩展人际网络和影响力",
+                    keyResults: [
+                        "完成3项核心技能认证",
+                        "建立每周运动3次的习惯",
+                        "参加5场行业会议",
+                        "建立100+专业人脉网络"
+                    ],
+                    icon: "🎯"
+                },
+                team: {
+                    name: "团队管理模板",
+                    objectives: "• 打造高效协作的团队文化\n• 提升团队整体能力和绩效\n• 建立完善的团队发展体系",
+                    keyResults: [
+                        "团队协作效率提升35%",
+                        "员工满意度达到4.5分",
+                        "团队技能培训完成率95%",
+                        "项目交付准时率达98%"
+                    ],
+                    icon: "👥"
+                },
+                product: {
+                    name: "产品开发模板",
+                    objectives: "• 构建用户价值驱动的产品体系\n• 建立敏捷高效的开发流程\n• 提升产品市场竞争力",
+                    keyResults: [
+                        "新功能用户采用率60%+",
+                        "产品缺陷率降低50%",
+                        "开发效率提升40%",
+                        "用户留存率提升25%"
+                    ],
+                    icon: "🚀"
+                }
+            };
+
+            const content = `
+                <div style="margin-bottom: 20px;">
+                    <h4 style="color: var(--theme-color); margin-bottom: 16px;">📋 标准化计划模板</h4>
+                    <p style="color: #666;">选择适合的模板快速开始您的季度规划：</p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 20px;">
+                    ${Object.entries(templates).map(([key, template]) => `
+                        <div class="template-card" style="background: white; border: 2px solid #e0e0e0; border-radius: 12px; padding: 20px; cursor: pointer; transition: all 0.3s ease;" onclick="applyTemplate('${key}')">
+                            <div style="text-align: center; margin-bottom: 16px;">
+                                <div style="font-size: 3em; margin-bottom: 8px;">${template.icon}</div>
+                                <div style="font-weight: 600; color: var(--theme-color); font-size: 1.1em;">${template.name}</div>
+                            </div>
+                            <div style="color: #666; line-height: 1.5; margin-bottom: 16px;">${template.objectives.split('\n')[0]}...</div>
+                            <div style="background: rgba(25, 118, 210, 0.05); padding: 12px; border-radius: 8px;">
+                                <div style="font-size: 0.9em; color: #666; margin-bottom: 8px;">包含 ${template.keyResults.length} 个关键结果指标</div>
+                                <div style="display: flex; gap: 4px;">
+                                    ${Array(4).fill(0).map(() => '<div style="width: 8px; height: 8px; background: var(--theme-color); border-radius: 50%; opacity: 0.6;"></div>').join('')}
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <div style="background: rgba(255, 193, 7, 0.1); padding: 16px; border-radius: 8px; border-left: 4px solid #ffc107;">
+                    <p style="margin: 0; color: #856404;">
+                        💡 <strong>提示：</strong>选择模板后，您可以根据具体需求进行调整和定制
+                    </p>
+                </div>
+
+                <div style="text-align: center; margin-top: 20px;">
+                    <button class="btn-main" onclick="closeModal()">取消</button>
+                </div>
+
+                <style>
+                    .template-card:hover {
+                        border-color: var(--theme-color);
+                        transform: translateY(-4px);
+                        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+                    }
+                </style>
+            `;
+
+            ModalUtils.show('选择计划模板', content, 'large');
+        }
+
+        // 应用模板
+        function applyTemplate(templateKey) {
+            const templates = {
+                business: {
+                    objectives: "• 拓展新市场并建立品牌影响力\n• 提升产品竞争力和用户体验\n• 建立可持续的商业增长模式",
+                    keyResults: [
+                        "新客户获取量增长40%",
+                        "客户满意度NPS提升至50+",
+                        "产品月活跃用户增长30%",
+                        "营收环比增长25%"
+                    ]
+                },
+                personal: {
+                    objectives: "• 提升核心专业技能和领导能力\n• 建立健康平衡的生活方式\n• 扩展人际网络和影响力",
+                    keyResults: [
+                        "完成3项核心技能认证",
+                        "建立每周运动3次的习惯",
+                        "参加5场行业会议",
+                        "建立100+专业人脉网络"
+                    ]
+                },
+                team: {
+                    objectives: "• 打造高效协作的团队文化\n• 提升团队整体能力和绩效\n• 建立完善的团队发展体系",
+                    keyResults: [
+                        "团队协作效率提升35%",
+                        "员工满意度达到4.5分",
+                        "团队技能培训完成率95%",
+                        "项目交付准时率达98%"
+                    ]
+                },
+                product: {
+                    objectives: "• 构建用户价值驱动的产品体系\n• 建立敏捷高效的开发流程\n• 提升产品市场竞争力",
+                    keyResults: [
+                        "新功能用户采用率60%+",
+                        "产品缺陷率降低50%",
+                        "开发效率提升40%",
+                        "用户留存率提升25%"
+                    ]
+                }
+            };
+
+            const template = templates[templateKey];
+            if (!template) return;
+
+            // 应用目标
+            document.getElementById('quarter_objectives').value = template.objectives;
+
+            // 应用关键结果
+            const krContainer = document.getElementById('quarter_key_results');
+            const krContent = template.keyResults.map(kr => `[ ] ${kr}`).join('\n');
+            krContainer.textContent = krContent;
+            TodoUtils.renderTodos(krContainer);
+
+            MessageUtils.success('模板已应用成功！您可以根据需要进行调整。');
+            
+            // 关闭模态框
+            const modal = document.querySelector('.modal-mask');
+            if (modal) {
+                ModalUtils.hide(modal);
+            }
+        }
+
+        // 获取最佳实践
+        function getBestPractices() {
+            const practices = [
+                {
+                    title: "OKR制定原则",
+                    icon: "🎯",
+                    content: "目标要有挑战性但可实现，关键结果必须可量化。每季度3-5个目标，每个目标对应3-5个关键结果。"
+                },
+                {
+                    title: "执行跟踪频率",
+                    icon: "📊",
+                    content: "建议每周检查进度，每月调整策略。使用看板或进度图表可视化追踪，保持团队透明度。"
+                },
+                {
+                    title: "团队协作机制",
+                    icon: "👥",
+                    content: "建立定期沟通机制，包括周会、月度回顾。确保每个人都清楚自己的贡献和团队整体目标。"
+                },
+                {
+                    title: "风险管理策略",
+                    icon: "⚠️",
+                    content: "识别可能的风险点，制定应对方案。为每个关键结果设置70%的达成标准作为成功指标。"
+                },
+                {
+                    title: "学习与改进",
+                    icon: "📚",
+                    content: "季度结束后进行复盘，总结经验教训。建立知识库，记录成功实践和失败原因。"
+                },
+                {
+                    title: "工具与方法",
+                    icon: "🛠️",
+                    content: "使用合适的工具支持执行，如项目管理软件、数据分析工具。建立标准化的工作流程。"
+                }
+            ];
+
+            const content = `
+                <div style="margin-bottom: 20px;">
+                    <h4 style="color: var(--theme-color); margin-bottom: 16px;">💎 季度规划最佳实践</h4>
+                    <p style="color: #666;">学习行业领先的季度规划方法和技巧：</p>
+                </div>
+
+                <div style="display: grid; gap: 16px; margin-bottom: 20px;">
+                    ${practices.map(practice => `
+                        <div style="background: white; border: 2px solid #e0e0e0; border-radius: 12px; padding: 20px;">
+                            <div style="display: flex; align-items: center; margin-bottom: 12px;">
+                                <div style="font-size: 1.5em; margin-right: 12px;">${practice.icon}</div>
+                                <h5 style="margin: 0; color: var(--theme-color);">${practice.title}</h5>
+                            </div>
+                            <p style="margin: 0; color: #666; line-height: 1.6;">${practice.content}</p>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <div style="background: rgba(25, 118, 210, 0.1); padding: 20px; border-radius: 12px;">
+                    <h5 style="color: var(--theme-color); margin: 0 0 12px 0;">🚀 成功要素总结</h5>
+                    <ul style="margin: 0; padding-left: 20px; color: #666; line-height: 1.8;">
+                        <li>制定清晰具体的目标和可衡量的结果</li>
+                        <li>建立有效的执行和跟踪机制</li>
+                        <li>保持团队对齐和高效沟通</li>
+                        <li>持续学习和迭代改进</li>
+                    </ul>
+                </div>
+
+                <div style="text-align: center; margin-top: 20px;">
+                    <button class="btn-main" onclick="closeModal()">了解完成</button>
+                </div>
+            `;
+
+            ModalUtils.show('最佳实践指南', content, 'large');
+        }
+
+        // 关闭模态框的通用方法
+        function closeModal() {
+            const modal = document.querySelector('.modal-mask');
+            if (modal) {
+                ModalUtils.hide(modal);
+            }
+        }
+
+        // 自定义功能（占位符）
+        function customObjective() {
+            MessageUtils.info('自定义目标功能即将上线...');
+        }
+
+        function customKeyResult() {
+            MessageUtils.info('自定义关键结果功能即将上线...');
+        }
+
+        // 显示月度里程碑模板
+        function showMilestoneTemplates() {
+            const templates = {
+                startup: {
+                    name: "项目启动模板",
+                    icon: "🚀",
+                    description: "适用于新项目或新业务的启动阶段",
+                    milestones: {
+                        month1: [
+                            "完成项目立项和需求分析",
+                            "组建核心团队并明确角色分工",
+                            "制定详细的项目计划和时间表",
+                            "完成技术选型和架构设计",
+                            "建立项目管理和沟通机制"
+                        ],
+                        month2: [
+                            "完成核心功能的原型开发",
+                            "进行第一轮用户测试和反馈收集",
+                            "优化产品设计和用户体验",
+                            "建立基础的运营和支持体系",
+                            "准备市场推广和宣传材料"
+                        ],
+                        month3: [
+                            "完成产品的完整功能开发",
+                            "进行全面的质量测试和优化",
+                            "正式发布并开始市场推广",
+                            "建立用户反馈和持续改进机制",
+                            "总结项目经验并规划下一阶段"
+                        ]
+                    }
+                },
+                growth: {
+                    name: "业务增长模板",
+                    icon: "📈",
+                    description: "适用于已有业务的规模化发展阶段",
+                    milestones: {
+                        month1: [
+                            "分析现有业务数据和市场机会",
+                            "制定增长策略和关键指标",
+                            "优化现有产品和服务流程",
+                            "扩大营销渠道和客户触达",
+                            "建立数据追踪和分析体系"
+                        ],
+                        month2: [
+                            "实施关键的增长实验和测试",
+                            "扩大团队规模和能力建设",
+                            "深化客户关系和提升满意度",
+                            "开发新的产品功能或服务",
+                            "建立合作伙伴和渠道关系"
+                        ],
+                        month3: [
+                            "评估增长策略的效果和ROI",
+                            "扩大成功实验的规模和影响",
+                            "建立可持续的增长机制",
+                            "准备下一阶段的发展计划",
+                            "分享成功经验和最佳实践"
+                        ]
+                    }
+                },
+                optimization: {
+                    name: "流程优化模板",
+                    icon: "⚙️",
+                    description: "适用于提升效率和优化现有流程",
+                    milestones: {
+                        month1: [
+                            "识别和分析现有流程的瓶颈",
+                            "制定流程优化和改进方案",
+                            "建立流程监控和测量指标",
+                            "培训团队使用新的工具和方法",
+                            "开始实施小规模的改进试点"
+                        ],
+                        month2: [
+                            "推广成功的改进措施到全团队",
+                            "实施自动化和技术优化方案",
+                            "建立持续改进的文化和机制",
+                            "收集和分析流程改进的效果",
+                            "调整和优化改进方案"
+                        ],
+                        month3: [
+                            "评估整体优化效果和收益",
+                            "建立标准化的流程文档",
+                            "培训和推广最佳实践",
+                            "建立长期的流程维护机制",
+                            "规划下一轮的优化重点"
+                        ]
+                    }
+                },
+                learning: {
+                    name: "学习发展模板",
+                    icon: "📚",
+                    description: "适用于技能提升和知识体系建设",
+                    milestones: {
+                        month1: [
+                            "评估当前技能水平和发展需求",
+                            "制定个人或团队学习计划",
+                            "选择合适的学习资源和课程",
+                            "建立学习进度跟踪机制",
+                            "开始核心技能的基础学习"
+                        ],
+                        month2: [
+                            "深入学习关键技能和知识点",
+                            "参与实践项目和案例学习",
+                            "与专家和同行进行交流分享",
+                            "建立个人知识管理体系",
+                            "进行学习成果的总结和反思"
+                        ],
+                        month3: [
+                            "应用所学知识解决实际问题",
+                            "分享学习成果和最佳实践",
+                            "建立持续学习的习惯和机制",
+                            "评估学习效果和能力提升",
+                            "规划下一阶段的学习重点"
+                        ]
+                    }
+                }
+            };
+
+            const content = `
+                <div style="margin-bottom: 20px;">
+                    <h4 style="color: var(--theme-color); margin-bottom: 16px;">📅 月度里程碑模板</h4>
+                    <p style="color: #666;">选择适合的模板快速规划您的月度执行里程碑：</p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 20px;">
+                    ${Object.entries(templates).map(([key, template]) => `
+                        <div class="milestone-template-card" style="background: white; border: 2px solid #e0e0e0; border-radius: 12px; padding: 20px; cursor: pointer; transition: all 0.3s ease;" onclick="applyMilestoneTemplate('${key}')">
+                            <div style="text-align: center; margin-bottom: 16px;">
+                                <div style="font-size: 2.5em; margin-bottom: 8px;">${template.icon}</div>
+                                <div style="font-weight: 600; color: var(--theme-color); margin-bottom: 8px;">${template.name}</div>
+                                <div style="color: #666; font-size: 0.9em; line-height: 1.4;">${template.description}</div>
+                            </div>
+                            
+                            <div style="background: rgba(25, 118, 210, 0.05); padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+                                <div style="font-size: 0.9em; color: #666; margin-bottom: 8px;">每月包含5个里程碑</div>
+                                <div style="font-size: 0.8em; color: #999;">第1个月: ${template.milestones.month1[0]}...</div>
+                            </div>
+                            
+                            <div style="text-align: center;">
+                                <button class="btn-small" onclick="event.stopPropagation(); previewMilestoneTemplate('${key}')" style="margin-right: 8px;">👁️ 预览</button>
+                                <button class="btn-small" onclick="event.stopPropagation(); applyMilestoneTemplate('${key}')">✅ 应用</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <div style="background: rgba(255, 193, 7, 0.1); padding: 16px; border-radius: 8px; border-left: 4px solid #ffc107; margin-bottom: 20px;">
+                    <h5 style="color: #856404; margin: 0 0 8px 0;">💡 使用建议</h5>
+                    <ul style="margin: 0; padding-left: 20px; color: #856404; line-height: 1.6;">
+                        <li>选择最符合您当前业务阶段的模板</li>
+                        <li>应用模板后可根据具体情况进行调整</li>
+                        <li>建议结合OKR目标制定具体的里程碑</li>
+                    </ul>
+                </div>
+
+                <div style="text-align: center;">
+                    <button class="btn-main" onclick="clearAllMilestones()" style="margin-right: 12px;">🗑️ 清空所有</button>
+                    <button class="btn-main" onclick="closeModal()">关闭</button>
+                </div>
+
+                <style>
+                    .milestone-template-card:hover {
+                        border-color: var(--theme-color);
+                        transform: translateY(-2px);
+                        box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+                    }
+                    .btn-small {
+                        padding: 6px 12px;
+                        border: 1px solid var(--theme-color);
+                        background: white;
+                        color: var(--theme-color);
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 0.8em;
+                        transition: all 0.3s ease;
+                    }
+                    .btn-small:hover {
+                        background: var(--theme-color);
+                        color: white;
+                    }
+                </style>
+            `;
+
+            ModalUtils.show('月度里程碑模板', content, 'large');
+        }
+
+        // 预览里程碑模板
+        function previewMilestoneTemplate(templateKey) {
+            const templates = {
+                startup: {
+                    name: "项目启动模板",
+                    milestones: {
+                        month1: [
+                            "完成项目立项和需求分析",
+                            "组建核心团队并明确角色分工", 
+                            "制定详细的项目计划和时间表",
+                            "完成技术选型和架构设计",
+                            "建立项目管理和沟通机制"
+                        ],
+                        month2: [
+                            "完成核心功能的原型开发",
+                            "进行第一轮用户测试和反馈收集",
+                            "优化产品设计和用户体验",
+                            "建立基础的运营和支持体系",
+                            "准备市场推广和宣传材料"
+                        ],
+                        month3: [
+                            "完成产品的完整功能开发",
+                            "进行全面的质量测试和优化",
+                            "正式发布并开始市场推广",
+                            "建立用户反馈和持续改进机制",
+                            "总结项目经验并规划下一阶段"
+                        ]
+                    }
+                },
+                growth: {
+                    name: "业务增长模板",
+                    milestones: {
+                        month1: [
+                            "分析现有业务数据和市场机会",
+                            "制定增长策略和关键指标",
+                            "优化现有产品和服务流程",
+                            "扩大营销渠道和客户触达",
+                            "建立数据追踪和分析体系"
+                        ],
+                        month2: [
+                            "实施关键的增长实验和测试",
+                            "扩大团队规模和能力建设",
+                            "深化客户关系和提升满意度",
+                            "开发新的产品功能或服务",
+                            "建立合作伙伴和渠道关系"
+                        ],
+                        month3: [
+                            "评估增长策略的效果和ROI",
+                            "扩大成功实验的规模和影响",
+                            "建立可持续的增长机制",
+                            "准备下一阶段的发展计划",
+                            "分享成功经验和最佳实践"
+                        ]
+                    }
+                },
+                optimization: {
+                    name: "流程优化模板",
+                    milestones: {
+                        month1: [
+                            "识别和分析现有流程的瓶颈",
+                            "制定流程优化和改进方案",
+                            "建立流程监控和测量指标",
+                            "培训团队使用新的工具和方法",
+                            "开始实施小规模的改进试点"
+                        ],
+                        month2: [
+                            "推广成功的改进措施到全团队",
+                            "实施自动化和技术优化方案",
+                            "建立持续改进的文化和机制",
+                            "收集和分析流程改进的效果",
+                            "调整和优化改进方案"
+                        ],
+                        month3: [
+                            "评估整体优化效果和收益",
+                            "建立标准化的流程文档",
+                            "培训和推广最佳实践",
+                            "建立长期的流程维护机制",
+                            "规划下一轮的优化重点"
+                        ]
+                    }
+                },
+                learning: {
+                    name: "学习发展模板",
+                    milestones: {
+                        month1: [
+                            "评估当前技能水平和发展需求",
+                            "制定个人或团队学习计划",
+                            "选择合适的学习资源和课程",
+                            "建立学习进度跟踪机制",
+                            "开始核心技能的基础学习"
+                        ],
+                        month2: [
+                            "深入学习关键技能和知识点",
+                            "参与实践项目和案例学习",
+                            "与专家和同行进行交流分享",
+                            "建立个人知识管理体系",
+                            "进行学习成果的总结和反思"
+                        ],
+                        month3: [
+                            "应用所学知识解决实际问题",
+                            "分享学习成果和最佳实践",
+                            "建立持续学习的习惯和机制",
+                            "评估学习效果和能力提升",
+                            "规划下一阶段的学习重点"
+                        ]
+                    }
+                }
+            };
+
+            const template = templates[templateKey];
+            if (!template) return;
+
+            const content = `
+                <div style="margin-bottom: 20px;">
+                    <h4 style="color: var(--theme-color); margin-bottom: 16px;">${template.name} - 详细预览</h4>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                    <div style="background: rgba(33, 150, 243, 0.1); padding: 20px; border-radius: 12px; border-left: 4px solid #2196f3;">
+                        <h5 style="color: #2196f3; margin: 0 0 16px 0;">第一个月</h5>
+                        <ul style="margin: 0; padding-left: 16px; color: #333; line-height: 1.8;">
+                            ${template.milestones.month1.map(item => `<li>${item}</li>`).join('')}
+                        </ul>
+                    </div>
+
+                    <div style="background: rgba(76, 175, 80, 0.1); padding: 20px; border-radius: 12px; border-left: 4px solid #4caf50;">
+                        <h5 style="color: #4caf50; margin: 0 0 16px 0;">第二个月</h5>
+                        <ul style="margin: 0; padding-left: 16px; color: #333; line-height: 1.8;">
+                            ${template.milestones.month2.map(item => `<li>${item}</li>`).join('')}
+                        </ul>
+                    </div>
+
+                    <div style="background: rgba(255, 152, 0, 0.1); padding: 20px; border-radius: 12px; border-left: 4px solid #ff9800;">
+                        <h5 style="color: #ff9800; margin: 0 0 16px 0;">第三个月</h5>
+                        <ul style="margin: 0; padding-left: 16px; color: #333; line-height: 1.8;">
+                            ${template.milestones.month3.map(item => `<li>${item}</li>`).join('')}
+                        </ul>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-top: 20px;">
+                    <button class="btn-main" onclick="closeModal(); applyMilestoneTemplate('${templateKey}')" style="margin-right: 12px;">✅ 应用此模板</button>
+                    <button class="btn-main" onclick="closeModal()">关闭</button>
+                </div>
+            `;
+
+            ModalUtils.show(`${template.name} - 预览`, content, 'large');
+        }
+
+        // 应用里程碑模板
+        function applyMilestoneTemplate(templateKey) {
+            const templates = {
+                startup: {
+                    milestones: {
+                        month1_milestones: [
+                            "完成项目立项和需求分析",
+                            "组建核心团队并明确角色分工",
+                            "制定详细的项目计划和时间表", 
+                            "完成技术选型和架构设计",
+                            "建立项目管理和沟通机制"
+                        ],
+                        month2_milestones: [
+                            "完成核心功能的原型开发",
+                            "进行第一轮用户测试和反馈收集",
+                            "优化产品设计和用户体验",
+                            "建立基础的运营和支持体系",
+                            "准备市场推广和宣传材料"
+                        ],
+                        month3_milestones: [
+                            "完成产品的完整功能开发",
+                            "进行全面的质量测试和优化",
+                            "正式发布并开始市场推广",
+                            "建立用户反馈和持续改进机制",
+                            "总结项目经验并规划下一阶段"
+                        ]
+                    }
+                },
+                growth: {
+                    milestones: {
+                        month1_milestones: [
+                            "分析现有业务数据和市场机会",
+                            "制定增长策略和关键指标",
+                            "优化现有产品和服务流程",
+                            "扩大营销渠道和客户触达",
+                            "建立数据追踪和分析体系"
+                        ],
+                        month2_milestones: [
+                            "实施关键的增长实验和测试",
+                            "扩大团队规模和能力建设",
+                            "深化客户关系和提升满意度",
+                            "开发新的产品功能或服务",
+                            "建立合作伙伴和渠道关系"
+                        ],
+                        month3_milestones: [
+                            "评估增长策略的效果和ROI",
+                            "扩大成功实验的规模和影响",
+                            "建立可持续的增长机制",
+                            "准备下一阶段的发展计划",
+                            "分享成功经验和最佳实践"
+                        ]
+                    }
+                },
+                optimization: {
+                    milestones: {
+                        month1_milestones: [
+                            "识别和分析现有流程的瓶颈",
+                            "制定流程优化和改进方案",
+                            "建立流程监控和测量指标",
+                            "培训团队使用新的工具和方法",
+                            "开始实施小规模的改进试点"
+                        ],
+                        month2_milestones: [
+                            "推广成功的改进措施到全团队",
+                            "实施自动化和技术优化方案",
+                            "建立持续改进的文化和机制",
+                            "收集和分析流程改进的效果",
+                            "调整和优化改进方案"
+                        ],
+                        month3_milestones: [
+                            "评估整体优化效果和收益",
+                            "建立标准化的流程文档",
+                            "培训和推广最佳实践",
+                            "建立长期的流程维护机制",
+                            "规划下一轮的优化重点"
+                        ]
+                    }
+                },
+                learning: {
+                    milestones: {
+                        month1_milestones: [
+                            "评估当前技能水平和发展需求",
+                            "制定个人或团队学习计划",
+                            "选择合适的学习资源和课程",
+                            "建立学习进度跟踪机制",
+                            "开始核心技能的基础学习"
+                        ],
+                        month2_milestones: [
+                            "深入学习关键技能和知识点",
+                            "参与实践项目和案例学习",
+                            "与专家和同行进行交流分享",
+                            "建立个人知识管理体系",
+                            "进行学习成果的总结和反思"
+                        ],
+                        month3_milestones: [
+                            "应用所学知识解决实际问题",
+                            "分享学习成果和最佳实践",
+                            "建立持续学习的习惯和机制",
+                            "评估学习效果和能力提升",
+                            "规划下一阶段的学习重点"
+                        ]
+                    }
+                }
+            };
+
+            const template = templates[templateKey];
+            if (!template) return;
+
+            // 应用里程碑到各个月份
+            Object.keys(template.milestones).forEach(containerId => {
+                const container = document.getElementById(containerId);
+                if (container) {
+                    const milestones = template.milestones[containerId];
+                    const content = milestones.map(item => `[ ] ${item}`).join('\n');
+                    container.textContent = content;
+                    TodoUtils.renderTodos(container);
+                }
+            });
+
+            MessageUtils.success('里程碑模板已应用成功！');
+            
+            // 关闭模态框
+            const modal = document.querySelector('.modal-mask');
+            if (modal) {
+                ModalUtils.hide(modal);
+            }
+        }
+
+        // 清空所有里程碑
+        function clearAllMilestones() {
+            const confirmed = confirm('确定要清空所有月度里程碑吗？此操作不可撤销。');
+            if (!confirmed) return;
+
+            const containers = ['month1_milestones', 'month2_milestones', 'month3_milestones'];
+            containers.forEach(containerId => {
+                const container = document.getElementById(containerId);
+                if (container) {
+                    container.innerHTML = '';
+                    container.textContent = '';
+                }
+            });
+
+            MessageUtils.success('所有月度里程碑已清空');
+            
+            // 关闭模态框
+            const modal = document.querySelector('.modal-mask');
+            if (modal) {
+                ModalUtils.hide(modal);
+            }
+        }
+
+        // 显示季度回顾模板
+        function showReviewTemplates() {
+            const templates = {
+                comprehensive: {
+                    name: "全面回顾模板",
+                    icon: "📊",
+                    description: "涵盖OKR、成果、挑战、学习的完整回顾",
+                    content: `🎯 **OKR完成情况评估**
+
+目标完成度：
+• 目标1: [完成度%] - [具体描述完成情况]
+• 目标2: [完成度%] - [具体描述完成情况]
+• 目标3: [完成度%] - [具体描述完成情况]
+
+关键结果达成：
+• KR1: [达成情况] - [数据支撑]
+• KR2: [达成情况] - [数据支撑]
+• KR3: [达成情况] - [数据支撑]
+
+🏆 **重要成果和突破**
+
+核心成果：
+• [成果1] - [具体数据和影响]
+• [成果2] - [具体数据和影响]
+• [成果3] - [具体数据和影响]
+
+意外收获：
+• [收获1] - [对业务的积极影响]
+• [收获2] - [对团队的积极影响]
+
+🛠️ **遇到的挑战和解决方案**
+
+主要挑战：
+• 挑战1: [问题描述] → [解决方案] → [结果]
+• 挑战2: [问题描述] → [解决方案] → [结果]
+• 挑战3: [问题描述] → [解决方案] → [结果]
+
+未完全解决的问题：
+• [问题描述] - [当前状态] - [下步计划]
+
+👥 **团队协作和个人成长**
+
+团队协作：
+• 团队效率提升：[具体改进]
+• 沟通机制优化：[具体变化]
+• 团队能力建设：[培训/学习成果]
+
+个人成长：
+• 新掌握的技能：[技能列表]
+• 领导力提升：[具体体现]
+• 个人效率改进：[方法和效果]
+
+📈 **下季度改进计划**
+
+需要调整的策略：
+• [策略1] - [调整原因] - [新方法]
+• [策略2] - [调整原因] - [新方法]
+
+重点提升领域：
+• [领域1] - [具体行动计划]
+• [领域2] - [具体行动计划]
+
+资源需求：
+• 人员需求：[具体需求]
+• 工具/系统需求：[具体需求]
+• 培训需求：[具体需求]`
+                },
+                result_focused: {
+                    name: "成果导向模板",
+                    icon: "🏆",
+                    description: "重点关注成果达成和价值创造",
+                    content: `📊 **核心指标达成情况**
+
+业务指标：
+• [指标1]: 目标值 vs 实际值 - [达成率%]
+• [指标2]: 目标值 vs 实际值 - [达成率%]
+• [指标3]: 目标值 vs 实际值 - [达成率%]
+
+质量指标：
+• [质量指标1]: [实际表现]
+• [质量指标2]: [实际表现]
+
+🎯 **关键成果详述**
+
+最重要的3个成果：
+1. [成果名称]
+   • 背景：[为什么重要]
+   • 过程：[如何实现]
+   • 影响：[带来的价值]
+   • 数据：[具体数据支撑]
+
+2. [成果名称]
+   • 背景：[为什么重要]
+   • 过程：[如何实现]
+   • 影响：[带来的价值]
+   • 数据：[具体数据支撑]
+
+3. [成果名称]
+   • 背景：[为什么重要]
+   • 过程：[如何实现]
+   • 影响：[带来的价值]
+   • 数据：[具体数据支撑]
+
+💡 **成功因素分析**
+
+关键成功要素：
+• [要素1] - [为什么是关键因素]
+• [要素2] - [为什么是关键因素]
+• [要素3] - [为什么是关键因素]
+
+可复用的方法：
+• [方法1] - [应用场景]
+• [方法2] - [应用场景]
+
+⚠️ **风险管控总结**
+
+已规避的风险：
+• [风险1] - [规避措施] - [效果]
+• [风险2] - [规避措施] - [效果]
+
+新识别的风险：
+• [新风险1] - [影响评估] - [应对计划]
+• [新风险2] - [影响评估] - [应对计划]
+
+🚀 **价值创造总结**
+
+对业务的价值：
+• [价值1] - [量化描述]
+• [价值2] - [量化描述]
+
+对团队的价值：
+• [价值1] - [具体体现]
+• [价值2] - [具体体现]
+
+对个人的价值：
+• [价值1] - [成长体现]
+• [价值2] - [成长体现]`
+                },
+                learning_focused: {
+                    name: "学习反思模板",
+                    icon: "🎓",
+                    description: "强调学习总结和经验沉淀",
+                    content: `🧠 **关键学习和洞察**
+
+业务理解深化：
+• [洞察1] - [如何获得] - [对未来的指导意义]
+• [洞察2] - [如何获得] - [对未来的指导意义]
+• [洞察3] - [如何获得] - [对未来的指导意义]
+
+市场/用户洞察：
+• [市场洞察] - [数据来源] - [战略意义]
+• [用户洞察] - [调研方法] - [产品优化方向]
+
+📚 **技能和能力提升**
+
+新掌握的技能：
+• [技能1] - [学习方式] - [应用场景] - [熟练度]
+• [技能2] - [学习方式] - [应用场景] - [熟练度]
+• [技能3] - [学习方式] - [应用场景] - [熟练度]
+
+能力提升领域：
+• 分析能力：[具体提升] - [证据/案例]
+• 决策能力：[具体提升] - [证据/案例]
+• 沟通能力：[具体提升] - [证据/案例]
+• 管理能力：[具体提升] - [证据/案例]
+
+🔄 **最佳实践总结**
+
+成功的做法：
+• [实践1] - [应用场景] - [效果] - [推广价值]
+• [实践2] - [应用场景] - [效果] - [推广价值]
+• [实践3] - [应用场景] - [效果] - [推广价值]
+
+可优化的流程：
+• [流程1] - [当前问题] - [改进方案]
+• [流程2] - [当前问题] - [改进方案]
+
+❌ **失败经验和教训**
+
+失败案例分析：
+• [失败案例1]
+  - 失败原因：[根本原因分析]
+  - 教训：[核心教训]
+  - 预防措施：[未来如何避免]
+
+• [失败案例2]
+  - 失败原因：[根本原因分析]
+  - 教训：[核心教训]
+  - 预防措施：[未来如何避免]
+
+避坑指南：
+• [坑点1] - [识别方法] - [避免策略]
+• [坑点2] - [识别方法] - [避免策略]
+
+🔮 **未来展望和规划**
+
+趋势判断：
+• [趋势1] - [判断依据] - [对策]
+• [趋势2] - [判断依据] - [对策]
+
+能力建设重点：
+• [能力1] - [重要性] - [建设计划]
+• [能力2] - [重要性] - [建设计划]
+
+知识体系完善：
+• [知识领域1] - [学习计划] - [时间安排]
+• [知识领域2] - [学习计划] - [时间安排]`
+                },
+                team_focused: {
+                    name: "团队协作模板",
+                    icon: "👥", 
+                    description: "聚焦团队建设和协作效果",
+                    content: `👥 **团队表现评估**
+
+团队整体表现：
+• 目标达成率：[百分比] - [具体指标]
+• 协作效率：[评分] - [改进幅度]
+• 团队满意度：[评分] - [调研结果]
+
+个人贡献亮点：
+• [成员1]: [主要贡献] - [亮点表现]
+• [成员2]: [主要贡献] - [亮点表现]
+• [成员3]: [主要贡献] - [亮点表现]
+
+🤝 **协作机制优化**
+
+沟通改进：
+• 会议效率：[改进措施] - [效果]
+• 信息同步：[新机制] - [效果]
+• 跨部门协作：[优化方案] - [效果]
+
+工作流程优化：
+• [流程1]: [原问题] → [改进方案] → [新效果]
+• [流程2]: [原问题] → [改进方案] → [新效果]
+
+工具和方法：
+• 新引入工具：[工具名] - [解决问题] - [使用效果]
+• 方法优化：[方法名] - [改进内容] - [效率提升]
+
+🌱 **团队成长和发展**
+
+技能建设：
+• 团队培训：[培训内容] - [参与度] - [应用效果]
+• 知识分享：[分享次数] - [主题] - [收益]
+• 实践练习：[练习项目] - [技能提升]
+
+文化建设：
+• 价值观体现：[具体案例] - [团队认同度]
+• 学习氛围：[营造措施] - [效果表现]
+• 创新鼓励：[激励机制] - [创新成果]
+
+⚡ **团队效能分析**
+
+效率指标：
+• 任务完成速度：[对比数据]
+• 质量水平：[质量指标]
+• 响应速度：[响应时间改进]
+
+协作质量：
+• 内部配合：[配合效果评估]
+• 外部协作：[跨团队协作效果]
+• 冲突处理：[冲突解决效率]
+
+🎯 **团队建设规划**
+
+短期改进计划：
+• [改进点1] - [具体措施] - [预期效果] - [时间安排]
+• [改进点2] - [具体措施] - [预期效果] - [时间安排]
+
+长期发展目标：
+• 团队能力目标：[能力方向] - [建设路径]
+• 文化建设目标：[文化特色] - [培养方法]
+
+人员发展计划：
+• [成员1]: [发展方向] - [支持措施]
+• [成员2]: [发展方向] - [支持措施]
+• [成员3]: [发展方向] - [支持措施]`
+                }
+            };
+
+            const content = `
+                <div style="margin-bottom: 20px;">
+                    <h4 style="color: var(--theme-color); margin-bottom: 16px;">📝 季度回顾模板</h4>
+                    <p style="color: #666;">选择适合的模板结构化地进行季度回顾和总结：</p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 20px;">
+                    ${Object.entries(templates).map(([key, template]) => `
+                        <div class="review-template-card" style="background: white; border: 2px solid #e0e0e0; border-radius: 12px; padding: 20px; cursor: pointer; transition: all 0.3s ease;">
+                            <div style="text-align: center; margin-bottom: 16px;">
+                                <div style="font-size: 2.5em; margin-bottom: 8px;">${template.icon}</div>
+                                <div style="font-weight: 600; color: var(--theme-color); margin-bottom: 8px;">${template.name}</div>
+                                <div style="color: #666; font-size: 0.9em; line-height: 1.4; min-height: 40px;">${template.description}</div>
+                            </div>
+                            
+                            <div style="background: rgba(25, 118, 210, 0.05); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+                                <div style="font-size: 0.9em; color: #666; margin-bottom: 8px;">包含完整的回顾框架</div>
+                                <div style="font-size: 0.8em; color: #999; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    ${template.content.split('\n')[0].replace(/[*#]/g, '').trim()}...
+                                </div>
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                <button class="btn-small" onclick="previewReviewTemplate('${key}')" style="width: 100%;">👁️ 预览</button>
+                                <button class="btn-small" onclick="applyReviewTemplate('${key}')" style="width: 100%;">✅ 应用</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <div style="background: rgba(76, 175, 80, 0.1); padding: 16px; border-radius: 8px; border-left: 4px solid #4caf50; margin-bottom: 20px;">
+                    <h5 style="color: #2e7d32; margin: 0 0 8px 0;">💡 回顾建议</h5>
+                    <ul style="margin: 0; padding-left: 20px; color: #2e7d32; line-height: 1.6;">
+                        <li>选择最符合您回顾重点的模板结构</li>
+                        <li>回顾时要客观诚实，既看成果也看问题</li>
+                        <li>重点总结可复用的经验和教训</li>
+                        <li>为下季度规划提供清晰的改进方向</li>
+                    </ul>
+                </div>
+
+                <div style="text-align: center;">
+                    <button class="btn-main" onclick="clearReview()" style="margin-right: 12px;">🗑️ 清空回顾</button>
+                    <button class="btn-main" onclick="closeModal()">关闭</button>
+                </div>
+
+                <style>
+                    .review-template-card:hover {
+                        border-color: var(--theme-color);
+                        transform: translateY(-2px);
+                        box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+                    }
+                </style>
+            `;
+
+            ModalUtils.show('季度回顾模板', content, 'large');
+        }
+
+        // 预览回顾模板
+        function previewReviewTemplate(templateKey) {
+            const templates = {
+                comprehensive: {
+                    name: "全面回顾模板",
+                    content: `🎯 **OKR完成情况评估**
+
+目标完成度：
+• 目标1: [完成度%] - [具体描述完成情况]
+• 目标2: [完成度%] - [具体描述完成情况]
+• 目标3: [完成度%] - [具体描述完成情况]
+
+关键结果达成：
+• KR1: [达成情况] - [数据支撑]
+• KR2: [达成情况] - [数据支撑]
+• KR3: [达成情况] - [数据支撑]
+
+🏆 **重要成果和突破**
+
+核心成果：
+• [成果1] - [具体数据和影响]
+• [成果2] - [具体数据和影响]
+• [成果3] - [具体数据和影响]
+
+意外收获：
+• [收获1] - [对业务的积极影响]
+• [收获2] - [对团队的积极影响]
+
+🛠️ **遇到的挑战和解决方案**
+
+主要挑战：
+• 挑战1: [问题描述] → [解决方案] → [结果]
+• 挑战2: [问题描述] → [解决方案] → [结果]
+• 挑战3: [问题描述] → [解决方案] → [结果]
+
+未完全解决的问题：
+• [问题描述] - [当前状态] - [下步计划]
+
+👥 **团队协作和个人成长**
+
+团队协作：
+• 团队效率提升：[具体改进]
+• 沟通机制优化：[具体变化]
+• 团队能力建设：[培训/学习成果]
+
+个人成长：
+• 新掌握的技能：[技能列表]
+• 领导力提升：[具体体现]
+• 个人效率改进：[方法和效果]
+
+📈 **下季度改进计划**
+
+需要调整的策略：
+• [策略1] - [调整原因] - [新方法]
+• [策略2] - [调整原因] - [新方法]
+
+重点提升领域：
+• [领域1] - [具体行动计划]
+• [领域2] - [具体行动计划]
+
+资源需求：
+• 人员需求：[具体需求]
+• 工具/系统需求：[具体需求]
+• 培训需求：[具体需求]`
+                },
+                result_focused: {
+                    name: "成果导向模板",
+                    content: `📊 **核心指标达成情况**
+
+业务指标：
+• [指标1]: 目标值 vs 实际值 - [达成率%]
+• [指标2]: 目标值 vs 实际值 - [达成率%]
+• [指标3]: 目标值 vs 实际值 - [达成率%]
+
+质量指标：
+• [质量指标1]: [实际表现]
+• [质量指标2]: [实际表现]
+
+🎯 **关键成果详述**
+
+最重要的3个成果：
+1. [成果名称]
+   • 背景：[为什么重要]
+   • 过程：[如何实现]
+   • 影响：[带来的价值]
+   • 数据：[具体数据支撑]
+
+2. [成果名称]
+   • 背景：[为什么重要]
+   • 过程：[如何实现]
+   • 影响：[带来的价值]
+   • 数据：[具体数据支撑]
+
+3. [成果名称]
+   • 背景：[为什么重要]
+   • 过程：[如何实现]
+   • 影响：[带来的价值]
+   • 数据：[具体数据支撑]
+
+💡 **成功因素分析**
+
+关键成功要素：
+• [要素1] - [为什么是关键因素]
+• [要素2] - [为什么是关键因素]
+• [要素3] - [为什么是关键因素]
+
+可复用的方法：
+• [方法1] - [应用场景]
+• [方法2] - [应用场景]
+
+⚠️ **风险管控总结**
+
+已规避的风险：
+• [风险1] - [规避措施] - [效果]
+• [风险2] - [规避措施] - [效果]
+
+新识别的风险：
+• [新风险1] - [影响评估] - [应对计划]
+• [新风险2] - [影响评估] - [应对计划]
+
+🚀 **价值创造总结**
+
+对业务的价值：
+• [价值1] - [量化描述]
+• [价值2] - [量化描述]
+
+对团队的价值：
+• [价值1] - [具体体现]
+• [价值2] - [具体体现]
+
+对个人的价值：
+• [价值1] - [成长体现]
+• [价值2] - [成长体现]`
+                },
+                learning_focused: {
+                    name: "学习反思模板",
+                    content: `🧠 **关键学习和洞察**
+
+业务理解深化：
+• [洞察1] - [如何获得] - [对未来的指导意义]
+• [洞察2] - [如何获得] - [对未来的指导意义]
+• [洞察3] - [如何获得] - [对未来的指导意义]
+
+市场/用户洞察：
+• [市场洞察] - [数据来源] - [战略意义]
+• [用户洞察] - [调研方法] - [产品优化方向]
+
+📚 **技能和能力提升**
+
+新掌握的技能：
+• [技能1] - [学习方式] - [应用场景] - [熟练度]
+• [技能2] - [学习方式] - [应用场景] - [熟练度]
+• [技能3] - [学习方式] - [应用场景] - [熟练度]
+
+能力提升领域：
+• 分析能力：[具体提升] - [证据/案例]
+• 决策能力：[具体提升] - [证据/案例]
+• 沟通能力：[具体提升] - [证据/案例]
+• 管理能力：[具体提升] - [证据/案例]
+
+🔄 **最佳实践总结**
+
+成功的做法：
+• [实践1] - [应用场景] - [效果] - [推广价值]
+• [实践2] - [应用场景] - [效果] - [推广价值]
+• [实践3] - [应用场景] - [效果] - [推广价值]
+
+可优化的流程：
+• [流程1] - [当前问题] - [改进方案]
+• [流程2] - [当前问题] - [改进方案]
+
+❌ **失败经验和教训**
+
+失败案例分析：
+• [失败案例1]
+  - 失败原因：[根本原因分析]
+  - 教训：[核心教训]
+  - 预防措施：[未来如何避免]
+
+• [失败案例2]
+  - 失败原因：[根本原因分析]
+  - 教训：[核心教训]
+  - 预防措施：[未来如何避免]
+
+避坑指南：
+• [坑点1] - [识别方法] - [避免策略]
+• [坑点2] - [识别方法] - [避免策略]
+
+🔮 **未来展望和规划**
+
+趋势判断：
+• [趋势1] - [判断依据] - [对策]
+• [趋势2] - [判断依据] - [对策]
+
+能力建设重点：
+• [能力1] - [重要性] - [建设计划]
+• [能力2] - [重要性] - [建设计划]
+
+知识体系完善：
+• [知识领域1] - [学习计划] - [时间安排]
+• [知识领域2] - [学习计划] - [时间安排]`
+                },
+                team_focused: {
+                    name: "团队协作模板",
+                    content: `👥 **团队表现评估**
+
+团队整体表现：
+• 目标达成率：[百分比] - [具体指标]
+• 协作效率：[评分] - [改进幅度]
+• 团队满意度：[评分] - [调研结果]
+
+个人贡献亮点：
+• [成员1]: [主要贡献] - [亮点表现]
+• [成员2]: [主要贡献] - [亮点表现]
+• [成员3]: [主要贡献] - [亮点表现]
+
+🤝 **协作机制优化**
+
+沟通改进：
+• 会议效率：[改进措施] - [效果]
+• 信息同步：[新机制] - [效果]
+• 跨部门协作：[优化方案] - [效果]
+
+工作流程优化：
+• [流程1]: [原问题] → [改进方案] → [新效果]
+• [流程2]: [原问题] → [改进方案] → [新效果]
+
+工具和方法：
+• 新引入工具：[工具名] - [解决问题] - [使用效果]
+• 方法优化：[方法名] - [改进内容] - [效率提升]
+
+🌱 **团队成长和发展**
+
+技能建设：
+• 团队培训：[培训内容] - [参与度] - [应用效果]
+• 知识分享：[分享次数] - [主题] - [收益]
+• 实践练习：[练习项目] - [技能提升]
+
+文化建设：
+• 价值观体现：[具体案例] - [团队认同度]
+• 学习氛围：[营造措施] - [效果表现]
+• 创新鼓励：[激励机制] - [创新成果]
+
+⚡ **团队效能分析**
+
+效率指标：
+• 任务完成速度：[对比数据]
+• 质量水平：[质量指标]
+• 响应速度：[响应时间改进]
+
+协作质量：
+• 内部配合：[配合效果评估]
+• 外部协作：[跨团队协作效果]
+• 冲突处理：[冲突解决效率]
+
+🎯 **团队建设规划**
+
+短期改进计划：
+• [改进点1] - [具体措施] - [预期效果] - [时间安排]
+• [改进点2] - [具体措施] - [预期效果] - [时间安排]
+
+长期发展目标：
+• 团队能力目标：[能力方向] - [建设路径]
+• 文化建设目标：[文化特色] - [培养方法]
+
+人员发展计划：
+• [成员1]: [发展方向] - [支持措施]
+• [成员2]: [发展方向] - [支持措施]
+• [成员3]: [发展方向] - [支持措施]`
+                }
+            };
+
+            const template = templates[templateKey];
+            if (!template) return;
+
+            const content = `
+                <div style="margin-bottom: 20px;">
+                    <h4 style="color: var(--theme-color); margin-bottom: 16px;">${template.name} - 详细预览</h4>
+                </div>
+
+                <div style="max-height: 600px; overflow-y: auto; background: rgba(248, 249, 250, 1); padding: 20px; border-radius: 12px; border: 1px solid #e0e0e0;">
+                    <pre style="white-space: pre-wrap; font-family: 'Microsoft YaHei', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; font-size: 14px;">${template.content}</pre>
+                </div>
+
+                <div style="text-align: center; margin-top: 20px;">
+                    <button class="btn-main" onclick="closeModal(); applyReviewTemplate('${templateKey}')" style="margin-right: 12px;">✅ 应用此模板</button>
+                    <button class="btn-main" onclick="closeModal()">关闭</button>
+                </div>
+            `;
+
+            ModalUtils.show(`${template.name} - 预览`, content, 'large');
+        }
+
+        // 应用回顾模板
+        function applyReviewTemplate(templateKey) {
+            const templates = {
+                comprehensive: `🎯 **OKR完成情况评估**
+
+目标完成度：
+• 目标1: [完成度%] - [具体描述完成情况]
+• 目标2: [完成度%] - [具体描述完成情况]
+• 目标3: [完成度%] - [具体描述完成情况]
+
+关键结果达成：
+• KR1: [达成情况] - [数据支撑]
+• KR2: [达成情况] - [数据支撑]
+• KR3: [达成情况] - [数据支撑]
+
+🏆 **重要成果和突破**
+
+核心成果：
+• [成果1] - [具体数据和影响]
+• [成果2] - [具体数据和影响]
+• [成果3] - [具体数据和影响]
+
+意外收获：
+• [收获1] - [对业务的积极影响]
+• [收获2] - [对团队的积极影响]
+
+🛠️ **遇到的挑战和解决方案**
+
+主要挑战：
+• 挑战1: [问题描述] → [解决方案] → [结果]
+• 挑战2: [问题描述] → [解决方案] → [结果]
+• 挑战3: [问题描述] → [解决方案] → [结果]
+
+未完全解决的问题：
+• [问题描述] - [当前状态] - [下步计划]
+
+👥 **团队协作和个人成长**
+
+团队协作：
+• 团队效率提升：[具体改进]
+• 沟通机制优化：[具体变化]
+• 团队能力建设：[培训/学习成果]
+
+个人成长：
+• 新掌握的技能：[技能列表]
+• 领导力提升：[具体体现]
+• 个人效率改进：[方法和效果]
+
+📈 **下季度改进计划**
+
+需要调整的策略：
+• [策略1] - [调整原因] - [新方法]
+• [策略2] - [调整原因] - [新方法]
+
+重点提升领域：
+• [领域1] - [具体行动计划]
+• [领域2] - [具体行动计划]
+
+资源需求：
+• 人员需求：[具体需求]
+• 工具/系统需求：[具体需求]
+• 培训需求：[具体需求]`,
+
+                result_focused: `📊 **核心指标达成情况**
+
+业务指标：
+• [指标1]: 目标值 vs 实际值 - [达成率%]
+• [指标2]: 目标值 vs 实际值 - [达成率%]
+• [指标3]: 目标值 vs 实际值 - [达成率%]
+
+质量指标：
+• [质量指标1]: [实际表现]
+• [质量指标2]: [实际表现]
+
+🎯 **关键成果详述**
+
+最重要的3个成果：
+1. [成果名称]
+   • 背景：[为什么重要]
+   • 过程：[如何实现]
+   • 影响：[带来的价值]
+   • 数据：[具体数据支撑]
+
+2. [成果名称]
+   • 背景：[为什么重要]
+   • 过程：[如何实现]
+   • 影响：[带来的价值]
+   • 数据：[具体数据支撑]
+
+3. [成果名称]
+   • 背景：[为什么重要]
+   • 过程：[如何实现]
+   • 影响：[带来的价值]
+   • 数据：[具体数据支撑]
+
+💡 **成功因素分析**
+
+关键成功要素：
+• [要素1] - [为什么是关键因素]
+• [要素2] - [为什么是关键因素]
+• [要素3] - [为什么是关键因素]
+
+可复用的方法：
+• [方法1] - [应用场景]
+• [方法2] - [应用场景]
+
+⚠️ **风险管控总结**
+
+已规避的风险：
+• [风险1] - [规避措施] - [效果]
+• [风险2] - [规避措施] - [效果]
+
+新识别的风险：
+• [新风险1] - [影响评估] - [应对计划]
+• [新风险2] - [影响评估] - [应对计划]
+
+🚀 **价值创造总结**
+
+对业务的价值：
+• [价值1] - [量化描述]
+• [价值2] - [量化描述]
+
+对团队的价值：
+• [价值1] - [具体体现]
+• [价值2] - [具体体现]
+
+对个人的价值：
+• [价值1] - [成长体现]
+• [价值2] - [成长体现]`,
+
+                learning_focused: `🧠 **关键学习和洞察**
+
+业务理解深化：
+• [洞察1] - [如何获得] - [对未来的指导意义]
+• [洞察2] - [如何获得] - [对未来的指导意义]
+• [洞察3] - [如何获得] - [对未来的指导意义]
+
+市场/用户洞察：
+• [市场洞察] - [数据来源] - [战略意义]
+• [用户洞察] - [调研方法] - [产品优化方向]
+
+📚 **技能和能力提升**
+
+新掌握的技能：
+• [技能1] - [学习方式] - [应用场景] - [熟练度]
+• [技能2] - [学习方式] - [应用场景] - [熟练度]
+• [技能3] - [学习方式] - [应用场景] - [熟练度]
+
+能力提升领域：
+• 分析能力：[具体提升] - [证据/案例]
+• 决策能力：[具体提升] - [证据/案例]
+• 沟通能力：[具体提升] - [证据/案例]
+• 管理能力：[具体提升] - [证据/案例]
+
+🔄 **最佳实践总结**
+
+成功的做法：
+• [实践1] - [应用场景] - [效果] - [推广价值]
+• [实践2] - [应用场景] - [效果] - [推广价值]
+• [实践3] - [应用场景] - [效果] - [推广价值]
+
+可优化的流程：
+• [流程1] - [当前问题] - [改进方案]
+• [流程2] - [当前问题] - [改进方案]
+
+❌ **失败经验和教训**
+
+失败案例分析：
+• [失败案例1]
+  - 失败原因：[根本原因分析]
+  - 教训：[核心教训]
+  - 预防措施：[未来如何避免]
+
+• [失败案例2]
+  - 失败原因：[根本原因分析]
+  - 教训：[核心教训]
+  - 预防措施：[未来如何避免]
+
+避坑指南：
+• [坑点1] - [识别方法] - [避免策略]
+• [坑点2] - [识别方法] - [避免策略]
+
+🔮 **未来展望和规划**
+
+趋势判断：
+• [趋势1] - [判断依据] - [对策]
+• [趋势2] - [判断依据] - [对策]
+
+能力建设重点：
+• [能力1] - [重要性] - [建设计划]
+• [能力2] - [重要性] - [建设计划]
+
+知识体系完善：
+• [知识领域1] - [学习计划] - [时间安排]
+• [知识领域2] - [学习计划] - [时间安排]`,
+
+                team_focused: `👥 **团队表现评估**
+
+团队整体表现：
+• 目标达成率：[百分比] - [具体指标]
+• 协作效率：[评分] - [改进幅度]
+• 团队满意度：[评分] - [调研结果]
+
+个人贡献亮点：
+• [成员1]: [主要贡献] - [亮点表现]
+• [成员2]: [主要贡献] - [亮点表现]
+• [成员3]: [主要贡献] - [亮点表现]
+
+🤝 **协作机制优化**
+
+沟通改进：
+• 会议效率：[改进措施] - [效果]
+• 信息同步：[新机制] - [效果]
+• 跨部门协作：[优化方案] - [效果]
+
+工作流程优化：
+• [流程1]: [原问题] → [改进方案] → [新效果]
+• [流程2]: [原问题] → [改进方案] → [新效果]
+
+工具和方法：
+• 新引入工具：[工具名] - [解决问题] - [使用效果]
+• 方法优化：[方法名] - [改进内容] - [效率提升]
+
+🌱 **团队成长和发展**
+
+技能建设：
+• 团队培训：[培训内容] - [参与度] - [应用效果]
+• 知识分享：[分享次数] - [主题] - [收益]
+• 实践练习：[练习项目] - [技能提升]
+
+文化建设：
+• 价值观体现：[具体案例] - [团队认同度]
+• 学习氛围：[营造措施] - [效果表现]
+• 创新鼓励：[激励机制] - [创新成果]
+
+⚡ **团队效能分析**
+
+效率指标：
+• 任务完成速度：[对比数据]
+• 质量水平：[质量指标]
+• 响应速度：[响应时间改进]
+
+协作质量：
+• 内部配合：[配合效果评估]
+• 外部协作：[跨团队协作效果]
+• 冲突处理：[冲突解决效率]
+
+🎯 **团队建设规划**
+
+短期改进计划：
+• [改进点1] - [具体措施] - [预期效果] - [时间安排]
+• [改进点2] - [具体措施] - [预期效果] - [时间安排]
+
+长期发展目标：
+• 团队能力目标：[能力方向] - [建设路径]
+• 文化建设目标：[文化特色] - [培养方法]
+
+人员发展计划：
+• [成员1]: [发展方向] - [支持措施]
+• [成员2]: [发展方向] - [支持措施]
+• [成员3]: [发展方向] - [支持措施]`
+            };
+
+            const template = templates[templateKey];
+            if (!template) return;
+
+            // 应用模板到季度回顾字段
+            const reviewField = document.getElementById('quarter_review');
+            const currentContent = reviewField.value.trim();
+            
+            if (currentContent && !confirm('当前回顾内容将被替换，确定要应用模板吗？')) {
+                return;
+            }
+
+            reviewField.value = template;
+            MessageUtils.success('回顾模板已应用成功！');
+            
+            // 关闭模态框
+            const modal = document.querySelector('.modal-mask');
+            if (modal) {
+                ModalUtils.hide(modal);
+            }
+        }
+
+        // 清空回顾
+        function clearReview() {
+            const confirmed = confirm('确定要清空季度回顾内容吗？此操作不可撤销。');
+            if (!confirmed) return;
+
+            document.getElementById('quarter_review').value = '';
+            MessageUtils.success('季度回顾已清空');
+            
+            // 关闭模态框
+            const modal = document.querySelector('.modal-mask');
+            if (modal) {
+                ModalUtils.hide(modal);
+            }
+        }
+
+        // 季度计划模板数据
+        const quarterTemplates = {
+            okr_focused: {
+                name: "🎯 OKR目标导向",
+                description: "基于OKR方法论的季度计划模板",
+                data: {
+                    objectives: `季度核心目标 (Objectives)：
+• 提升团队整体工作效率和协作质量
+• 增强个人专业技能和核心竞争力
+• 改善产品用户体验和市场表现
+• 建立可持续的业务增长模式`,
+                    keyResults: `[ ] 团队项目按时交付率达到95%以上
+[ ] 完成3个核心技能认证或培训
+[ ] 用户满意度评分提升至4.5分以上
+[ ] 季度营收增长20%或达成设定目标`,
+                    month1: `[ ] 制定详细的OKR分解计划
+[ ] 建立团队协作和沟通机制
+[ ] 启动核心项目和关键任务
+[ ] 完成基础技能培训和学习`,
+                    month2: `[ ] 推进关键项目到中期里程碑
+[ ] 进行OKR中期检查和调整
+[ ] 完成重要技能认证或考试
+[ ] 收集用户反馈并优化产品`,
+                    month3: `[ ] 完成季度核心目标
+[ ] 进行OKR最终评估和总结
+[ ] 准备下季度规划和目标设定
+[ ] 整理经验教训和最佳实践`,
+                    review: `OKR季度回顾：
+
+🎯 **目标完成情况**
+• 目标1完成度：[%] - [具体描述]
+• 目标2完成度：[%] - [具体描述]  
+• 目标3完成度：[%] - [具体描述]
+
+📊 **关键结果达成**
+• KR1: [达成情况] - [数据支撑]
+• KR2: [达成情况] - [数据支撑]
+• KR3: [达成情况] - [数据支撑]
+
+🏆 **重要成果和突破**
+• [列出本季度的重要成果]
+
+🤔 **挑战和学习**
+• [遇到的主要挑战及解决方案]
+• [获得的重要经验和教训]
+
+📈 **下季度改进方向**
+• [基于本季度经验的改进计划]`
+                }
+            },
+            business_growth: {
+                name: "📈 业务发展模板",
+                description: "专注于业务增长和市场拓展的季度规划",
+                data: {
+                    objectives: `季度业务发展目标：
+• 扩大市场份额和客户基础
+• 提升产品竞争力和服务质量
+• 优化业务流程和运营效率
+• 建立可持续的盈利增长模式`,
+                    keyResults: `[ ] 新客户获取数量增长30%
+[ ] 客户满意度保持在90%以上
+[ ] 产品核心功能完成重大升级
+[ ] 运营成本降低15%`,
+                    month1: `[ ] 制定市场拓展和营销策略
+[ ] 启动产品改进和功能开发
+[ ] 建立客户服务和支持体系
+[ ] 优化业务流程和工作效率`,
+                    month2: `[ ] 执行营销推广和客户获取
+[ ] 推进产品开发到测试阶段
+[ ] 加强客户关系维护和服务
+[ ] 分析业务数据并调整策略`,
+                    month3: `[ ] 完成季度营收和客户目标
+[ ] 发布产品新版本或功能
+[ ] 进行季度业务回顾和分析
+[ ] 制定下季度发展规划`,
+                    review: `业务发展季度回顾：
+
+📊 **业务指标达成情况**
+• 营收增长：[具体数据和百分比]
+• 客户增长：[新增客户数量和质量]
+• 市场份额：[市场表现和竞争地位]
+
+🎯 **产品和服务改进**
+• [产品功能和性能提升]
+• [客户服务质量改善]
+
+💡 **运营效率优化**
+• [流程改进和成本控制成果]
+• [团队效率和协作提升]
+
+🔍 **市场洞察和机会**
+• [市场趋势分析和机会识别]
+• [竞争对手分析和应对策略]`
+                }
+            },
+            personal_development: {
+                name: "🌱 个人成长模板",
+                description: "专注于个人技能提升和职业发展的规划",
+                data: {
+                    objectives: `季度个人发展目标：
+• 提升核心专业技能和知识水平
+• 扩展职业网络和影响力
+• 改善工作效率和时间管理
+• 保持身心健康和生活平衡`,
+                    keyResults: `[ ] 完成2-3个重要技能认证或课程
+[ ] 建立10个以上有价值的职业联系
+[ ] 工作效率提升25%以上
+[ ] 保持每周3次以上的运动习惯`,
+                    month1: `[ ] 制定详细的学习和发展计划
+[ ] 开始核心技能课程学习
+[ ] 参加行业活动和网络建设
+[ ] 建立健康的生活和工作习惯`,
+                    month2: `[ ] 深入学习专业知识和技能
+[ ] 完成重要项目和工作任务
+[ ] 扩展人脉网络和合作关系
+[ ] 优化时间管理和工作方法`,
+                    month3: `[ ] 完成技能认证和学习目标
+[ ] 总结个人成长和能力提升
+[ ] 建立长期的职业发展规划
+[ ] 分享经验和帮助他人成长`,
+                    review: `个人发展季度回顾：
+
+📚 **技能学习和提升**
+• [完成的课程和认证]
+• [掌握的新技能和知识]
+• [能力提升的具体表现]
+
+🤝 **人脉网络建设**
+• [建立的重要职业联系]
+• [参与的行业活动和社群]
+
+⚡ **效率和习惯改善**
+• [工作效率提升的具体措施]
+• [建立的良好习惯和作息]
+
+🎯 **职业发展进展**
+• [职业目标的推进情况]
+• [获得的机会和认可]`
+                }
+            },
+            balanced_life: {
+                name: "⚖️ 平衡生活模板",
+                description: "追求工作生活平衡的综合发展规划",
+                data: {
+                    objectives: `季度平衡发展目标：
+• 在工作中实现重要目标和突破
+• 保持身心健康和良好生活状态
+• 维护和发展重要的人际关系
+• 培养个人兴趣和生活品质`,
+                    keyResults: `[ ] 完成工作核心目标和项目
+[ ] 保持每周3次以上规律运动
+[ ] 与家人朋友保持良好互动
+[ ] 培养1-2个新的兴趣爱好`,
+                    month1: `[ ] 制定工作和生活平衡计划
+[ ] 建立健康的作息和运动习惯
+[ ] 安排家庭和朋友聚会时间
+[ ] 开始探索新的兴趣爱好`,
+                    month2: `[ ] 推进工作项目和目标
+[ ] 坚持健康生活方式
+[ ] 加强人际关系维护
+[ ] 深入发展个人兴趣`,
+                    month3: `[ ] 完成工作季度目标
+[ ] 评估健康和生活状态
+[ ] 总结人际关系发展
+[ ] 规划下季度平衡计划`,
+                    review: `平衡生活季度回顾：
+
+💼 **工作成果评估**
+• [工作目标完成情况]
+• [职业发展和能力提升]
+
+🏃 **健康生活状况**
+• [运动习惯和身体状况]
+• [作息规律和精神状态]
+
+👨‍👩‍👧‍👦 **人际关系维护**
+• [家庭关系和互动质量]
+• [朋友关系和社交活动]
+
+🎨 **个人兴趣发展**
+• [兴趣爱好的培养情况]
+• [生活品质和满足感]`
+                }
+            }
+        };
+
+        // 显示季度计划模板选择器
+        function showQuarterTemplateSelector() {
+            const templateList = Object.keys(quarterTemplates).map(key => {
+                const template = quarterTemplates[key];
+                return `
+                    <div class="template-card" onclick="selectQuarterTemplate('${key}')" style="
+                        border: 2px solid #e0e0e0;
+                        border-radius: 12px;
+                        padding: 16px;
+                        margin-bottom: 12px;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        background: white;
+                    " onmouseover="this.style.borderColor='var(--theme-color)'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)';" onmouseout="this.style.borderColor='#e0e0e0'; this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                        <h4 style="margin: 0 0 8px 0; color: var(--theme-color); font-size: 1.1em;">${template.name}</h4>
+                        <p style="margin: 0; color: #666; font-size: 0.9em; line-height: 1.4;">${template.description}</p>
+                    </div>
+                `;
+            }).join('');
+
+            const content = `
+                <div style="max-height: 500px; overflow-y: auto;">
+                    <p style="margin-bottom: 20px; color: #666; text-align: center;">选择一个适合您的季度计划模板，快速开始制定计划</p>
+                    ${templateList}
+                    <div style="text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;">
+                        <button class="btn-main" onclick="ModalUtils.hide(document.querySelector('.modal-mask'))" style="background: #666;">取消</button>
+                    </div>
+                </div>
+            `;
+
+            ModalUtils.show('选择季度计划模板', content, 'large');
+        }
+
+        // 选择并应用季度计划模板
+        function selectQuarterTemplate(templateKey) {
+            const template = quarterTemplates[templateKey];
+            if (!template) {
+                MessageUtils.error('模板不存在！');
+                return;
+            }
+
+            // 确认对话框
+            const confirmContent = `
+                <div style="text-align: center; padding: 20px 0;">
+                    <div style="font-size: 3em; margin-bottom: 16px;">⚠️</div>
+                    <h3 style="margin: 0 0 16px 0; color: #f44336;">确认应用模板</h3>
+                    <p style="margin-bottom: 20px; color: #666; line-height: 1.6;">
+                        应用模板 <strong style="color: var(--theme-color);">${template.name}</strong> 将会覆盖当前页面的所有内容。
+                        <br>请确保您已经保存了重要的内容。
+                    </p>
+                    <div style="display: flex; gap: 12px; justify-content: center;">
+                        <button class="btn-main" onclick="applyQuarterTemplate('${templateKey}')" style="background: #f44336;">确认应用</button>
+                        <button class="btn-main" onclick="ModalUtils.hide(document.querySelector('.modal-mask'))" style="background: #666;">取消</button>
+                    </div>
+                </div>
+            `;
+
+            ModalUtils.show('确认应用模板', confirmContent, 'medium');
+        }
+
+        // 应用季度计划模板到页面
+        function applyQuarterTemplate(templateKey) {
+            const template = quarterTemplates[templateKey];
+            if (!template) return;
+
+            // 关闭模态框
+            const modal = document.querySelector('.modal-mask');
+            if (modal) ModalUtils.hide(modal);
+
+            // 应用模板内容
+            document.getElementById('quarter_objectives').value = template.data.objectives;
+            document.getElementById('quarter_review').value = template.data.review;
+
+            // 应用待办事项模板
+            applyQuarterTemplateToTodoContainer('quarter_key_results', template.data.keyResults);
+            applyQuarterTemplateToTodoContainer('month1_milestones', template.data.month1);
+            applyQuarterTemplateToTodoContainer('month2_milestones', template.data.month2);
+            applyQuarterTemplateToTodoContainer('month3_milestones', template.data.month3);
+
+            // 显示成功消息
+            MessageUtils.success(`已成功应用模板：${template.name}`);
+
+            // 自动保存
+            setTimeout(() => {
+                saveQuarterPlan();
+            }, 500);
+        }
+
+        // 将模板内容应用到待办事项容器
+        function applyQuarterTemplateToTodoContainer(containerId, content) {
+            const container = document.getElementById(containerId);
+            if (container && content) {
+                container.textContent = content;
+                TodoUtils.renderTodos(container);
+            }
+        }
+    </script>
+</body>
+
+</html>
+

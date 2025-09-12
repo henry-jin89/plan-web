@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多层级计划表 - 主页</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="mobile-styles.css">
+    <link rel="manifest" href="manifest.json">
+    <script src="config.js"></script>
+    <script src="backup-helper.js"></script>
+    <script src="auto-sync-service.js"></script>
+<!-- 防缓存机制 -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<script>
+// 强制刷新检测
+if (performance.navigation.type === performance.navigation.TYPE_RELOAD) {
+    console.log('用户手动刷新');
+}
+// 添加版本号参数
+window.APP_VERSION = Date.now();
+</script>
+    <meta name="theme-color" content="#1976d2">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="计划管理器">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    <style>
+        /* 同步状态样式 */
+        .sync-status-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 1000;
+            font-size: 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .sync-status-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sync-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4caf50;
+            animation: pulse 2s infinite;
+        }
+
+        .sync-indicator.disconnected {
+            background: #ff9800;
+        }
+
+        .sync-indicator.error {
+            background: #f44336;
+        }
+
+        .sync-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .sync-btn {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .sync-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .main-content {
+            margin-top: 40px;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        /* 主页特有样式 */
+        .welcome-section {
+            text-align: center;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 252, 0.8));
+            border-radius: 20px;
+            margin-bottom: 32px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+        }
+
+        .welcome-title {
+            font-size: 3em;
+            font-weight: bold;
+            margin-bottom: 16px;
+            background: linear-gradient(45deg, #667eea, #764ba2, #f093fb);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: titleGlow 3s ease-in-out infinite alternate;
+        }
+
+        .welcome-subtitle {
+            font-size: 1.2em;
+            color: #666;
+            margin-bottom: 32px;
+            line-height: 1.6;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--theme-color), #1565c0, #2e7d32, #ef6c00);
+            transform: translateX(-100%);
+            transition: transform 0.6s ease;
+        }
+
+        .feature-card:hover::before {
+            transform: translateX(0);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.15);
+            border-color: var(--theme-color);
+        }
+
+        .feature-icon {
+            font-size: 3em;
+            margin-bottom: 16px;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+        }
+
+        .feature-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: var(--theme-color);
+            margin-bottom: 12px;
+        }
+
+        .feature-description {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .feature-link {
+            background: linear-gradient(135deg, var(--theme-color-light), var(--theme-color));
+            color: white;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+
+        .feature-link:hover {
+            background: linear-gradient(135deg, var(--theme-color), #1565c0);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+        }
+
+        .stats-section {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 32px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: var(--theme-color);
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .quick-actions {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .quick-action-btn {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 248, 248, 0.8));
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 16px 24px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 500;
+            color: #555;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 160px;
+            justify-content: center;
+        }
+
+        .quick-action-btn:hover {
+            background: linear-gradient(135deg, var(--theme-color-light), rgba(25, 118, 210, 0.1));
+            border-color: var(--theme-color);
+            color: var(--theme-color);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(25, 118, 210, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            .welcome-title {
+                font-size: 2.2em;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+            
+            .feature-card {
+                padding: 20px;
+            }
+            
+            .quick-actions {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .quick-action-btn {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 同步状态栏 -->
+    <div class="sync-status-bar" id="syncStatusBar" style="display: none;">
+        <div class="sync-status-info">
+            <div class="sync-indicator" id="syncIndicator"></div>
+            <span id="syncStatusText">正在初始化同步...</span>
+        </div>
+        <div class="sync-actions">
+               <button class="sync-btn" onclick="quickSync()">立即同步</button>
+               <button class="sync-btn" onclick="forceRefresh()">强制刷新</button>
+            <button class="sync-btn" onclick="openSyncSettings()">设置</button>
+        </div>
+    </div>
+
+    <div class="container main-content">
+        <!-- 欢迎区域 -->
+        <div class="welcome-section">
+            <h1 class="welcome-title">学习工作生活计划表</h1>
+            <p class="welcome-subtitle">
+                智能化多层级计划管理系统<br>
+                让每一天都充满意义，让每个目标都触手可及
+            </p>
+            
+            <!-- 快捷操作 -->
+            <div class="quick-actions">
+                <a href="day_plan.html" class="quick-action-btn">
+                    📅 今日计划
+                </a>
+                <a href="week_plan.html" class="quick-action-btn">
+                    📊 本周计划
+                </a>
+                <a href="month_plan.html" class="quick-action-btn">
+                    📈 本月计划
+                </a>
+                <a href="habit_tracker.html" class="quick-action-btn">
+                    🎯 习惯追踪
+                </a>
+                <a href="reflection_template.html" class="quick-action-btn">
+                    🧠 反思模板
+                </a>
+            </div>
+        </div>
+
+        <!-- 功能导航 -->
+        <div class="tabs">
+            <a href="day_plan.html" class="tab">日计划</a>
+            <a href="week_plan.html" class="tab">周计划</a>
+            <a href="month_plan.html" class="tab">月计划</a>
+            <a href="quarter_plan.html" class="tab">季度计划</a>
+            <a href="halfyear_plan.html" class="tab">半年计划</a>
+            <a href="year_plan.html" class="tab">年计划</a>
+            <a href="monthly_schedule.html" class="tab">月度日程</a>
+            <a href="habit_tracker.html" class="tab">📈 智能习惯追踪</a>
+            <a href="reflection_template.html" class="tab">🧠 反思模板</a>
+            <a href="mood_tracker.html" class="tab">😊 心情记录</a>
+            <a href="gratitude_diary.html" class="tab">🙏 感恩日记</a>
+        </div>
+
+        <!-- 功能特色展示 -->
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">📋</div>
+                <h3 class="feature-title">日计划管理</h3>
+                <p class="feature-description">智能优先级矩阵，时间块规划，AI助手建议，让每一天都高效有序</p>
+                <a href="day_plan.html" class="feature-link">开始规划</a>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">📊</div>
+                <h3 class="feature-title">周计划统筹</h3>
+                <p class="feature-description">目标分解，进度跟踪，周回顾分析，构建持续改进的工作节奏</p>
+                <a href="week_plan.html" class="feature-link">制定计划</a>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">📈</div>
+                <h3 class="feature-title">月度规划</h3>
+                <p class="feature-description">里程碑设定，习惯培养，数据分析，实现中长期目标突破</p>
+                <a href="month_plan.html" class="feature-link">开始规划</a>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🎯</div>
+                <h3 class="feature-title">季度OKR</h3>
+                <p class="feature-description">目标关键结果管理，战略规划分解，团队协作对齐</p>
+                <a href="quarter_plan.html" class="feature-link">设定目标</a>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🚀</div>
+                <h3 class="feature-title">年度愿景</h3>
+                <p class="feature-description">长期价值观规划，人生目标设定，成长轨迹记录</p>
+                <a href="year_plan.html" class="feature-link">规划未来</a>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">📅</div>
+                <h3 class="feature-title">日程管理</h3>
+                <p class="feature-description">月度日历，事件提醒，统计分析，全方位时间管理</p>
+                <a href="monthly_schedule.html" class="feature-link">管理日程</a>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">📈</div>
+                <h3 class="feature-title">习惯追踪</h3>
+                <p class="feature-description">智能习惯分析，数据可视化，行为模式洞察，持续自我优化</p>
+                <a href="habit_tracker.html" class="feature-link">开始追踪</a>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🧠</div>
+                <h3 class="feature-title">反思模板</h3>
+                <p class="feature-description">智能反思工具，结构化思考框架，促进个人成长和深度思考</p>
+                <a href="reflection_template.html" class="feature-link">开始反思</a>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">😊</div>
+                <h3 class="feature-title">心情记录</h3>
+                <p class="feature-description">记录每日心情变化，分析情绪模式，培养积极心态</p>
+                <a href="mood_tracker.html" class="feature-link">记录心情</a>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🙏</div>
+                <h3 class="feature-title">感恩日记</h3>
+                <p class="feature-description">每日感恩记录，培养感恩心态，提升生活幸福感</p>
+                <a href="gratitude_diary.html" class="feature-link">感恩记录</a>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🤖</div>
+                <h3 class="feature-title">AI智能助手</h3>
+                <p class="feature-description">智能建议生成，优先级排序，时间分配优化，提升规划效率</p>
+                <a href="day_plan.html" class="feature-link">体验AI</a>
+            </div>
+
+            <div class="feature-card" style="border: 2px solid #ff9800;">
+                <div class="feature-icon">🛡️</div>
+                <h3 class="feature-title">数据备份</h3>
+                <p class="feature-description">自动数据备份，防止意外丢失，一键恢复功能，保障数据安全</p>
+                <button onclick="window.backupHelper.showBackupManager()" class="feature-link" style="background: #ff9800; border: none; color: white; cursor: pointer;">备份管理</button>
+            </div>
+        </div>
+
+        <!-- 数据统计 -->
+        <div class="stats-section">
+            <h3 style="text-align: center; color: var(--theme-color); margin-bottom: 24px;">使用统计</h3>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value" id="totalPlans">0</div>
+                    <div class="stat-label">总计划数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="completedTasks">0</div>
+                    <div class="stat-label">已完成任务</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="activeHabits">0</div>
+                    <div class="stat-label">活跃习惯</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="weekStreak">0</div>
+                    <div class="stat-label">连续规划</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 页脚信息 -->
+        <div style="text-align: center; padding: 20px; color: #666; font-size: 0.9em;">
+            <p>💡 智能化计划管理，让目标触手可及</p>
+            <p>数据本地存储，隐私安全保护</p>
+        </div>
+    </div>
+
+    <script src="common.js?v=20241211"></script>
+    <script src="sync-service.js?v=20241211"></script>
+    <script src="sync-providers.js?v=20241211"></script>
+    <script src="google-drive-sync.js?v=20241211"></script>
+    <script src="web-main.js?v=20241211"></script>
+    <script>
+        // 同步功能初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initSyncStatusBar();
+            
+            // 监听同步事件
+            window.addEventListener('sync-complete', function(event) {
+                updateSyncStatusBar();
+                showSyncNotification('数据同步完成', 'success');
+            });
+
+            window.addEventListener('data-updated', function(event) {
+                updateSyncStatusBar();
+            });
+        });
+
+        function initSyncStatusBar() {
+            const config = window.syncService.getSyncConfig();
+            if (config && config.enabled) {
+                document.getElementById('syncStatusBar').style.display = 'flex';
+                updateSyncStatusBar();
+            }
+        }
+
+        function updateSyncStatusBar() {
+            const status = window.syncService.getSyncStatus();
+            const indicator = document.getElementById('syncIndicator');
+            const statusText = document.getElementById('syncStatusText');
+            const statusBar = document.getElementById('syncStatusBar');
+
+            if (status.enabled) {
+                statusBar.style.display = 'flex';
+                
+                if (status.online) {
+                    indicator.className = 'sync-indicator';
+                    statusText.textContent = `同步已启用 - ${getProviderDisplayName(status.provider)} | 最后同步: ${status.lastSync ? formatTime(status.lastSync) : '从未'}`;
+                } else {
+                    indicator.className = 'sync-indicator disconnected';
+                    statusText.textContent = '离线状态 - 网络恢复后将自动同步';
+                }
+            } else {
+                statusBar.style.display = 'none';
+            }
+        }
+
+        function getProviderDisplayName(provider) {
+            const names = {
+                'github': 'GitHub',
+                'drive': 'Google Drive',
+                'server': '服务器',
+                'webrtc': '设备直连'
+            };
+            return names[provider] || provider;
+        }
+
+        function formatTime(timeString) {
+            if (!timeString) return '从未';
+            const date = new Date(timeString);
+            const now = new Date();
+            const diff = now - date;
+            const minutes = Math.floor(diff / (1000 * 60));
+            
+            if (minutes < 1) return '刚刚';
+            if (minutes < 60) return `${minutes}分钟前`;
+            if (minutes < 1440) return `${Math.floor(minutes / 60)}小时前`;
+            return date.toLocaleDateString();
+        }
+
+        async function quickSync() {
+            if (!window.syncService.getSyncStatus().enabled) {
+                if (confirm('同步未启用，是否现在设置？')) {
+                    openSyncSettings();
+                }
+                return;
+            }
+
+            try {
+                showSyncNotification('正在同步...', 'info');
+                await window.syncService.manualSync();
+                showSyncNotification('同步完成', 'success');
+            } catch (error) {
+                showSyncNotification(`同步失败: ${error.message}`, 'error');
+            }
+        }
+
+        function openSyncSettings() {
+            window.open('sync-settings.html', '_blank');
+        }
+
+        function showSyncNotification(message, type = 'info') {
+            // 创建通知元素
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 50px;
+                right: 20px;
+                padding: 12px 16px;
+                border-radius: 6px;
+                font-size: 14px;
+                z-index: 10001;
+                max-width: 300px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                transition: all 0.3s ease;
+                transform: translateX(100%);
+            `;
+
+            // 设置样式
+            const styles = {
+                success: 'background: #d4edda; color: #155724; border: 1px solid #c3e6cb;',
+                error: 'background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;',
+                warning: 'background: #fff3cd; color: #856404; border: 1px solid #ffeaa7;',
+                info: 'background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb;'
+            };
+
+            notification.style.cssText += styles[type];
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            // 显示动画
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+
+            // 自动隐藏
+            setTimeout(() => {
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 4000);
+        }
+
+        // 网络状态监听
+        window.addEventListener('online', function() {
+            updateSyncStatusBar();
+            if (window.syncService.getSyncStatus().enabled) {
+                showSyncNotification('网络已连接，正在自动同步...', 'info');
+            }
+        });
+
+        window.addEventListener('offline', function() {
+            updateSyncStatusBar();
+            showSyncNotification('网络已断开，将在恢复后自动同步', 'warning');
+        });
+
+        // Electron桌面应用特有功能
+        if (window.electronAPI) {
+            console.log('🚀 运行在Electron桌面应用中');
+            
+            // 获取应用信息
+            window.electronAPI.getAppVersion().then(version => {
+                console.log('应用版本:', version);
+            });
+            
+            // 添加桌面应用样式
+            document.body.classList.add('desktop-app');
+        }
+    </script>
+    <script>
+        // 主页特有功能
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStats();
+            
+            // 为所有功能卡片添加点击效果
+            const featureCards = document.querySelectorAll('.feature-card');
+            featureCards.forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-8px) scale(1.02)';
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0) scale(1)';
+                });
+            });
+        });
+
+        // 更新统计数据
+        function updateStats() {
+            try {
+                // 计算总计划数
+                let totalPlans = 0;
+                const planTypes = ['day', 'week', 'month', 'quarter', 'halfyear', 'year'];
+                planTypes.forEach(type => {
+                    const plans = StorageUtils.getAllPlans(type);
+                    totalPlans += Object.keys(plans).length;
+                });
+                
+                // 计算已完成任务数
+                let completedTasks = 0;
+                planTypes.forEach(type => {
+                    const plans = StorageUtils.getAllPlans(type);
+                    Object.values(plans).forEach(plan => {
+                        if (plan.todos) {
+                            const matches = plan.todos.match(/\[x\]/gi) || [];
+                            completedTasks += matches.length;
+                        }
+                    });
+                });
+
+                // 计算活跃习惯数（模拟数据）
+                const habitData = JSON.parse(localStorage.getItem('habitTrackerData') || '{}');
+                const activeHabits = Object.keys(habitData).length;
+
+                // 计算连续规划天数
+                const dayPlans = StorageUtils.getAllPlans('day');
+                const weekStreak = calculateStreak(dayPlans);
+
+                // 更新显示
+                document.getElementById('totalPlans').textContent = totalPlans;
+                document.getElementById('completedTasks').textContent = completedTasks;
+                document.getElementById('activeHabits').textContent = activeHabits;
+                document.getElementById('weekStreak').textContent = weekStreak;
+                
+                // 添加数字动画效果
+                animateNumbers();
+                
+            } catch (error) {
+                console.error('更新统计数据失败:', error);
+            }
+        }
+
+        // 计算连续规划天数
+        function calculateStreak(dayPlans) {
+            const today = new Date();
+            let streak = 0;
+            
+            for (let i = 0; i < 30; i++) { // 检查最近30天
+                const date = new Date(today);
+                date.setDate(today.getDate() - i);
+                const dateKey = DateUtils.formatDate(date);
+                
+                if (dayPlans[dateKey] && dayPlans[dateKey].goals) {
+                    streak++;
+                } else {
+                    break;
+                }
+            }
+            
+            return streak;
+        }
+
+        // 数字动画效果
+        function animateNumbers() {
+            const statValues = document.querySelectorAll('.stat-value');
+            statValues.forEach(el => {
+                const target = parseInt(el.textContent);
+                let current = 0;
+                const increment = Math.ceil(target / 20);
+                
+                const timer = setInterval(() => {
+                    current += increment;
+                    if (current >= target) {
+                        current = target;
+                        clearInterval(timer);
+                    }
+                    el.textContent = current;
+                }, 50);
+            });
+        }
+
+        // 添加快捷键支持
+        KeyboardUtils.register('ctrl+1', () => window.location.href = 'day_plan.html');
+        KeyboardUtils.register('ctrl+2', () => window.location.href = 'week_plan.html');
+        KeyboardUtils.register('ctrl+3', () => window.location.href = 'month_plan.html');
+        KeyboardUtils.register('ctrl+h', () => window.location.href = 'habit_tracker.html');
+           // 强制刷新功能
+   async function forceRefresh() {
+       if (confirm('即将强制刷新获取最新内容，是否继续？')) {
+           try {
+               // 清除 Service Worker 缓存
+               if ('serviceWorker' in navigator) {
+                   const registrations = await navigator.serviceWorker.getRegistrations();
+                   for (let registration of registrations) {
+                       await registration.unregister();
+                   }
+               }
+               
+               // 清除所有缓存
+               if ('caches' in window) {
+                   const cacheNames = await caches.keys();
+                   await Promise.all(
+                       cacheNames.map(cacheName => caches.delete(cacheName))
+                   );
+               }
+               
+               // 强制刷新页面
+               window.location.reload(true);
+           } catch (error) {
+               console.error('强制刷新失败:', error);
+               // 如果上述方法失败，直接强制刷新
+               window.location.reload(true);
+           }
+       }
+   }
+
+    </script>
+</body>
+
+</html>
+
+
+
+
+
