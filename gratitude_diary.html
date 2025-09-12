@@ -392,8 +392,17 @@
 
     <script src="common.js"></script>
     <script>
+        // 确保日期格式一致性
+        function getTodayDate() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
         let currentGratitudeData = {
-            date: new Date().toISOString().split('T')[0],
+            date: getTodayDate(),
             gratitudes: [],
             summary: '',
             timestamp: new Date().toISOString()
@@ -412,8 +421,29 @@
             "感恩是快乐的磁铁，越感恩，越快乐。"
         ];
 
+        // 调试函数 - 可在控制台使用
+        window.debugGratitude = {
+            showData: function() {
+                console.log('🔍 当前感恩数据:', currentGratitudeData);
+                console.log('📚 localStorage数据:', localStorage.getItem('gratitude_history'));
+                return {
+                    current: currentGratitudeData,
+                    stored: localStorage.getItem('gratitude_history')
+                };
+            },
+            clearData: function() {
+                localStorage.removeItem('gratitude_history');
+                console.log('🗑️ localStorage数据已清除');
+            },
+            forceLoad: function() {
+                loadTodayGratitude();
+                console.log('🔄 强制重新加载今日数据');
+            }
+        };
+
         // 初始化感恩日记
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 页面加载完成，开始初始化感恩日记...');
             initGratitudeDiary();
         });
 
@@ -532,7 +562,7 @@
                 currentGratitudeData.gratitudes = gratitudes;
                 currentGratitudeData.summary = summary;
                 currentGratitudeData.timestamp = new Date().toISOString();
-                currentGratitudeData.date = new Date().toISOString().split('T')[0];
+                currentGratitudeData.date = getTodayDate(); // 使用统一的日期格式
                 
                 console.log('📊 更新后的感恩数据:', currentGratitudeData);
                 return true;
@@ -989,6 +1019,27 @@
                 autoSaveGratitude();
             }
         }, 30000); // 每30秒自动保存
+
+        // 页面卸载前强制保存
+        window.addEventListener('beforeunload', function() {
+            console.log('🚪 页面即将卸载，强制保存数据...');
+            updateCurrentGratitudes();
+            if (currentGratitudeData.gratitudes.length > 0 || currentGratitudeData.summary.trim()) {
+                autoSaveGratitude();
+                console.log('💾 页面卸载前数据已保存');
+            }
+        });
+
+        // 页面隐藏时也保存（适用于移动端）
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                console.log('👁️ 页面隐藏，保存数据...');
+                updateCurrentGratitudes();
+                if (currentGratitudeData.gratitudes.length > 0 || currentGratitudeData.summary.trim()) {
+                    autoSaveGratitude();
+                }
+            }
+        });
     </script>
     <!-- 通用自动同步功能 -->
     <script src="universal-auto-sync.js"></script>
