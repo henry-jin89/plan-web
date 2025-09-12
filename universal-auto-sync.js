@@ -188,15 +188,15 @@ class UniversalAutoSync {
     }
     
     showSyncMenu() {
-        // 先强制刷新一次状态
-        this.forceRefreshStatus();
-        
         // 移除已存在的菜单
         const existingMenu = document.getElementById('sync-menu');
         if (existingMenu) {
             existingMenu.remove();
             return;
         }
+        
+        // 先强制刷新一次状态（在移除菜单后）
+        this.forceRefreshStatus();
         
         const menu = document.createElement('div');
         menu.id = 'sync-menu';
@@ -223,7 +223,7 @@ class UniversalAutoSync {
                     '<button onclick="universalAutoSync.quickSetup()" style="background: #4caf50; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px;">⚡ 快速设置</button>'
                 ) +
                 '<button onclick="universalAutoSync.openSyncSettings()" style="background: #f5f5f5; color: #666; border: 1px solid #e0e0e0; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px;">⚙️ 同步设置</button>' +
-                '<button onclick="universalAutoSync.forceRefreshStatus(); universalAutoSync.showSyncMenu();" style="background: #ff9800; color: white; border: 1px solid #ff9800; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px;">🔄 刷新状态</button>' +
+                '<button onclick="universalAutoSync.refreshAndUpdateMenu();" style="background: #ff9800; color: white; border: 1px solid #ff9800; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px;">🔄 刷新状态</button>' +
             '</div>';
         
         document.body.appendChild(menu);
@@ -248,35 +248,52 @@ class UniversalAutoSync {
     }
     
     forceRefreshStatus() {
+        // 防止重复调用
+        const now = Date.now();
+        if (this.lastRefreshTime && (now - this.lastRefreshTime) < 1000) {
+            console.log('刷新间隔过短，跳过本次刷新');
+            return;
+        }
+        this.lastRefreshTime = now;
+        
         console.log('开始强制刷新同步状态');
         
         // 立即检查所有可能的同步状态
         let syncEnabled = false;
         let detectionMethod = '';
         
+        // 方法0: 检查页面URL，如果是同步设置页面，直接认为已启用
+        if (window.location.href.includes('sync-settings.html')) {
+            console.log('✅ 在同步设置页面，直接认为同步已启用');
+            syncEnabled = true;
+            detectionMethod = '同步设置页面';
+        }
+        
         // 方法1: 检查window.syncService
-        console.log('检查window.syncService:', !!window.syncService);
-        if (window.syncService) {
-            console.log('window.syncService存在，检查getSyncStatus方法:', typeof window.syncService.getSyncStatus);
-            if (window.syncService.getSyncStatus) {
-                try {
-                    const status = window.syncService.getSyncStatus();
-                    console.log('syncService状态:', status);
-                    if (status && status.enabled) {
-                        syncEnabled = true;
-                        detectionMethod = 'syncService';
-                        console.log('✅ 方法1成功: syncService检测到同步已启用');
-                        
-                        // 获取最后同步时间
-                        if (status.lastSync) {
-                            this.lastSyncTime = new Date(status.lastSync).getTime();
-                            console.log('获取到最后同步时间:', status.lastSync);
+        if (!syncEnabled) {
+            console.log('检查window.syncService:', !!window.syncService);
+            if (window.syncService) {
+                console.log('window.syncService存在，检查getSyncStatus方法:', typeof window.syncService.getSyncStatus);
+                if (window.syncService.getSyncStatus) {
+                    try {
+                        const status = window.syncService.getSyncStatus();
+                        console.log('syncService状态:', status);
+                        if (status && status.enabled) {
+                            syncEnabled = true;
+                            detectionMethod = 'syncService';
+                            console.log('✅ 方法1成功: syncService检测到同步已启用');
+                            
+                            // 获取最后同步时间
+                            if (status.lastSync) {
+                                this.lastSyncTime = new Date(status.lastSync).getTime();
+                                console.log('获取到最后同步时间:', status.lastSync);
+                            }
+                        } else {
+                            console.log('❌ 方法1失败: status.enabled =', status ? status.enabled : 'status为空');
                         }
-                    } else {
-                        console.log('❌ 方法1失败: status.enabled =', status ? status.enabled : 'status为空');
+                    } catch (e) {
+                        console.log('❌ 方法1异常:', e);
                     }
-                } catch (e) {
-                    console.log('❌ 方法1异常:', e);
                 }
             }
         }
@@ -431,6 +448,24 @@ class UniversalAutoSync {
         }
         
         console.log('强制刷新完成');
+    }
+    
+    refreshAndUpdateMenu() {
+        console.log('刷新状态并更新菜单');
+        
+        // 先移除当前菜单
+        const existingMenu = document.getElementById('sync-menu');
+        if (existingMenu) {
+            existingMenu.remove();
+        }
+        
+        // 刷新状态
+        this.forceRefreshStatus();
+        
+        // 延迟重新显示菜单，让状态更新完成
+        setTimeout(() => {
+            this.showSyncMenu();
+        }, 100);
     }
     
     setupChangeListeners() {
