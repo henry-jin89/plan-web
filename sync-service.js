@@ -67,6 +67,8 @@ class SyncService {
      */
     async enableSync(provider, settings) {
         try {
+            console.log('🔄 正在启用同步功能...', { provider, settings: { ...settings, token: settings.token ? '***' : undefined } });
+            
             // 创建对应的同步提供商实例
             switch (provider) {
                 case 'github':
@@ -78,15 +80,31 @@ class SyncService {
                 case 'server':
                     this.syncProvider = new ServerSyncProvider(settings);
                     break;
+                case 'lenovo':
+                    this.syncProvider = new LenovoCloudSyncProvider(settings);
+                    break;
+                case 'webrtc':
+                    this.syncProvider = new WebRTCSyncProvider(settings);
+                    break;
                 default:
                     throw new Error(`不支持的同步提供商: ${provider}`);
             }
 
-            // 验证连接
-            await this.syncProvider.connect();
+            console.log('✅ 同步提供商实例已创建');
+
+            // 验证连接（如果失败，仍然启用同步功能）
+            console.log('🔗 正在验证连接...');
+            try {
+                await this.syncProvider.connect();
+                console.log('✅ 连接验证成功');
+            } catch (connectError) {
+                console.warn('⚠️ 连接验证失败，但仍启用同步功能:', connectError.message);
+                console.log('💡 同步功能将在下次操作时重试连接');
+            }
             
             this.syncEnabled = true;
             this.lastSyncTime = new Date().toISOString();
+            console.log('✅ 同步功能已启用');
             
             // 保存配置
             this.setSyncConfig({
@@ -177,7 +195,18 @@ class SyncService {
         if (!this.syncProvider) {
             const error = new Error('同步提供商未初始化 - syncProvider = null');
             console.error('❌', error.message);
-            throw error;
+            
+            // 尝试重新初始化同步配置
+            console.log('🔄 尝试重新初始化同步配置...');
+            const config = this.getSyncConfig();
+            if (config && config.enabled) {
+                await this.enableSync(config.provider, config.settings);
+                if (!this.syncProvider) {
+                    throw error;
+                }
+            } else {
+                throw error;
+            }
         }
 
         this.showSyncStatus('同步中...', 'info');
