@@ -63,7 +63,10 @@ class UniversalAutoSync {
                 let syncEnabled = false;
                 
                 // 方法1: 检查localStorage的同步配置
-                const syncConfig = localStorage.getItem('syncConfig');
+                let syncConfig = localStorage.getItem('sync_config'); // 修复：使用正确的键名
+                if (!syncConfig) {
+                    syncConfig = localStorage.getItem('syncConfig'); // 兼容性检查
+                }
                 if (syncConfig) {
                     try {
                         const config = JSON.parse(syncConfig);
@@ -324,7 +327,8 @@ class UniversalAutoSync {
             try {
                 // 检查所有可能存储同步配置的键
                 const possibleKeys = [
-                    'syncConfig',
+                    'sync_config', // 主要键名
+                    'syncConfig', // 兼容键名
                     'syncService_config', 
                     'autoSyncConfig',
                     'sync_settings',
