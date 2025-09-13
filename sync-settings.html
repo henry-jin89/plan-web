@@ -448,6 +448,9 @@
                 <button type="button" class="btn btn-secondary" onclick="createGitHubRepo()">
                     ➕ 创建仓库
                 </button>
+                <button type="button" class="btn btn-secondary" onclick="resetGitHubData()">
+                    🔄 重置数据
+                </button>
                 <button type="button" class="btn btn-secondary" onclick="showGitHubHelp()">
                     📚 设置教程
                 </button>
@@ -1401,6 +1404,46 @@
             `;
             
             document.body.appendChild(helpModal);
+        }
+
+        async function resetGitHubData() {
+            if (!confirm('确定要重置GitHub数据吗？这将清空远程仓库中的数据文件并重新上传当前本地数据。')) {
+                return;
+            }
+            
+            const token = document.getElementById('github-token').value.trim();
+            const owner = document.getElementById('github-owner').value.trim();
+            const repo = document.getElementById('github-repo').value.trim();
+            
+            if (!token || !owner || !repo) {
+                addLogEntry('❌ 请先填写完整的GitHub配置信息', 'error');
+                return;
+            }
+            
+            try {
+                addLogEntry('🔄 正在重置GitHub数据...', 'info');
+                
+                // 创建GitHub提供商实例
+                const provider = new GitHubSyncProvider({
+                    token: token,
+                    owner: owner,
+                    repo: repo,
+                    branch: document.getElementById('github-branch').value.trim() || 'main'
+                });
+                
+                // 获取当前本地数据
+                const localData = window.syncService.getLocalData();
+                
+                // 强制上传本地数据到GitHub（覆盖远程数据）
+                await provider.uploadData(localData);
+                
+                addLogEntry('✅ GitHub数据重置成功！', 'success');
+                addLogEntry('💾 已将当前本地数据上传到GitHub', 'success');
+                
+            } catch (error) {
+                addLogEntry(`❌ 重置失败：${error.message}`, 'error');
+                console.error('重置GitHub数据失败:', error);
+            }
         }
 
         function toggleAdvanced() {
