@@ -631,6 +631,9 @@
             <button type="button" class="btn btn-danger" onclick="disableSync()" disabled>
                 禁用同步
             </button>
+            <button type="button" class="btn btn-secondary" onclick="forceReinitializeSync()">
+                🔄 重新初始化
+            </button>
             <button type="button" class="btn btn-secondary" onclick="showCrossDeviceHelp()">
                 📱💻 跨设备指南
             </button>
@@ -1263,6 +1266,43 @@
 
         // 每30秒检查一次同步状态
         setInterval(resetSyncStatus, 30000);
+
+        // 强制重新初始化同步服务
+        function forceReinitializeSync() {
+            addLogEntry('🔄 正在强制重新初始化同步服务...', 'info');
+            
+            try {
+                // 重新初始化同步服务
+                if (window.syncService) {
+                    console.log('重新初始化同步配置...');
+                    window.syncService.initSyncConfig();
+                    
+                    // 检查状态
+                    const status = window.syncService.getSyncStatus();
+                    console.log('同步服务状态:', status);
+                    
+                    if (status.enabled) {
+                        addLogEntry('✅ 同步服务重新初始化成功', 'success');
+                        updateSyncStatus();
+                        updateButtons();
+                    } else {
+                        addLogEntry('⚠️ 同步服务未启用，请检查配置', 'warning');
+                    }
+                } else {
+                    addLogEntry('❌ 同步服务未加载', 'error');
+                }
+                
+                // 重新初始化通用自动同步
+                if (window.universalAutoSync) {
+                    console.log('刷新通用自动同步状态...');
+                    window.universalAutoSync.forceRefreshStatus();
+                }
+                
+            } catch (error) {
+                console.error('重新初始化失败:', error);
+                addLogEntry(`❌ 重新初始化失败: ${error.message}`, 'error');
+            }
+        }
 
         // GitHub辅助功能
         async function checkGitHubRepo() {
