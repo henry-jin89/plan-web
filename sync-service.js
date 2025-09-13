@@ -23,8 +23,14 @@ class SyncService {
      */
     initSyncConfig() {
         const config = this.getSyncConfig();
+        console.log('🔍 初始化同步配置:', config);
         if (config && config.enabled) {
-            this.enableSync(config.provider, config.settings);
+            console.log('✅ 发现已启用的同步配置，正在恢复...');
+            this.enableSync(config.provider, config.settings).catch(error => {
+                console.error('❌ 恢复同步配置失败:', error);
+            });
+        } else {
+            console.log('ℹ️ 未发现已启用的同步配置');
         }
     }
 
@@ -155,8 +161,23 @@ class SyncService {
      * 执行同步操作
      */
     async performSync() {
-        if (!this.syncEnabled || !this.syncProvider) {
-            throw new Error('同步未启用');
+        console.log('🔄 开始执行同步操作...');
+        console.log('同步状态检查:', {
+            syncEnabled: this.syncEnabled,
+            syncProvider: !!this.syncProvider,
+            providerName: this.syncProvider?.name
+        });
+        
+        if (!this.syncEnabled) {
+            const error = new Error('同步功能未启用 - syncEnabled = false');
+            console.error('❌', error.message);
+            throw error;
+        }
+        
+        if (!this.syncProvider) {
+            const error = new Error('同步提供商未初始化 - syncProvider = null');
+            console.error('❌', error.message);
+            throw error;
         }
 
         this.showSyncStatus('同步中...', 'info');
