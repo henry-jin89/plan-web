@@ -212,7 +212,7 @@ const DataPersistenceManager = {
             };
             
             // 收集所有计划数据
-            const planTypes = ['day', 'week', 'month', 'quarter', 'year'];
+            const planTypes = ['day', 'week', 'month', 'quarter', 'halfyear', 'year'];
             planTypes.forEach(type => {
                 const planData = localStorage.getItem(`planData_${type}`);
                 if (planData) {
@@ -221,7 +221,19 @@ const DataPersistenceManager = {
             });
             
             // 收集其他重要数据
-            const otherKeys = ['habitTrackerData', 'userSettings', 'syncConfig'];
+            const otherKeys = [
+                'habitTrackerData', 
+                'gratitude_history',
+                'mood_history',
+                'reflection_templates',
+                'reflection_history',
+                'reflection_to_dayplan',
+                'monthlyEvents',
+                'customTemplates',
+                'userSettings', 
+                'syncConfig',
+                'sync_config'
+            ];
             otherKeys.forEach(key => {
                 const data = localStorage.getItem(key);
                 if (data) {
