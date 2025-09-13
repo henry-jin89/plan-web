@@ -95,6 +95,20 @@ class GitHubSyncProvider extends SyncProvider {
         }
 
         try {
+            // 确保数据是有效的对象
+            if (!data || typeof data !== 'object') {
+                console.log('数据无效，使用默认空数据结构');
+                data = {
+                    metadata: {
+                        version: '1.0.0',
+                        exportTime: new Date().toISOString(),
+                        platform: 'web-browser'
+                    },
+                    planData: {},
+                    settings: {}
+                };
+            }
+            
             const content = JSON.stringify(data, null, 2);
             const encodedContent = btoa(unescape(encodeURIComponent(content)));
             
@@ -151,10 +165,25 @@ class GitHubSyncProvider extends SyncProvider {
         try {
             const fileInfo = await this.getFileInfo();
             const content = atob(fileInfo.content);
-            const data = JSON.parse(decodeURIComponent(escape(content)));
+            const decodedContent = decodeURIComponent(escape(content));
             
-            console.log('✅ 从GitHub下载数据成功');
-            return data;
+            // 检查内容是否为空或无效
+            if (!decodedContent || decodedContent.trim() === '') {
+                console.log('GitHub文件内容为空，返回空数据');
+                return {};
+            }
+            
+            // 尝试解析JSON，添加更好的错误处理
+            try {
+                const data = JSON.parse(decodedContent);
+                console.log('✅ 从GitHub下载数据成功');
+                return data;
+            } catch (jsonError) {
+                console.error('❌ JSON解析失败，文件内容:', decodedContent.substring(0, 200) + '...');
+                console.error('JSON解析错误:', jsonError);
+                // 返回空数据而不是抛出错误，避免阻塞同步
+                return {};
+            }
             
         } catch (error) {
             if (error.message.includes('404')) {
