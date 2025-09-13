@@ -634,6 +634,9 @@
             <button type="button" class="btn btn-secondary" onclick="forceReinitializeSync()">
                 🔄 重新初始化
             </button>
+            <button type="button" class="btn btn-secondary" onclick="forceEnableSync()">
+                ⚡ 强制启用
+            </button>
             <button type="button" class="btn btn-secondary" onclick="showCrossDeviceHelp()">
                 📱💻 跨设备指南
             </button>
@@ -1301,6 +1304,68 @@
             } catch (error) {
                 console.error('重新初始化失败:', error);
                 addLogEntry(`❌ 重新初始化失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 强制启用同步功能
+        async function forceEnableSync() {
+            if (!selectedProvider) {
+                alert('请先选择同步方式');
+                return;
+            }
+
+            const settings = getProviderSettings(selectedProvider);
+            addLogEntry('⚡ 正在强制启用同步功能...', 'info');
+
+            try {
+                // 验证必填字段
+                if (!validateProviderSettings(selectedProvider, settings)) {
+                    return;
+                }
+
+                // 强制设置同步状态
+                window.syncService.syncEnabled = true;
+                
+                // 创建同步提供商
+                let provider;
+                switch(selectedProvider) {
+                    case 'github':
+                        provider = new GitHubSyncProvider(settings);
+                        break;
+                    case 'drive':
+                        provider = new GoogleDriveSyncProvider(settings);
+                        break;
+                    case 'server':
+                        provider = new ServerSyncProvider(settings);
+                        break;
+                    case 'webrtc':
+                        provider = new WebRTCSyncProvider(settings);
+                        break;
+                    case 'lenovo':
+                        provider = new LenovoCloudSyncProvider(settings);
+                        break;
+                }
+                
+                window.syncService.syncProvider = provider;
+                
+                // 保存配置
+                window.syncService.setSyncConfig({
+                    enabled: true,
+                    provider: selectedProvider,
+                    settings: settings,
+                    lastSync: new Date().toISOString()
+                });
+                
+                syncEnabled = true;
+                updateSyncStatus();
+                updateButtons();
+                addLogEntry('✅ 同步功能已强制启用！', 'success');
+                
+                // 启动自动同步
+                window.syncService.startAutoSync();
+                
+            } catch (error) {
+                addLogEntry(`❌ 强制启用失败: ${error.message}`, 'error');
             }
         }
 
