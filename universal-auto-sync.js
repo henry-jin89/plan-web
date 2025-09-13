@@ -1,5 +1,5 @@
 /**
- * 通用自动同步管理器（修复版）
+ * 通用自动同步管理器
  * 可在所有页面使用的智能自动同步功能
  */
 
@@ -26,7 +26,7 @@ class UniversalAutoSync {
     async init() {
         if (this.isInitialized) return;
         
-        console.log('启动通用自动同步管理器...');
+        console.log('🚀 启动通用自动同步管理器...');
         
         // 延迟1秒初始化，等待页面完全加载
         await this.delay(1000);
@@ -50,32 +50,29 @@ class UniversalAutoSync {
         this.setupStatusUpdater();
         
         this.isInitialized = true;
-        console.log('通用自动同步管理器初始化完成');
+        console.log('✅ 通用自动同步管理器初始化完成');
     }
     
     async checkSyncConfig() {
         try {
-            console.log('检查同步配置状态...');
+            console.log('🔍 检查同步配置状态...');
             
             // 等待主同步服务加载完成
             let retryCount = 0;
-            while (retryCount < 15) {
+            while (retryCount < 15) { // 增加重试次数
                 let syncEnabled = false;
                 
                 // 方法1: 检查localStorage的同步配置
-                let syncConfig = localStorage.getItem('sync_config'); // 修复：使用正确的键名
-                if (!syncConfig) {
-                    syncConfig = localStorage.getItem('syncConfig'); // 兼容性检查
-                }
+                const syncConfig = localStorage.getItem('syncConfig');
                 if (syncConfig) {
                     try {
                         const config = JSON.parse(syncConfig);
                         if (config && config.enabled) {
                             syncEnabled = true;
-                            console.log('方法1: localStorage发现同步配置已启用');
+                            console.log('✅ 方法1: localStorage发现同步配置已启用');
                         }
                     } catch (e) {
-                        console.log('localStorage同步配置解析失败:', e);
+                        console.log('⚠️ localStorage同步配置解析失败:', e);
                     }
                 }
                 
@@ -106,6 +103,27 @@ class UniversalAutoSync {
                     }
                 }
                 
+                // 方法4: 检查是否有同步相关的localStorage项目
+                if (!syncEnabled) {
+                    const syncKeys = Object.keys(localStorage).filter(key => 
+                        key.includes('sync') || key.includes('Sync') || key.includes('github') || key.includes('drive')
+                    );
+                    if (syncKeys.length > 0) {
+                        console.log('📋 发现同步相关存储项:', syncKeys);
+                        // 进一步检查是否真的配置了同步
+                        for (const key of syncKeys) {
+                            try {
+                                const value = localStorage.getItem(key);
+                                if (value && (value.includes('enabled') || value.includes('token') || value.includes('github'))) {
+                                    syncEnabled = true;
+                                    console.log(`✅ 方法4: 通过${key}检测到同步配置`);
+                                    break;
+                                }
+                            } catch (e) {}
+                        }
+                    }
+                }
+                
                 if (syncEnabled) {
                     this.autoSyncEnabled = true;
                     this.updateStatusBadge();
@@ -117,15 +135,15 @@ class UniversalAutoSync {
                 retryCount++;
                 
                 if (retryCount % 5 === 0) {
-                    console.log('第' + retryCount + '次检查同步状态，继续等待...');
+                    console.log(`🔄 第${retryCount}次检查同步状态，继续等待...`);
                 }
             }
             
-            console.log('经过多次检查，未发现自动同步配置');
+            console.log('ℹ️ 经过多次检查，未发现自动同步配置');
             this.autoSyncEnabled = false;
             this.updateStatusBadge();
         } catch (error) {
-            console.log('检查同步配置时出错:', error);
+            console.log('⚠️ 检查同步配置时出错:', error);
             this.autoSyncEnabled = false;
         }
     }
@@ -134,12 +152,25 @@ class UniversalAutoSync {
         // 创建浮动的同步状态指示器
         this.statusBadge = document.createElement('div');
         this.statusBadge.id = 'universal-sync-badge';
-        this.statusBadge.style.cssText = 
-            'position: fixed; bottom: 20px; right: 20px; width: 50px; height: 50px; ' +
-            'border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); ' +
-            'color: white; display: flex; align-items: center; justify-content: center; ' +
-            'box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer; z-index: 9998; ' +
-            'transition: all 0.3s ease; font-size: 20px; user-select: none;';
+        this.statusBadge.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            cursor: pointer;
+            z-index: 9998;
+            transition: all 0.3s ease;
+            font-size: 20px;
+            user-select: none;
+        `;
         
         this.updateStatusBadge();
         
@@ -183,14 +214,24 @@ class UniversalAutoSync {
         if (!document.getElementById('universal-sync-animations')) {
             const style = document.createElement('style');
             style.id = 'universal-sync-animations';
-            style.textContent = 
-                '@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } } ' +
-                '@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }';
+            style.textContent = `
+                @keyframes spin {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+                @keyframes pulse {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.7; }
+                }
+            `;
             document.head.appendChild(style);
         }
     }
     
     showSyncMenu() {
+        // 先强制刷新一次状态
+        this.forceRefreshStatus();
+        
         // 移除已存在的菜单
         const existingMenu = document.getElementById('sync-menu');
         if (existingMenu) {
@@ -198,36 +239,91 @@ class UniversalAutoSync {
             return;
         }
         
-        // 先强制刷新一次状态（在移除菜单后）
-        this.forceRefreshStatus();
-        
         const menu = document.createElement('div');
         menu.id = 'sync-menu';
-        menu.style.cssText = 
-            'position: fixed; bottom: 80px; right: 20px; background: white; ' +
-            'border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); ' +
-            'padding: 15px; z-index: 9999; min-width: 200px; animation: scaleIn 0.2s ease;';
+        menu.style.cssText = `
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            padding: 15px;
+            z-index: 9999;
+            min-width: 200px;
+            animation: scaleIn 0.2s ease;
+        `;
         
         const syncStatus = this.autoSyncEnabled ? '已启用' : '未启用';
         const syncStatusColor = this.autoSyncEnabled ? '#4caf50' : '#f44336';
         const lastSync = this.lastSyncTime ? new Date(this.lastSyncTime).toLocaleTimeString() : '从未';
         
-        menu.innerHTML = 
-            '<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">' +
-                '<div style="width: 8px; height: 8px; border-radius: 50%; background: ' + syncStatusColor + ';"></div>' +
-                '<span style="font-weight: 500; color: #333;">同步状态: ' + syncStatus + '</span>' +
-            '</div>' +
-            '<div style="font-size: 12px; color: #666; margin-bottom: 15px;">' +
-                '最后同步: ' + lastSync +
-            '</div>' +
-            '<div style="display: flex; flex-direction: column; gap: 8px;">' +
-                (this.autoSyncEnabled ? 
-                    '<button onclick="universalAutoSync.manualSync()" style="background: #1976d2; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px;">🔄 立即同步</button>' :
-                    '<button onclick="universalAutoSync.quickSetup()" style="background: #4caf50; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px;">⚡ 快速设置</button>'
-                ) +
-                '<button onclick="universalAutoSync.openSyncSettings()" style="background: #f5f5f5; color: #666; border: 1px solid #e0e0e0; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px;">⚙️ 同步设置</button>' +
-                '<button onclick="universalAutoSync.refreshAndUpdateMenu();" style="background: #ff9800; color: white; border: 1px solid #ff9800; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px;">🔄 刷新状态</button>' +
-            '</div>';
+        menu.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                <div style="width: 8px; height: 8px; border-radius: 50%; background: ${syncStatusColor};"></div>
+                <span style="font-weight: 500; color: #333;">同步状态: ${syncStatus}</span>
+            </div>
+            
+            <div style="font-size: 12px; color: #666; margin-bottom: 15px;">
+                最后同步: ${lastSync}
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                ${this.autoSyncEnabled ? `
+                    <button onclick="universalAutoSync.manualSync()" style="
+                        background: #1976d2;
+                        color: white;
+                        border: none;
+                        padding: 8px 12px;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 14px;
+                        transition: background 0.3s ease;
+                    " onmouseover="this.style.background='#1565c0'" onmouseout="this.style.background='#1976d2'">
+                        🔄 立即同步
+                    </button>
+                ` : `
+                    <button onclick="universalAutoSync.quickSetup()" style="
+                        background: #4caf50;
+                        color: white;
+                        border: none;
+                        padding: 8px 12px;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 14px;
+                        transition: background 0.3s ease;
+                    " onmouseover="this.style.background='#45a049'" onmouseout="this.style.background='#4caf50'">
+                        ⚡ 快速设置
+                    </button>
+                `}
+                
+                <button onclick="universalAutoSync.openSyncSettings()" style="
+                    background: #f5f5f5;
+                    color: #666;
+                    border: 1px solid #e0e0e0;
+                    padding: 8px 12px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    transition: all 0.3s ease;
+                " onmouseover="this.style.background='#e0e0e0'" onmouseout="this.style.background='#f5f5f5'">
+                    ⚙️ 同步设置
+                </button>
+                
+                <button onclick="universalAutoSync.forceRefreshStatus(); universalAutoSync.showSyncMenu();" style="
+                    background: #ff9800;
+                    color: white;
+                    border: 1px solid #ff9800;
+                    padding: 8px 12px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    transition: all 0.3s ease;
+                " onmouseover="this.style.background='#f57c00'" onmouseout="this.style.background='#ff9800'">
+                    🔄 刷新状态
+                </button>
+            </div>
+        `;
         
         document.body.appendChild(menu);
         
@@ -250,302 +346,225 @@ class UniversalAutoSync {
         }, 100);
     }
     
-    forceRefreshStatus() {
-        // 防止重复调用
-        const now = Date.now();
-        if (this.lastRefreshTime && (now - this.lastRefreshTime) < 1000) {
-            console.log('刷新间隔过短，跳过本次刷新');
-            return;
-        }
-        this.lastRefreshTime = now;
-        
-        console.log('开始强制刷新同步状态');
-        
-        // 立即检查所有可能的同步状态
-        let syncEnabled = false;
-        let detectionMethod = '';
-        
-        // 方法0: 检查页面URL，如果是同步设置页面，直接认为已启用
-        if (window.location.href.includes('sync-settings.html')) {
-            console.log('✅ 在同步设置页面，直接认为同步已启用');
-            syncEnabled = true;
-            detectionMethod = '同步设置页面';
-        }
-        
-        // 方法1: 检查window.syncService
-        if (!syncEnabled) {
-            console.log('检查window.syncService:', !!window.syncService);
-            if (window.syncService) {
-                console.log('window.syncService存在，检查getSyncStatus方法:', typeof window.syncService.getSyncStatus);
-                if (window.syncService.getSyncStatus) {
-                    try {
-                        const status = window.syncService.getSyncStatus();
-                        console.log('syncService状态:', status);
-                        if (status && status.enabled) {
-                            syncEnabled = true;
-                            detectionMethod = 'syncService';
-                            console.log('✅ 方法1成功: syncService检测到同步已启用');
-                            
-                            // 获取最后同步时间
-                            if (status.lastSync) {
-                                this.lastSyncTime = new Date(status.lastSync).getTime();
-                                console.log('获取到最后同步时间:', status.lastSync);
-                            }
-                        } else {
-                            console.log('❌ 方法1失败: status.enabled =', status ? status.enabled : 'status为空');
-                        }
-                    } catch (e) {
-                        console.log('❌ 方法1异常:', e);
-                    }
-                }
-            }
-        }
-        
-        // 方法2: 检查localStorage中的syncConfig
-        if (!syncEnabled) {
-            console.log('尝试方法2: 检查localStorage syncConfig');
-            try {
-                const syncConfig = localStorage.getItem('syncConfig');
-                console.log('localStorage syncConfig:', syncConfig);
-                if (syncConfig) {
-                    const config = JSON.parse(syncConfig);
-                    console.log('解析后的syncConfig:', config);
-                    if (config && config.enabled) {
-                        syncEnabled = true;
-                        detectionMethod = 'localStorage';
-                        console.log('✅ 方法2成功: localStorage检测到同步已启用');
-                    }
-                }
-            } catch (e) {
-                console.log('❌ 方法2异常:', e);
-            }
-        }
-        
-        // 方法2.5: 检查所有可能的localStorage同步配置键
-        if (!syncEnabled) {
-            console.log('尝试方法2.5: 扫描所有localStorage项');
-            try {
-                // 检查所有可能存储同步配置的键
-                const possibleKeys = [
-                    'sync_config', // 主要键名
-                    'syncConfig', // 兼容键名
-                    'syncService_config', 
-                    'autoSyncConfig',
-                    'sync_settings',
-                    'planData_syncConfig'
-                ];
-                
-                for (const key of possibleKeys) {
-                    const value = localStorage.getItem(key);
-                    if (value) {
-                        console.log('发现配置键:', key, '值:', value);
-                        try {
-                            const config = JSON.parse(value);
-                            if (config && (config.enabled || config.isEnabled)) {
-                                syncEnabled = true;
-                                detectionMethod = 'localStorage扫描(' + key + ')';
-                                console.log('✅ 方法2.5成功: 通过' + key + '检测到同步已启用');
-                                break;
-                            }
-                        } catch (e) {
-                            // 不是JSON，检查是否包含enabled关键字
-                            if (value.includes('enabled') || value.includes('true')) {
-                                syncEnabled = true;
-                                detectionMethod = 'localStorage关键字(' + key + ')';
-                                console.log('✅ 方法2.5成功: 通过' + key + '关键字检测到同步已启用');
-                                break;
-                            }
-                        }
-                    }
-                }
-            } catch (e) {
-                console.log('❌ 方法2.5异常:', e);
-            }
-        }
-        
-        // 方法3: 检查是否有同步按钮状态显示为"已启用"
-        if (!syncEnabled) {
-            console.log('尝试方法3: 检查页面同步按钮状态');
-            const syncButtons = document.querySelectorAll('button');
-            for (const button of syncButtons) {
-                if (button.textContent && button.textContent.includes('同步已启用')) {
-                    syncEnabled = true;
-                    detectionMethod = 'button状态';
-                    console.log('✅ 方法3成功: 从按钮状态检测到同步已启用');
-                    break;
-                }
-            }
-        }
-        
-        // 方法4: 详细扫描localStorage所有项
-        if (!syncEnabled) {
-            console.log('尝试方法4: 详细扫描localStorage所有项');
-            try {
-                const allKeys = Object.keys(localStorage);
-                console.log('localStorage中的所有键:', allKeys);
-                
-                for (const key of allKeys) {
-                    const value = localStorage.getItem(key);
-                    // 检查键名或值是否包含同步相关信息
-                    if ((key.toLowerCase().includes('sync') || 
-                         key.toLowerCase().includes('github') || 
-                         key.toLowerCase().includes('drive')) ||
-                        (value && (value.includes('github.com') || 
-                                  value.includes('ghp_') || 
-                                  value.includes('enabled') ||
-                                  value.includes('lastSync')))) {
-                        console.log('发现同步相关项:', key, '→', value.substring(0, 100) + (value.length > 100 ? '...' : ''));
-                        syncEnabled = true;
-                        detectionMethod = 'localStorage深度扫描(' + key + ')';
-                        console.log('✅ 方法4成功: 通过深度扫描检测到同步配置');
-                        
-                        // 尝试从value中提取最后同步时间
-                        if (value.includes('lastSync')) {
-                            try {
-                                const match = value.match(/"lastSync":"([^"]+)"/);
-                                if (match) {
-                                    this.lastSyncTime = new Date(match[1]).getTime();
-                                    console.log('提取到最后同步时间:', match[1]);
-                                }
-                            } catch (e) {}
-                        }
-                        break;
-                    }
-                }
-            } catch (e) {
-                console.log('❌ 方法4异常:', e);
-            }
-        }
-        
-        // 方法5: 检查页面是否有同步日志（兜底方案）
-        if (!syncEnabled) {
-            console.log('尝试方法5: 检查是否有同步完成日志');
-            // 如果能看到同步日志，说明同步功能是启用的
-            const logElements = document.querySelectorAll('*');
-            for (const element of logElements) {
-                if (element.textContent && (
-                    element.textContent.includes('同步完成') || 
-                    element.textContent.includes('手动同步完成') ||
-                    element.textContent.includes('数据已更新')
-                )) {
-                    syncEnabled = true;
-                    detectionMethod = '同步日志';
-                    console.log('✅ 方法5成功: 从同步日志检测到同步已启用');
-                    this.lastSyncTime = Date.now(); // 设置当前时间为最后同步时间
-                    break;
-                }
-            }
-        }
-        
-        console.log('检测结果:');
-        console.log('同步状态:', syncEnabled);
-        console.log('检测方法:', detectionMethod);
-        console.log('当前autoSyncEnabled:', this.autoSyncEnabled);
-        
-        // 更新状态
-        if (this.autoSyncEnabled !== syncEnabled) {
-            this.autoSyncEnabled = syncEnabled;
-            this.updateStatusBadge();
-            console.log('🔄 状态已更新: ' + (syncEnabled ? '已启用' : '未启用') + ' (通过' + detectionMethod + '检测)');
-        } else {
-            console.log('ℹ️ 状态无变化，保持: ' + (syncEnabled ? '已启用' : '未启用'));
-        }
-        
-        console.log('强制刷新完成');
-    }
-    
-    refreshAndUpdateMenu() {
-        console.log('刷新状态并更新菜单');
-        
-        // 先移除当前菜单
-        const existingMenu = document.getElementById('sync-menu');
-        if (existingMenu) {
-            existingMenu.remove();
-        }
-        
-        // 刷新状态
-        this.forceRefreshStatus();
-        
-        // 延迟重新显示菜单，让状态更新完成
-        setTimeout(() => {
-            this.showSyncMenu();
-        }, 100);
-    }
-    
     setupChangeListeners() {
         // 监听localStorage变化
         const originalSetItem = localStorage.setItem;
         localStorage.setItem = function(key, value) {
-            // 监听所有应用相关的数据变化
-            const syncableKeys = [
-                'planData_',
-                'habitTrackerData',
-                'gratitude_history',
-                'mood_history', // 修复：mood_tracker.html实际使用的键名
-                'mood_tracker_data', // 保留兼容性
-                'reflection_templates',
-                'reflection_history',
-                'reflection_to_dayplan', // 反思到日计划的数据传递
-                'monthlyEvents',
-                'customTemplates',
-                'syncConfig', // 同步配置（跨设备同步配置）
-                'reflection_' // 动态键名
-            ];
-            
-            const shouldSync = syncableKeys.some(pattern => {
-                return key.startsWith(pattern) || key === pattern;
-            });
-            
-            if (shouldSync) {
+            if (key.startsWith('planData_')) {
                 window.universalAutoSync.onDataChange(key);
             }
             originalSetItem.apply(this, arguments);
         };
+        
+        // 监听表单变化
+        this.setupFormListeners();
+        
+        // 监听页面可见性变化
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && this.autoSyncEnabled && !this.syncInProgress) {
+                // 页面重新可见时检查同步
+                this.checkAndSync();
+            }
+        });
+        
+        // 监听网络状态变化
+        window.addEventListener('online', () => {
+            if (this.autoSyncEnabled && this.changeDetected) {
+                this.scheduleSync(3000); // 网络恢复后3秒同步
+            }
+        });
+    }
+    
+    setupFormListeners() {
+        // 监听所有输入框、文本域的变化
+        const inputs = document.querySelectorAll('input, textarea, select');
+        inputs.forEach(input => {
+            ['input', 'change'].forEach(event => {
+                input.addEventListener(event, () => {
+                    this.onDataChange(`form_${input.name || input.id || 'unknown'}`);
+                });
+            });
+        });
+        
+        // 监听动态添加的元素
+        const observer = new MutationObserver(mutations => {
+            mutations.forEach(mutation => {
+                mutation.addedNodes.forEach(node => {
+                    if (node.nodeType === 1) { // 元素节点
+                        const newInputs = node.querySelectorAll ? node.querySelectorAll('input, textarea, select') : [];
+                        newInputs.forEach(input => {
+                            ['input', 'change'].forEach(event => {
+                                input.addEventListener(event, () => {
+                                    this.onDataChange(`form_${input.name || input.id || 'unknown'}`);
+                                });
+                            });
+                        });
+                    }
+                });
+            });
+        });
+        
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    }
+    
+    setupPeriodicSync() {
+        if (!this.autoSyncEnabled) return;
+        
+        // 每5分钟检查一次同步
+        setInterval(() => {
+            if (this.autoSyncEnabled && !this.syncInProgress && navigator.onLine) {
+                this.checkAndSync();
+            }
+        }, 300000); // 5分钟
     }
     
     setupStatusUpdater() {
         // 每5秒更新一次同步状态
         setInterval(() => {
-            this.forceRefreshStatus();
+            this.refreshSyncStatus();
         }, 5000);
+        
+        // 监听存储变化
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'syncConfig') {
+                this.refreshSyncStatus();
+            }
+        });
+        
+        // 监听自定义同步事件
+        window.addEventListener('sync-complete', () => {
+            this.refreshSyncStatus();
+            this.lastSyncTime = Date.now();
+        });
+        
+        window.addEventListener('sync-enabled', () => {
+            this.refreshSyncStatus();
+        });
     }
     
-    setupPeriodicSync() {
-        // 简化的定期同步
+    async refreshSyncStatus() {
+        const oldStatus = this.autoSyncEnabled;
+        await this.checkSyncConfig();
+        
+        // 如果状态发生变化，更新UI
+        if (oldStatus !== this.autoSyncEnabled) {
+            this.updateStatusBadge();
+            console.log(`🔄 同步状态已更新: ${this.autoSyncEnabled ? '已启用' : '未启用'}`);
+        }
+    }
+    
+    forceRefreshStatus() {
+        console.log('🔄 强制刷新同步状态...');
+        
+        // 立即检查所有可能的同步状态
+        let syncEnabled = false;
+        
+        // 检查localStorage
+        try {
+            const syncConfig = localStorage.getItem('syncConfig');
+            if (syncConfig) {
+                const config = JSON.parse(syncConfig);
+                if (config && config.enabled) {
+                    syncEnabled = true;
+                    console.log('💡 强制检查: localStorage同步已启用');
+                }
+            }
+        } catch (e) {}
+        
+        // 检查window对象
+        if (!syncEnabled) {
+            if (window.syncService && window.syncService.getSyncStatus) {
+                try {
+                    const status = window.syncService.getSyncStatus();
+                    if (status && status.enabled) {
+                        syncEnabled = true;
+                        console.log('💡 强制检查: syncService同步已启用');
+                        
+                        // 获取最后同步时间
+                        if (status.lastSync) {
+                            this.lastSyncTime = new Date(status.lastSync).getTime();
+                        }
+                    }
+                } catch (e) {}
+            }
+        }
+        
+        // 检查是否有GitHub相关配置
+        if (!syncEnabled) {
+            try {
+                const keys = Object.keys(localStorage);
+                for (const key of keys) {
+                    const value = localStorage.getItem(key);
+                    if (value && (value.includes('github.com') || value.includes('ghp_') || value.includes('"enabled":true'))) {
+                        syncEnabled = true;
+                        console.log('💡 强制检查: 通过GitHub配置检测到同步已启用');
+                        break;
+                    }
+                }
+            } catch (e) {}
+        }
+        
+        // 更新状态
+        if (this.autoSyncEnabled !== syncEnabled) {
+            this.autoSyncEnabled = syncEnabled;
+            this.updateStatusBadge();
+            console.log(`⚡ 强制更新同步状态: ${syncEnabled ? '已启用' : '未启用'}`);
+        }
     }
     
     setupPageEventListeners() {
-        // 简化的页面事件监听
+        // 页面卸载前同步
+        window.addEventListener('beforeunload', () => {
+            if (this.autoSyncEnabled && this.changeDetected && navigator.onLine) {
+                // 执行快速同步
+                this.performQuickSync();
+            }
+        });
+        
+        // 页面获得焦点时同步
+        window.addEventListener('focus', () => {
+            if (this.autoSyncEnabled && !this.syncInProgress) {
+                this.scheduleSync(2000);
+            }
+        });
     }
     
     onDataChange(key) {
         this.changeDetected = true;
-        console.log('检测到数据变化:', key);
+        console.log('📝 检测到数据变化:', key);
         
-        // 如果同步已启用，触发防抖同步
-        if (this.autoSyncEnabled && !this.syncInProgress) {
-            this.debounceSync();
+        if (this.autoSyncEnabled) {
+            this.scheduleSync(10000); // 10秒后同步
         }
     }
     
-    // 防抖同步函数
-    debounceSync() {
+    scheduleSync(delay = 10000) {
         if (this.syncTimer) {
             clearTimeout(this.syncTimer);
         }
         
-        // 5秒后执行同步
         this.syncTimer = setTimeout(() => {
             if (this.autoSyncEnabled && !this.syncInProgress && navigator.onLine) {
-                console.log('执行自动同步...');
-                this.manualSync();
+                this.performSync();
             }
-        }, 5000);
+        }, delay);
     }
     
-    async manualSync() {
-        if (this.syncInProgress) {
-            console.log('同步正在进行中...');
+    async checkAndSync() {
+        const now = Date.now();
+        const timeSinceLastSync = now - (this.lastSyncTime || 0);
+        
+        // 如果距离上次同步超过10分钟，或有未同步的变化，则执行同步
+        if (timeSinceLastSync > 600000 || this.changeDetected) {
+            await this.performSync();
+        }
+    }
+    
+    async performSync() {
+        if (this.syncInProgress || !this.autoSyncEnabled || !navigator.onLine) {
             return;
         }
         
@@ -553,29 +572,139 @@ class UniversalAutoSync {
             this.syncInProgress = true;
             this.updateStatusBadge();
             
+            console.log('🔄 开始自动同步...');
+            
             if (window.syncService && window.syncService.manualSync) {
                 await window.syncService.manualSync();
                 this.lastSyncTime = Date.now();
-                console.log('手动同步完成');
+                this.changeDetected = false;
+                this.retryCount = 0;
+                
+                console.log('✅ 自动同步完成');
+                this.showSyncNotification('数据同步完成', 'success');
+            } else {
+                throw new Error('同步服务不可用');
             }
+            
         } catch (error) {
-            console.error('同步失败:', error);
+            console.error('❌ 自动同步失败:', error);
+            this.retryCount++;
+            
+            if (this.retryCount < this.maxRetries) {
+                // 重试机制
+                setTimeout(() => {
+                    this.performSync();
+                }, 30000); // 30秒后重试
+            } else {
+                this.showSyncNotification('同步失败，请检查网络连接', 'error');
+                this.retryCount = 0;
+            }
         } finally {
             this.syncInProgress = false;
             this.updateStatusBadge();
         }
     }
     
+    async performQuickSync() {
+        // 页面卸载前的快速同步，不等待结果
+        if (window.syncService && window.syncService.manualSync) {
+            try {
+                await window.syncService.manualSync();
+            } catch (error) {
+                console.log('快速同步失败:', error);
+            }
+        }
+    }
+    
+    async manualSync() {
+        const menu = document.getElementById('sync-menu');
+        if (menu) menu.remove();
+        
+        if (this.syncInProgress) {
+            this.showSyncNotification('同步正在进行中...', 'warning');
+            return;
+        }
+        
+        this.showSyncNotification('正在同步数据...', 'info');
+        await this.performSync();
+    }
+    
     quickSetup() {
+        const menu = document.getElementById('sync-menu');
+        if (menu) menu.remove();
+        
+        // 跳转到主页的快速设置
         if (window.smartAutoSync) {
             window.smartAutoSync.startQuickSetup();
         } else {
+            // 如果在其他页面，打开同步设置
             this.openSyncSettings();
         }
     }
     
     openSyncSettings() {
+        const menu = document.getElementById('sync-menu');
+        if (menu) menu.remove();
+        
         window.open('sync-settings.html', '_blank');
+    }
+    
+    showSyncNotification(message, type = 'info') {
+        // 创建通知
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            z-index: 10000;
+            max-width: 300px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            animation: slideInRight 0.3s ease;
+        `;
+        
+        // 设置样式
+        const styles = {
+            success: 'background: #4caf50;',
+            error: 'background: #f44336;',
+            warning: 'background: #ff9800;',
+            info: 'background: #2196f3;'
+        };
+        
+        notification.style.cssText += styles[type] || styles.info;
+        notification.textContent = message;
+        
+        // 添加动画
+        if (!document.getElementById('notification-animations')) {
+            const style = document.createElement('style');
+            style.id = 'notification-animations';
+            style.textContent = `
+                @keyframes slideInRight {
+                    from { transform: translateX(100%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+                @keyframes slideOutRight {
+                    from { transform: translateX(0); opacity: 1; }
+                    to { transform: translateX(100%); opacity: 0; }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        document.body.appendChild(notification);
+        
+        // 3秒后自动移除
+        setTimeout(() => {
+            notification.style.animation = 'slideOutRight 0.3s ease';
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
+        }, 3000);
     }
     
     delay(ms) {
@@ -583,7 +712,7 @@ class UniversalAutoSync {
     }
 }
 
-// 自动创建全局实例
+// 自动创建全局实例（延迟执行以确保页面加载完成）
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         window.universalAutoSync = new UniversalAutoSync();
