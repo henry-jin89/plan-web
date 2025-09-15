@@ -176,9 +176,9 @@
         </div>
 
         <div class="fix-section">
-            <h3>感恩日记数据格式修复 <span class="status-indicator status-pending" id="gratitude-status"></span></h3>
-            <p>修复感恩日记数据从对象格式转换为数组格式的问题，解决"今日记录索引: -1"的错误。</p>
-            <button class="fix-button" onclick="fixGratitudeData()" id="gratitude-btn">修复感恩日记数据</button>
+            <h3>感恩日记全面修复 <span class="status-indicator status-pending" id="gratitude-status"></span></h3>
+            <p>修复感恩日记的数据格式、初始化和保存问题，解决"今日记录索引: -1"和数据丢失的错误。</p>
+            <button class="fix-button" onclick="fixGratitudeComplete()" id="gratitude-btn">全面修复感恩日记</button>
         </div>
 
         <div class="fix-section">
@@ -233,6 +233,72 @@
 
         function enableButton(buttonId) {
             document.getElementById(buttonId).disabled = false;
+        }
+
+        async function fixGratitudeComplete() {
+            disableButton('gratitude-btn');
+            setStatus('gratitude-status', 'running');
+            log('🔧 开始全面修复感恩日记...');
+            updateProgress(10);
+
+            try {
+                // 加载感恩日记专门修复脚本
+                if (!window.GratitudeInitFixer) {
+                    const script = document.createElement('script');
+                    script.src = 'fix-gratitude-init.js';
+                    document.head.appendChild(script);
+                    
+                    // 等待脚本加载
+                    await new Promise((resolve) => {
+                        script.onload = resolve;
+                        setTimeout(resolve, 2000); // 超时保护
+                    });
+                }
+
+                updateProgress(30);
+                
+                if (window.GratitudeInitFixer) {
+                    const fixer = new window.GratitudeInitFixer();
+                    
+                    log('🔧 修复localStorage数据...');
+                    fixer.fixLocalStorageData();
+                    updateProgress(50);
+                    
+                    log('🔧 确保全局变量...');
+                    fixer.ensureGlobalVariables();
+                    updateProgress(70);
+                    
+                    log('🔄 重新初始化感恩日记...');
+                    fixer.reinitializeGratitude();
+                    updateProgress(85);
+                    
+                    log('🧪 测试数据保存功能...');
+                    fixer.testDataSaving();
+                    updateProgress(95);
+                    
+                    // 显示结果
+                    if (fixer.fixedItems.length > 0) {
+                        fixer.fixedItems.forEach(item => log('✅ ' + item));
+                    }
+                    if (fixer.errors.length > 0) {
+                        fixer.errors.forEach(error => log('❌ ' + error));
+                    }
+                    
+                    log('🎉 感恩日记全面修复完成！');
+                    setStatus('gratitude-status', 'success');
+                } else {
+                    log('❌ 无法加载感恩日记修复脚本');
+                    setStatus('gratitude-status', 'error');
+                }
+
+                updateProgress(100);
+            } catch (error) {
+                log(`❌ 修复感恩日记时出错: ${error.message}`);
+                setStatus('gratitude-status', 'error');
+                updateProgress(100);
+            }
+
+            enableButton('gratitude-btn');
         }
 
         async function fixGratitudeData() {
@@ -419,7 +485,7 @@
 
             // 修复感恩日记
             await new Promise(resolve => {
-                fixGratitudeData().then(resolve);
+                fixGratitudeComplete().then(resolve);
             });
 
             updateProgress(40);
