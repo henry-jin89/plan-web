@@ -23,19 +23,19 @@ class SyncService {
      */
     initSyncConfig() {
         try {
-            const config = this.getSyncConfig();
-            console.log('🔍 初始化同步配置:', config);
+        const config = this.getSyncConfig();
+        console.log('🔍 初始化同步配置:', config);
             
             if (config && config.enabled && config.provider) {
-                console.log('✅ 发现已启用的同步配置，正在恢复...');
-                this.enableSync(config.provider, config.settings).catch(error => {
-                    console.error('❌ 恢复同步配置失败:', error);
+            console.log('✅ 发现已启用的同步配置，正在恢复...');
+            this.enableSync(config.provider, config.settings).catch(error => {
+                console.error('❌ 恢复同步配置失败:', error);
                     // 如果恢复失败，不要抛出错误，而是记录并继续
                     console.log('⚠️ 同步配置恢复失败，但应用将继续正常运行');
-                });
+            });
             } else if (config && !config.enabled) {
                 console.log('📝 发现同步配置但未启用');
-            } else {
+        } else {
                 console.log('ℹ️ 未发现有效的同步配置');
             }
         } catch (error) {
@@ -50,7 +50,19 @@ class SyncService {
      */
     getSyncConfig() {
         try {
-            return JSON.parse(localStorage.getItem('sync_config'));
+            // 尝试多个可能的键名以保证兼容性
+            const possibleKeys = ['sync_config', 'syncConfig'];
+            for (const key of possibleKeys) {
+                const config = localStorage.getItem(key);
+                if (config) {
+                    const parsed = JSON.parse(config);
+                    if (parsed) {
+                        console.log(`✅ 通过键名 ${key} 获取到同步配置`);
+                        return parsed;
+                    }
+                }
+            }
+            return null;
         } catch (error) {
             console.error('获取同步配置失败:', error);
             return null;
@@ -63,8 +75,15 @@ class SyncService {
      */
     setSyncConfig(config) {
         try {
-            localStorage.setItem('sync_config', JSON.stringify(config));
-            console.log('✅ 同步配置已保存');
+            // 保存到多个键名以确保兼容性
+            const keys = ['sync_config', 'syncConfig'];
+            const configStr = JSON.stringify(config);
+            
+            keys.forEach(key => {
+                localStorage.setItem(key, configStr);
+            });
+            
+            console.log('✅ 同步配置已保存到所有键名:', keys);
         } catch (error) {
             console.error('❌ 保存同步配置失败:', error);
         }
