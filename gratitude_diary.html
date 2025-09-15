@@ -641,6 +641,41 @@
                 localStorage.setItem('gratitude_history', dataToSave);
                 console.log('✅ 感恩数据已保存到localStorage');
                 
+                // 触发云同步
+                try {
+                    console.log('☁️ 触发云同步...');
+                    
+                    // 方法1: 通过syncService触发同步
+                    if (window.syncService && window.syncService.syncEnabled) {
+                        console.log('📤 通过syncService同步数据...');
+                        window.syncService.syncData().then(() => {
+                            console.log('✅ syncService同步完成');
+                        }).catch(error => {
+                            console.warn('⚠️ syncService同步失败:', error.message);
+                        });
+                    }
+                    
+                    // 方法2: 通过通用自动同步
+                    if (window.universalAutoSync && typeof window.universalAutoSync.triggerSync === 'function') {
+                        console.log('📤 通过universalAutoSync同步数据...');
+                        setTimeout(() => {
+                            window.universalAutoSync.triggerSync('manual', '感恩日记保存');
+                        }, 100);
+                    }
+                    
+                    // 方法3: 直接触发存储事件，让其他同步机制响应
+                    const syncEvent = new StorageEvent('storage', {
+                        key: 'gratitude_history',
+                        newValue: dataToSave,
+                        url: window.location.href
+                    });
+                    window.dispatchEvent(syncEvent);
+                    console.log('📡 已发送存储事件通知');
+                    
+                } catch (syncError) {
+                    console.warn('⚠️ 云同步触发失败，但本地保存成功:', syncError.message);
+                }
+                
                 return true;
             } catch (error) {
                 console.error('❌ 自动保存感恩失败:', error);
@@ -736,10 +771,61 @@
             }
         }
 
-        function getGratitudeHistory() {
+        function getGratitudeHistory(tryCloudRestore = true) {
             try {
                 const stored = localStorage.getItem('gratitude_history');
                 console.log('📚 从localStorage读取的原始数据:', stored);
+                
+                if (!stored && tryCloudRestore) {
+                    console.log('📝 localStorage没有数据，尝试从云端恢复...');
+                    
+                    // 尝试云端数据恢复
+                    try {
+                        if (window.syncService && window.syncService.syncEnabled) {
+                            console.log('☁️ 尝试通过syncService恢复数据...');
+                            // 这里我们暂时设置一个标记，让用户知道正在恢复
+                            const recoveryIndicator = document.createElement('div');
+                            recoveryIndicator.id = 'cloud-recovery-indicator';
+                            recoveryIndicator.style.cssText = `
+                                position: fixed;
+                                top: 50%;
+                                left: 50%;
+                                transform: translate(-50%, -50%);
+                                background: rgba(0,0,0,0.8);
+                                color: white;
+                                padding: 20px;
+                                border-radius: 8px;
+                                z-index: 10001;
+                                text-align: center;
+                            `;
+                            recoveryIndicator.innerHTML = '☁️ 正在从云端恢复数据...<br>请稍候';
+                            document.body.appendChild(recoveryIndicator);
+                            
+                            // 尝试同步恢复
+                            setTimeout(() => {
+                                if (window.syncService.syncEnabled) {
+                                    window.syncService.syncData().then(() => {
+                                        console.log('✅ 云端数据恢复完成，重新加载页面');
+                                        setTimeout(() => {
+                                            location.reload();
+                                        }, 1000);
+                                    }).catch(error => {
+                                        console.warn('⚠️ 云端恢复失败:', error.message);
+                                        recoveryIndicator.remove();
+                                    });
+                                } else {
+                                    console.log('⚠️ 同步未启用，移除恢复指示器');
+                                    recoveryIndicator.remove();
+                                }
+                            }, 1000);
+                        }
+                    } catch (cloudError) {
+                        console.warn('⚠️ 云端恢复失败:', cloudError.message);
+                    }
+                    
+                    console.log('📝 返回空数组(等待云端恢复)');
+                    return [];
+                }
                 
                 if (!stored) {
                     console.log('📝 没有历史数据，返回空数组');
