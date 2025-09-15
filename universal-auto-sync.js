@@ -615,7 +615,7 @@ class UniversalAutoSync {
     
     delay(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
-    },
+    }
     
     showSyncConfigHint() {
         // 在页面上显示同步配置提示
