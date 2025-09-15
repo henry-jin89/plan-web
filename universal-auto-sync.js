@@ -1,685 +1,1081 @@
-/**
- * 通用自动同步管理器（修复版）
- * 可在所有页面使用的智能自动同步功能
- */
+<!DOCTYPE html>
+<html lang="zh-CN">
 
-class UniversalAutoSync {
-    constructor() {
-        this.isInitialized = false;
-        this.autoSyncEnabled = false;
-        this.syncInProgress = false;
-        this.lastSyncTime = null;
-        this.changeDetected = false;
-        this.retryCount = 0;
-        this.maxRetries = 3;
-        
-        // 同步状态指示器
-        this.statusBadge = null;
-        
-        // 防抖定时器
-        this.syncTimer = null;
-        this.statusUpdateTimer = null;
-        
-        this.init();
-    }
-    
-    async init() {
-        if (this.isInitialized) return;
-        
-        console.log('启动通用自动同步管理器...');
-        
-        // 延迟1秒初始化，等待页面完全加载
-        await this.delay(1000);
-        
-        // 检查同步配置
-        await this.checkSyncConfig();
-        
-        // 创建状态指示器
-        this.createStatusBadge();
-        
-        // 设置数据变化监听
-        this.setupChangeListeners();
-        
-        // 设置定期同步
-        this.setupPeriodicSync();
-        
-        // 设置页面事件监听
-        this.setupPageEventListeners();
-        
-        // 设置定期状态更新
-        this.setupStatusUpdater();
-        
-        this.isInitialized = true;
-        console.log('通用自动同步管理器初始化完成');
-    }
-    
-    async checkSyncConfig() {
-        try {
-            console.log('检查同步配置状态...');
-            
-            // 等待主同步服务加载完成
-            let retryCount = 0;
-            while (retryCount < 15) {
-                let syncEnabled = false;
-                
-                // 方法1: 检查localStorage的同步配置
-                let syncConfig = localStorage.getItem('sync_config'); // 修复：使用正确的键名
-                if (!syncConfig) {
-                    syncConfig = localStorage.getItem('syncConfig'); // 兼容性检查
-                }
-                if (syncConfig) {
-                    try {
-                        const config = JSON.parse(syncConfig);
-                        if (config && config.enabled) {
-                            syncEnabled = true;
-                            console.log('✅ 方法1: localStorage发现同步配置已启用');
-                        } else {
-                            console.log('⚠️ 方法1: 发现同步配置但未启用:', config);
-                        }
-                    } catch (e) {
-                        console.log('❌ localStorage同步配置解析失败:', e);
-                    }
-                } else {
-                    console.log('📝 方法1: 未发现sync_config配置');
-                }
-                
-                // 方法2: 检查window.syncService
-                if (!syncEnabled && window.syncService) {
-                    try {
-                        if (typeof window.syncService.getSyncStatus === 'function') {
-                            const status = window.syncService.getSyncStatus();
-                            if (status && status.enabled) {
-                                syncEnabled = true;
-                                console.log('方法2: window.syncService检测到同步已启用');
-                            }
-                        }
-                    } catch (e) {
-                        console.log('window.syncService检查失败:', e);
-                    }
-                }
-                
-                // 方法3: 检查window.autoSyncService
-                if (!syncEnabled && window.autoSyncService) {
-                    try {
-                        if (window.autoSyncService.isEnabled) {
-                            syncEnabled = true;
-                            console.log('方法3: window.autoSyncService检测到同步已启用');
-                        }
-                    } catch (e) {
-                        console.log('window.autoSyncService检查失败:', e);
-                    }
-                }
-                
-                if (syncEnabled) {
-                    this.autoSyncEnabled = true;
-                    this.updateStatusBadge();
-                    return;
-                }
-                
-                // 等待500ms后重试
-                await this.delay(500);
-                retryCount++;
-                
-                if (retryCount % 5 === 0) {
-                    console.log('第' + retryCount + '次检查同步状态，继续等待...');
-                }
-            }
-            
-            // 最后检查：查看是否有任何同步相关的配置存在
-            const syncRelatedKeys = ['sync_config', 'syncConfig', 'sync_config_backup', 'hasShownSyncRecommendation'];
-            const foundKeys = syncRelatedKeys.filter(key => localStorage.getItem(key));
-            
-            if (foundKeys.length > 0) {
-                console.log('🔍 发现同步相关存储项:', foundKeys);
-                console.log('💡 建议：请检查同步设置页面确保配置正确');
-                // 显示配置提示
-                this.showSyncConfigHint();
-            } else {
-                console.log('📝 未发现任何同步配置，建议设置自动同步');
-            }
-            
-            console.log('经过多次检查，未发现有效的自动同步配置');
-            this.autoSyncEnabled = false;
-            this.updateStatusBadge();
-        } catch (error) {
-            console.log('检查同步配置时出错:', error);
-            this.autoSyncEnabled = false;
+<head>
+    <script src="config.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🙏 感恩日记 - 积极心态培养</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .gratitude-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
         }
-    }
-    
-    createStatusBadge() {
-        // 创建浮动的同步状态指示器
-        this.statusBadge = document.createElement('div');
-        this.statusBadge.id = 'universal-sync-badge';
-        this.statusBadge.style.cssText = 
-            'position: fixed; bottom: 20px; right: 20px; width: 50px; height: 50px; ' +
-            'border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); ' +
-            'color: white; display: flex; align-items: center; justify-content: center; ' +
-            'box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer; z-index: 9998; ' +
-            'transition: all 0.3s ease; font-size: 20px; user-select: none;';
-        
-        this.updateStatusBadge();
-        
-        // 点击事件
-        this.statusBadge.addEventListener('click', () => {
-            this.showSyncMenu();
-        });
-        
-        // 悬停效果
-        this.statusBadge.addEventListener('mouseenter', () => {
-            this.statusBadge.style.transform = 'scale(1.1)';
-            this.statusBadge.style.boxShadow = '0 6px 20px rgba(0,0,0,0.25)';
-        });
-        
-        this.statusBadge.addEventListener('mouseleave', () => {
-            this.statusBadge.style.transform = 'scale(1)';
-            this.statusBadge.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-        });
-        
-        document.body.appendChild(this.statusBadge);
-    }
-    
-    updateStatusBadge() {
-        if (!this.statusBadge) return;
-        
-        if (this.syncInProgress) {
-            this.statusBadge.innerHTML = '⏳';
-            this.statusBadge.style.background = 'linear-gradient(135deg, #ff9800, #f57c00)';
-            this.statusBadge.style.animation = 'spin 2s linear infinite';
-        } else if (this.autoSyncEnabled) {
-            this.statusBadge.innerHTML = '☁️';
-            this.statusBadge.style.background = 'linear-gradient(135deg, #4caf50, #2e7d32)';
-            this.statusBadge.style.animation = 'none';
-        } else {
-            this.statusBadge.innerHTML = '📱';
-            this.statusBadge.style.background = 'linear-gradient(135deg, #f44336, #d32f2f)';
-            this.statusBadge.style.animation = 'pulse 2s infinite';
-        }
-        
-        // 添加CSS动画
-        if (!document.getElementById('universal-sync-animations')) {
-            const style = document.createElement('style');
-            style.id = 'universal-sync-animations';
-            style.textContent = 
-                '@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } } ' +
-                '@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }';
-            document.head.appendChild(style);
-        }
-    }
-    
-    showSyncMenu() {
-        // 移除已存在的菜单
-        const existingMenu = document.getElementById('sync-menu');
-        if (existingMenu) {
-            existingMenu.remove();
-            return;
-        }
-        
-        // 先强制刷新一次状态（在移除菜单后）
-        this.forceRefreshStatus();
-        
-        const menu = document.createElement('div');
-        menu.id = 'sync-menu';
-        menu.style.cssText = 
-            'position: fixed; bottom: 80px; right: 20px; background: white; ' +
-            'border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); ' +
-            'padding: 15px; z-index: 9999; min-width: 200px; animation: scaleIn 0.2s ease;';
-        
-        const syncStatus = this.autoSyncEnabled ? '已启用' : '未启用';
-        const syncStatusColor = this.autoSyncEnabled ? '#4caf50' : '#f44336';
-        const lastSync = this.lastSyncTime ? new Date(this.lastSyncTime).toLocaleTimeString() : '从未';
-        
-        menu.innerHTML = 
-            '<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">' +
-                '<div style="width: 8px; height: 8px; border-radius: 50%; background: ' + syncStatusColor + ';"></div>' +
-                '<span style="font-weight: 500; color: #333;">同步状态: ' + syncStatus + '</span>' +
-            '</div>' +
-            '<div style="font-size: 12px; color: #666; margin-bottom: 15px;">' +
-                '最后同步: ' + lastSync +
-            '</div>' +
-            '<div style="display: flex; flex-direction: column; gap: 8px;">' +
-                (this.autoSyncEnabled ? 
-                    '<button onclick="universalAutoSync.manualSync()" style="background: #1976d2; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px;">🔄 立即同步</button>' :
-                    '<button onclick="universalAutoSync.quickSetup()" style="background: #4caf50; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px;">⚡ 快速设置</button>'
-                ) +
-                '<button onclick="universalAutoSync.openSyncSettings()" style="background: #f5f5f5; color: #666; border: 1px solid #e0e0e0; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px;">⚙️ 同步设置</button>' +
-                '<button onclick="universalAutoSync.refreshAndUpdateMenu();" style="background: #ff9800; color: white; border: 1px solid #ff9800; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px;">🔄 刷新状态</button>' +
-            '</div>';
-        
-        document.body.appendChild(menu);
-        
-        // 3秒后自动隐藏
-        setTimeout(() => {
-            if (menu.parentNode) {
-                menu.remove();
-            }
-        }, 5000);
-        
-        // 点击其他地方隐藏菜单
-        const hideMenu = (e) => {
-            if (!menu.contains(e.target) && e.target !== this.statusBadge) {
-                menu.remove();
-                document.removeEventListener('click', hideMenu);
-            }
-        };
-        setTimeout(() => {
-            document.addEventListener('click', hideMenu);
-        }, 100);
-    }
-    
-    forceRefreshStatus() {
-        // 防止重复调用
-        const now = Date.now();
-        if (this.lastRefreshTime && (now - this.lastRefreshTime) < 1000) {
-            console.log('刷新间隔过短，跳过本次刷新');
-            return;
-        }
-        this.lastRefreshTime = now;
-        
-        console.log('开始强制刷新同步状态');
-        
-        // 立即检查所有可能的同步状态
-        let syncEnabled = false;
-        let detectionMethod = '';
-        
-        // 方法0: 检查页面URL，如果是同步设置页面，直接认为已启用
-        if (window.location.href.includes('sync-settings.html')) {
-            console.log('✅ 在同步设置页面，直接认为同步已启用');
-            syncEnabled = true;
-            detectionMethod = '同步设置页面';
-        }
-        
-        // 方法1: 检查window.syncService
-        if (!syncEnabled) {
-            console.log('检查window.syncService:', !!window.syncService);
-            if (window.syncService) {
-                console.log('window.syncService存在，检查getSyncStatus方法:', typeof window.syncService.getSyncStatus);
-                if (window.syncService.getSyncStatus) {
-                    try {
-                        const status = window.syncService.getSyncStatus();
-                        console.log('syncService状态:', status);
-                        if (status && status.enabled) {
-                            syncEnabled = true;
-                            detectionMethod = 'syncService';
-                            console.log('✅ 方法1成功: syncService检测到同步已启用');
-                            
-                            // 获取最后同步时间
-                            if (status.lastSync) {
-                                this.lastSyncTime = new Date(status.lastSync).getTime();
-                                console.log('获取到最后同步时间:', status.lastSync);
-                            }
-                        } else {
-                            console.log('❌ 方法1失败: status.enabled =', status ? status.enabled : 'status为空');
-                        }
-                    } catch (e) {
-                        console.log('❌ 方法1异常:', e);
-                    }
-                }
-            }
-        }
-        
-        // 方法2: 检查localStorage中的syncConfig
-        if (!syncEnabled) {
-            console.log('尝试方法2: 检查localStorage syncConfig');
-            try {
-                const syncConfig = localStorage.getItem('syncConfig');
-                console.log('localStorage syncConfig:', syncConfig);
-                if (syncConfig) {
-                    const config = JSON.parse(syncConfig);
-                    console.log('解析后的syncConfig:', config);
-                    if (config && config.enabled) {
-                        syncEnabled = true;
-                        detectionMethod = 'localStorage';
-                        console.log('✅ 方法2成功: localStorage检测到同步已启用');
-                    }
-                }
-            } catch (e) {
-                console.log('❌ 方法2异常:', e);
-            }
-        }
-        
-        // 方法2.5: 检查所有可能的localStorage同步配置键
-        if (!syncEnabled) {
-            console.log('尝试方法2.5: 扫描所有localStorage项');
-            try {
-                // 检查所有可能存储同步配置的键
-                const possibleKeys = [
-                    'sync_config', // 主要键名
-                    'syncConfig', // 兼容键名
-                    'syncService_config', 
-                    'autoSyncConfig',
-                    'sync_settings',
-                    'planData_syncConfig'
-                ];
-                
-                for (const key of possibleKeys) {
-                    const value = localStorage.getItem(key);
-                    if (value) {
-                        console.log('发现配置键:', key, '值:', value);
-                        try {
-                            const config = JSON.parse(value);
-                            if (config && (config.enabled || config.isEnabled)) {
-                                syncEnabled = true;
-                                detectionMethod = 'localStorage扫描(' + key + ')';
-                                console.log('✅ 方法2.5成功: 通过' + key + '检测到同步已启用');
-                                break;
-                            }
-                        } catch (e) {
-                            // 不是JSON，检查是否包含enabled关键字
-                            if (value.includes('enabled') || value.includes('true')) {
-                                syncEnabled = true;
-                                detectionMethod = 'localStorage关键字(' + key + ')';
-                                console.log('✅ 方法2.5成功: 通过' + key + '关键字检测到同步已启用');
-                                break;
-                            }
-                        }
-                    }
-                }
-            } catch (e) {
-                console.log('❌ 方法2.5异常:', e);
-            }
-        }
-        
-        // 方法3: 检查是否有同步按钮状态显示为"已启用"
-        if (!syncEnabled) {
-            console.log('尝试方法3: 检查页面同步按钮状态');
-            const syncButtons = document.querySelectorAll('button');
-            for (const button of syncButtons) {
-                if (button.textContent && button.textContent.includes('同步已启用')) {
-                    syncEnabled = true;
-                    detectionMethod = 'button状态';
-                    console.log('✅ 方法3成功: 从按钮状态检测到同步已启用');
-                    break;
-                }
-            }
-        }
-        
-        // 方法4: 详细扫描localStorage所有项
-        if (!syncEnabled) {
-            console.log('尝试方法4: 详细扫描localStorage所有项');
-            try {
-                const allKeys = Object.keys(localStorage);
-                console.log('localStorage中的所有键:', allKeys);
-                
-                for (const key of allKeys) {
-                    const value = localStorage.getItem(key);
-                    // 检查键名或值是否包含同步相关信息
-                    if ((key.toLowerCase().includes('sync') || 
-                         key.toLowerCase().includes('github') || 
-                         key.toLowerCase().includes('drive')) ||
-                        (value && (value.includes('github.com') || 
-                                  value.includes('ghp_') || 
-                                  value.includes('enabled') ||
-                                  value.includes('lastSync')))) {
-                        console.log('发现同步相关项:', key, '→', value.substring(0, 100) + (value.length > 100 ? '...' : ''));
-                        syncEnabled = true;
-                        detectionMethod = 'localStorage深度扫描(' + key + ')';
-                        console.log('✅ 方法4成功: 通过深度扫描检测到同步配置');
-                        
-                        // 尝试从value中提取最后同步时间
-                        if (value.includes('lastSync')) {
-                            try {
-                                const match = value.match(/"lastSync":"([^"]+)"/);
-                                if (match) {
-                                    this.lastSyncTime = new Date(match[1]).getTime();
-                                    console.log('提取到最后同步时间:', match[1]);
-                                }
-                            } catch (e) {}
-                        }
-                        break;
-                    }
-                }
-            } catch (e) {
-                console.log('❌ 方法4异常:', e);
-            }
-        }
-        
-        // 方法5: 检查页面是否有同步日志（兜底方案）
-        if (!syncEnabled) {
-            console.log('尝试方法5: 检查是否有同步完成日志');
-            // 如果能看到同步日志，说明同步功能是启用的
-            const logElements = document.querySelectorAll('*');
-            for (const element of logElements) {
-                if (element.textContent && (
-                    element.textContent.includes('同步完成') || 
-                    element.textContent.includes('手动同步完成') ||
-                    element.textContent.includes('数据已更新')
-                )) {
-                    syncEnabled = true;
-                    detectionMethod = '同步日志';
-                    console.log('✅ 方法5成功: 从同步日志检测到同步已启用');
-                    this.lastSyncTime = Date.now(); // 设置当前时间为最后同步时间
-                    break;
-                }
-            }
-        }
-        
-        console.log('检测结果:');
-        console.log('同步状态:', syncEnabled);
-        console.log('检测方法:', detectionMethod);
-        console.log('当前autoSyncEnabled:', this.autoSyncEnabled);
-        
-        // 更新状态
-        if (this.autoSyncEnabled !== syncEnabled) {
-            this.autoSyncEnabled = syncEnabled;
-            this.updateStatusBadge();
-            console.log('🔄 状态已更新: ' + (syncEnabled ? '已启用' : '未启用') + ' (通过' + detectionMethod + '检测)');
-        } else {
-            console.log('ℹ️ 状态无变化，保持: ' + (syncEnabled ? '已启用' : '未启用'));
-        }
-        
-        console.log('强制刷新完成');
-    }
-    
-    refreshAndUpdateMenu() {
-        console.log('刷新状态并更新菜单');
-        
-        // 先移除当前菜单
-        const existingMenu = document.getElementById('sync-menu');
-        if (existingMenu) {
-            existingMenu.remove();
-        }
-        
-        // 刷新状态
-        this.forceRefreshStatus();
-        
-        // 延迟重新显示菜单，让状态更新完成
-        setTimeout(() => {
-            this.showSyncMenu();
-        }, 100);
-    }
-    
-    setupChangeListeners() {
-        // 监听localStorage变化
-        const originalSetItem = localStorage.setItem;
-        localStorage.setItem = function(key, value) {
-            // 监听所有应用相关的数据变化
-            const syncableKeys = [
-                'planData_',
-                'habitTrackerData',
-                'gratitude_history',
-                'mood_history', // 修复：mood_tracker.html实际使用的键名
-                'mood_tracker_data', // 保留兼容性
-                'reflection_templates',
-                'reflection_history',
-                'reflection_to_dayplan', // 反思到日计划的数据传递
-                'monthlyEvents',
-                'customTemplates',
-                'syncConfig', // 同步配置（跨设备同步配置）
-                'reflection_' // 动态键名
-            ];
-            
-            const shouldSync = syncableKeys.some(pattern => {
-                return key.startsWith(pattern) || key === pattern;
-            });
-            
-            if (shouldSync) {
-                window.universalAutoSync.onDataChange(key);
-            }
-            originalSetItem.apply(this, arguments);
-        };
-    }
-    
-    setupStatusUpdater() {
-        // 每5秒更新一次同步状态
-        setInterval(() => {
-            this.forceRefreshStatus();
-        }, 5000);
-    }
-    
-    setupPeriodicSync() {
-        // 简化的定期同步
-    }
-    
-    setupPageEventListeners() {
-        // 简化的页面事件监听
-    }
-    
-    onDataChange(key) {
-        this.changeDetected = true;
-        console.log('检测到数据变化:', key);
-        
-        // 如果同步已启用，触发防抖同步
-        if (this.autoSyncEnabled && !this.syncInProgress) {
-            this.debounceSync();
-        }
-    }
-    
-    // 防抖同步函数
-    debounceSync() {
-        if (this.syncTimer) {
-            clearTimeout(this.syncTimer);
-        }
-        
-        // 5秒后执行同步
-        this.syncTimer = setTimeout(() => {
-            if (this.autoSyncEnabled && !this.syncInProgress && navigator.onLine) {
-                console.log('执行自动同步...');
-                this.manualSync();
-            }
-        }, 5000);
-    }
-    
-    async manualSync() {
-        if (this.syncInProgress) {
-            console.log('同步正在进行中...');
-            return;
-        }
-        
-        try {
-            this.syncInProgress = true;
-            this.updateStatusBadge();
-            
-            if (window.syncService && window.syncService.manualSync) {
-                // 检查同步是否已启用
-                if (!window.syncService.syncEnabled) {
-                    console.log('ℹ️ 同步功能未启用，跳过同步操作');
-                    return;
-                }
-                
-                const result = await window.syncService.manualSync();
-                this.lastSyncTime = Date.now();
-                
-                if (result && result.success !== false) {
-                    console.log('✅ 手动同步完成');
-                } else {
-                    console.log('ℹ️ 同步跳过:', result?.message || '未知原因');
-                }
-            } else {
-                console.log('⚠️ 同步服务不可用');
-            }
-        } catch (error) {
-            // 只有真正的错误才记录为错误，配置问题记录为信息
-            if (error.message && error.message.includes('未启用')) {
-                console.log('ℹ️ 同步跳过:', error.message);
-            } else {
-                console.error('❌ 同步失败:', error);
-            }
-        } finally {
-            this.syncInProgress = false;
-            this.updateStatusBadge();
-        }
-    }
-    
-    quickSetup() {
-        if (window.smartAutoSync) {
-            window.smartAutoSync.startQuickSetup();
-        } else {
-            this.openSyncSettings();
-        }
-    }
-    
-    openSyncSettings() {
-        window.open('sync-settings.html', '_blank');
-    }
-    
-    delay(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
-    
-    showSyncConfigHint() {
-        // 在页面上显示同步配置提示
-        const existingHint = document.getElementById('sync-config-hint');
-        if (existingHint) {
-            existingHint.remove();
-        }
-        
-        const hint = document.createElement('div');
-        hint.id = 'sync-config-hint';
-        hint.style.cssText = `
-            position: fixed;
-            top: 60px;
-            right: 20px;
-            background: #fff3cd;
-            border: 1px solid #ffeaa7;
-            border-radius: 8px;
-            padding: 12px 16px;
+
+        .gratitude-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            z-index: 1000;
-            max-width: 300px;
-            font-size: 14px;
-            color: #856404;
-        `;
-        
-        hint.innerHTML = `
-            <div style="font-weight: bold; margin-bottom: 8px;">⚠️ 同步配置提醒</div>
-            <div>检测到同步相关配置，但未正确启用。</div>
-            <div style="margin-top: 8px;">
-                <button onclick="window.open('sync-settings.html', '_blank')" style="
-                    background: #ffc107;
-                    border: none;
-                    border-radius: 4px;
-                    padding: 6px 12px;
-                    cursor: pointer;
-                    font-size: 12px;
-                ">检查同步设置</button>
-                <button onclick="this.parentElement.parentElement.remove()" style="
-                    background: transparent;
-                    border: none;
-                    margin-left: 8px;
-                    cursor: pointer;
-                    font-size: 12px;
-                    color: #856404;
-                ">关闭</button>
-            </div>
-        `;
-        
-        document.body.appendChild(hint);
-        
-        // 10秒后自动隐藏
-        setTimeout(() => {
-            if (hint.parentNode) {
-                hint.remove();
-            }
-        }, 10000);
-    }
-}
+            border-left: 4px solid #4caf50;
+            transition: all 0.3s ease;
+        }
 
-// 自动创建全局实例
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        window.universalAutoSync = new UniversalAutoSync();
-    });
-} else {
-    window.universalAutoSync = new UniversalAutoSync();
-}
+        .gratitude-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+
+        .gratitude-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .gratitude-icon {
+            font-size: 2em;
+        }
+
+        .gratitude-title {
+            font-size: 1.4em;
+            font-weight: 600;
+            color: #2e7d32;
+            margin: 0;
+        }
+
+        .gratitude-subtitle {
+            font-size: 0.9em;
+            color: #666;
+            margin: 4px 0 0 0;
+        }
+
+        .gratitude-item {
+            background: linear-gradient(135deg, #f1f8e9, #e8f5e9);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-left: 3px solid #4caf50;
+            position: relative;
+        }
+
+        .gratitude-item:hover {
+            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+        }
+
+        .gratitude-input {
+            width: 100%;
+            border: none;
+            background: transparent;
+            font-size: 14px;
+            padding: 8px 0;
+            resize: none;
+            min-height: 60px;
+            line-height: 1.6;
+        }
+
+        .gratitude-input:focus {
+            outline: none;
+        }
+
+        .gratitude-input::placeholder {
+            color: #999;
+            font-style: italic;
+        }
+
+        .add-gratitude-btn {
+            background: linear-gradient(135deg, #4caf50, #66bb6a);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 16px 0;
+        }
+
+        .add-gratitude-btn:hover {
+            background: linear-gradient(135deg, #388e3c, #4caf50);
+            transform: translateY(-1px);
+        }
+
+        .remove-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 12px;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .gratitude-item:hover .remove-btn {
+            opacity: 1;
+        }
+
+        .gratitude-templates {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 16px 0;
+        }
+
+        .template-btn {
+            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+            color: #2e7d32;
+            border: 1px solid #a5d6a7;
+            border-radius: 20px;
+            padding: 6px 12px;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .template-btn:hover {
+            background: linear-gradient(135deg, #4caf50, #66bb6a);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .gratitude-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 16px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #e8f5e9, #f1f8e9);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+            border: 1px solid #c8e6c9;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: 700;
+            color: #2e7d32;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .gratitude-history {
+            margin-top: 20px;
+        }
+
+        .history-item {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid #e0e0e0;
+            border-left: 3px solid #4caf50;
+        }
+
+        .history-date {
+            font-weight: 600;
+            color: #2e7d32;
+            margin-bottom: 8px;
+        }
+
+        .history-content {
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .quote-section {
+            background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+            border-left: 4px solid #ff9800;
+        }
+
+        .quote-text {
+            font-size: 1.1em;
+            font-style: italic;
+            color: #ef6c00;
+            margin-bottom: 8px;
+        }
+
+        .quote-author {
+            font-size: 0.9em;
+            color: #999;
+        }
+
+        .insights-panel {
+            background: linear-gradient(135deg, #f3e5f5, #e1bee7);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+            border-left: 4px solid #9c27b0;
+        }
+
+        .celebration-effect {
+            animation: celebration 0.5s ease-in-out;
+        }
+
+        @keyframes celebration {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .gratitude-streak {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+            padding: 12px;
+            background: linear-gradient(135deg, #fff3e0, #ffcc02);
+            border-radius: 8px;
+            border-left: 4px solid #ff9800;
+        }
+
+        .streak-flame {
+            font-size: 1.5em;
+            animation: flicker 2s infinite alternate;
+        }
+
+        @keyframes flicker {
+            0% { opacity: 0.8; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- 页面头部 -->
+        <div class="page-header">
+            <a href="day_plan.html" class="back-to-home">← 返回日计划</a>
+            <h1 class="page-title">🙏 感恩日记</h1>
+            <div style="display: flex; gap: 8px;">
+                <button type="button" id="save-gratitude-btn" class="btn-main">💾 保存感恩</button>
+                <button type="button" id="share-gratitude-btn" class="btn-main">📤 分享</button>
+            </div>
+        </div>
+
+        <div class="gratitude-container">
+            <!-- 连续记录天数 -->
+            <div class="gratitude-streak">
+                <span class="streak-flame">🔥</span>
+                <div>
+                    <div style="font-weight: 600; color: #ef6c00;">感恩连续记录</div>
+                    <div style="font-size: 0.9em; color: #666;">已坚持 <span id="gratitude-streak-count">0</span> 天</div>
+                </div>
+            </div>
+
+            <!-- 每日感恩引言 -->
+            <div class="quote-section">
+                <div class="quote-text" id="daily-quote">
+                    "感恩是一种能够将平凡时刻变成祝福的魔法。"
+                </div>
+                <div class="quote-author">— 每日感恩</div>
+            </div>
+
+            <!-- 今日感恩记录 -->
+            <div class="gratitude-card">
+                <div class="gratitude-header">
+                    <span class="gratitude-icon">🙏</span>
+                    <div>
+                        <h3 class="gratitude-title">今日感恩</h3>
+                        <p class="gratitude-subtitle">记录值得感激的人、事、物</p>
+                    </div>
+                </div>
+
+                <!-- 快速模板 -->
+                <div class="gratitude-templates">
+                    <button class="template-btn" onclick="addGratitudeTemplate('感激家人的支持和陪伴')">👨‍👩‍👧‍👦 家人</button>
+                    <button class="template-btn" onclick="addGratitudeTemplate('感激朋友的帮助和友谊')">👥 朋友</button>
+                    <button class="template-btn" onclick="addGratitudeTemplate('感激今天的健康身体')">💪 健康</button>
+                    <button class="template-btn" onclick="addGratitudeTemplate('感激工作中的成长机会')">💼 工作</button>
+                    <button class="template-btn" onclick="addGratitudeTemplate('感激今天的美好天气')">☀️ 天气</button>
+                    <button class="template-btn" onclick="addGratitudeTemplate('感激拥有温暖的家')">🏠 住所</button>
+                    <button class="template-btn" onclick="addGratitudeTemplate('感激今天学到的新知识')">📚 学习</button>
+                    <button class="template-btn" onclick="addGratitudeTemplate('感激生活中的小确幸')">✨ 小确幸</button>
+                </div>
+
+                <!-- 感恩列表 -->
+                <div id="gratitude-list">
+                    <div class="gratitude-item">
+                        <textarea class="gratitude-input" placeholder="今天我感激... （例如：感激家人的理解和支持）" oninput="updateGratitude(this)"></textarea>
+                        <button class="remove-btn" onclick="removeGratitude(this)" title="删除">×</button>
+                    </div>
+                    <div class="gratitude-item">
+                        <textarea class="gratitude-input" placeholder="我还感激... （例如：感激今天遇到的善意陌生人）" oninput="updateGratitude(this)"></textarea>
+                        <button class="remove-btn" onclick="removeGratitude(this)" title="删除">×</button>
+                    </div>
+                    <div class="gratitude-item">
+                        <textarea class="gratitude-input" placeholder="另外感激... （例如：感激自己今天的努力和坚持）" oninput="updateGratitude(this)"></textarea>
+                        <button class="remove-btn" onclick="removeGratitude(this)" title="删除">×</button>
+                    </div>
+                </div>
+
+                <button class="add-gratitude-btn" onclick="addGratitudeItem()">
+                    <span>➕</span>
+                    <span>添加更多感恩</span>
+                </button>
+
+                <!-- 感恩总结 -->
+                <div style="margin-top: 20px;">
+                    <label style="font-weight: 600; margin-bottom: 8px; display: block; color: #2e7d32;">💝 今日感恩总结：</label>
+                    <textarea id="gratitude-summary" placeholder="总结一下今天最深刻的感恩体验..." 
+                        style="width: 100%; min-height: 80px; border: 2px solid #c8e6c9; border-radius: 8px; padding: 12px; font-size: 14px; line-height: 1.6; resize: vertical;"></textarea>
+                </div>
+            </div>
+
+            <!-- 感恩统计 -->
+            <div class="gratitude-card">
+                <h3 style="color: #2e7d32; margin-bottom: 16px;">📊 感恩统计</h3>
+                
+                <div class="gratitude-stats">
+                    <div class="stat-card">
+                        <div class="stat-number" id="total-gratitudes">0</div>
+                        <div class="stat-label">总感恩数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="streak-days">0</div>
+                        <div class="stat-label">连续天数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="this-month">0</div>
+                        <div class="stat-label">本月记录</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="avg-daily">0</div>
+                        <div class="stat-label">日均感恩</div>
+                    </div>
+                </div>
+
+                <!-- 智能洞察 -->
+                <div class="insights-panel">
+                    <h4 style="color: #7b1fa2; margin-bottom: 12px;">🧠 感恩洞察</h4>
+                    <div id="gratitude-insights">
+                        <div style="margin-bottom: 8px;">🌟 坚持感恩记录有助于培养积极心态</div>
+                        <div style="margin-bottom: 8px;">💝 您最常感激的是家人和朋友</div>
+                        <div style="margin-bottom: 8px;">📈 建议每天至少记录3个感恩事项</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 历史记录 -->
+            <div class="gratitude-card">
+                <h3 style="color: #2e7d32; margin-bottom: 16px;">📖 感恩历史</h3>
+                <div class="gratitude-history" id="gratitude-history">
+                    <!-- 动态加载历史记录 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="common.js"></script>
+    <script>
+        // 确保日期格式一致性
+        function getTodayDate() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        let currentGratitudeData = {
+            date: getTodayDate(),
+            gratitudes: [],
+            summary: '',
+            timestamp: new Date().toISOString()
+        };
+
+        const inspirationalQuotes = [
+            "感恩是一种能够将平凡时刻变成祝福的魔法。",
+            "感恩让我们把已有的看成足够的。",
+            "当我们专注于感恩时，恐惧就会消散，丰盛就会出现。",
+            "感恩是心灵的记忆。",
+            "感恩不仅是最重要的美德，也是所有其他美德的源泉。",
+            "感恩使平凡的饭菜变成盛宴，使房屋变成家园，使陌生人变成朋友。",
+            "每天找到一些值得感激的事情，这是通往快乐的最短路径。",
+            "感恩是通往富足生活的捷径。",
+            "感恩的心看到每一朵花都是美丽的。",
+            "感恩是快乐的磁铁，越感恩，越快乐。"
+        ];
+
+        // 调试函数 - 可在控制台使用
+        window.debugGratitude = {
+            showData: function() {
+                console.log('🔍 当前感恩数据:', currentGratitudeData);
+                console.log('📚 localStorage数据:', localStorage.getItem('gratitude_history'));
+                return {
+                    current: currentGratitudeData,
+                    stored: localStorage.getItem('gratitude_history')
+                };
+            },
+            clearData: function() {
+                localStorage.removeItem('gratitude_history');
+                console.log('🗑️ localStorage数据已清除');
+            },
+            forceLoad: function() {
+                loadTodayGratitude();
+                console.log('🔄 强制重新加载今日数据');
+            }
+        };
+
+        // 初始化感恩日记
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 页面加载完成，开始初始化感恩日记...');
+            initGratitudeDiary();
+        });
+
+        function initGratitudeDiary() {
+            // 设置每日引言
+            setDailyQuote();
+            
+            // 加载今日感恩记录
+            loadTodayGratitude();
+            
+            // 更新统计
+            updateGratitudeStats();
+            
+            // 加载历史记录
+            loadGratitudeHistory();
+            
+            // 绑定总结文本框
+            document.getElementById('gratitude-summary').addEventListener('input', function() {
+                currentGratitudeData.summary = this.value;
+                autoSaveGratitude();
+            });
+        }
+
+        function setDailyQuote() {
+            const today = new Date();
+            const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
+            const quoteIndex = dayOfYear % inspirationalQuotes.length;
+            document.getElementById('daily-quote').textContent = inspirationalQuotes[quoteIndex];
+        }
+
+        function addGratitudeItem() {
+            try {
+                console.log('➕ 添加新的感恩项...');
+            const gratitudeList = document.getElementById('gratitude-list');
+                if (!gratitudeList) {
+                    console.error('❌ 找不到感恩列表容器');
+                    return;
+                }
+                
+            const itemIndex = gratitudeList.children.length;
+                console.log('📝 当前感恩项数量:', itemIndex);
+            
+            const newItem = document.createElement('div');
+            newItem.className = 'gratitude-item celebration-effect';
+            newItem.innerHTML = `
+                <textarea class="gratitude-input" placeholder="我还感激..." oninput="updateGratitude(this)"></textarea>
+                <button class="remove-btn" onclick="removeGratitude(this)" title="删除">×</button>
+            `;
+            
+            gratitudeList.appendChild(newItem);
+                console.log('✅ 新感恩项已添加');
+            
+            // 聚焦到新添加的文本框
+            const textarea = newItem.querySelector('textarea');
+                if (textarea) {
+                    setTimeout(() => textarea.focus(), 100);
+                }
+            
+            // 添加庆祝效果
+            setTimeout(() => {
+                newItem.classList.remove('celebration-effect');
+            }, 500);
+                
+                return newItem;
+            } catch (error) {
+                console.error('❌ 添加感恩项失败:', error);
+                throw error;
+            }
+        }
+
+        function removeGratitude(button) {
+            const item = button.parentElement;
+            const gratitudeList = document.getElementById('gratitude-list');
+            
+            // 至少保留一个感恩项
+            if (gratitudeList.children.length <= 1) {
+                MessageUtils.warning('至少需要保留一个感恩项');
+                return;
+            }
+            
+            item.style.transition = 'all 0.3s ease';
+            item.style.transform = 'translateX(-100%)';
+            item.style.opacity = '0';
+            
+            setTimeout(() => {
+                item.remove();
+                updateCurrentGratitudes();
+                autoSaveGratitude();
+            }, 300);
+        }
+
+        function updateGratitude(textarea) {
+            updateCurrentGratitudes();
+            autoSaveGratitude();
+        }
+
+        function updateCurrentGratitudes() {
+            try {
+                console.log('📝 更新当前感恩数据...');
+            const gratitudeInputs = document.querySelectorAll('.gratitude-input');
+                console.log('📋 找到感恩输入框数量:', gratitudeInputs.length);
+                
+                // 收集所有非空的感恩内容
+                const gratitudes = Array.from(gratitudeInputs)
+                .map(input => input.value.trim())
+                .filter(text => text.length > 0);
+                
+                console.log('✍️ 收集到的感恩内容:', gratitudes);
+                
+                // 获取总结内容
+                const summaryElement = document.getElementById('gratitude-summary');
+                const summary = summaryElement ? summaryElement.value.trim() : '';
+                console.log('📄 感恩总结:', summary);
+                
+                // 更新当前数据
+                currentGratitudeData.gratitudes = gratitudes;
+                currentGratitudeData.summary = summary;
+            currentGratitudeData.timestamp = new Date().toISOString();
+                currentGratitudeData.date = getTodayDate(); // 使用统一的日期格式
+                
+                console.log('📊 更新后的感恩数据:', currentGratitudeData);
+                return true;
+            } catch (error) {
+                console.error('❌ 更新感恩数据失败:', error);
+                throw error;
+            }
+        }
+
+        function addGratitudeTemplate(template) {
+            // 找到第一个空的输入框，或添加新的
+            const gratitudeInputs = document.querySelectorAll('.gratitude-input');
+            let emptyInput = null;
+            
+            for (let input of gratitudeInputs) {
+                if (!input.value.trim()) {
+                    emptyInput = input;
+                    break;
+                }
+            }
+            
+            if (!emptyInput) {
+                // 添加新的感恩项
+                addGratitudeItem();
+                const newInputs = document.querySelectorAll('.gratitude-input');
+                emptyInput = newInputs[newInputs.length - 1];
+            }
+            
+            emptyInput.value = template;
+            emptyInput.focus();
+            
+            // 添加庆祝效果
+            emptyInput.parentElement.classList.add('celebration-effect');
+            setTimeout(() => {
+                emptyInput.parentElement.classList.remove('celebration-effect');
+            }, 500);
+            
+            updateCurrentGratitudes();
+            autoSaveGratitude();
+        }
+
+        function autoSaveGratitude() {
+            try {
+                console.log('💾 执行自动保存感恩...');
+                let gratitudeHistory = getGratitudeHistory();
+                
+                // 双重验证确保是数组
+                if (!Array.isArray(gratitudeHistory)) {
+                    console.warn('⚠️ gratitudeHistory 不是数组，强制初始化为空数组');
+                    gratitudeHistory = [];
+                }
+                
+                console.log('📚 当前历史记录数量:', gratitudeHistory.length);
+                
+            const todayIndex = gratitudeHistory.findIndex(record => record.date === currentGratitudeData.date);
+                console.log('📅 今日记录索引:', todayIndex);
+                console.log('🔍 查找日期:', currentGratitudeData.date);
+                console.log('📋 历史记录日期:', gratitudeHistory.map(r => r.date));
+            
+            if (todayIndex >= 0) {
+                gratitudeHistory[todayIndex] = { ...currentGratitudeData };
+                    console.log('🔄 更新今日记录');
+            } else {
+                gratitudeHistory.unshift({ ...currentGratitudeData });
+                    console.log('➕ 添加新的今日记录');
+            }
+            
+            // 只保留最近90天的记录
+                if (gratitudeHistory.length > 90) {
+            gratitudeHistory.splice(90);
+                    console.log('🗑️ 清理超过90天的旧记录');
+                }
+                
+                // 保存到localStorage
+                const dataToSave = JSON.stringify(gratitudeHistory);
+                localStorage.setItem('gratitude_history', dataToSave);
+                console.log('✅ 感恩数据已保存到localStorage');
+                
+                return true;
+            } catch (error) {
+                console.error('❌ 自动保存感恩失败:', error);
+                throw error;
+            }
+        }
+
+        function loadTodayGratitude() {
+            console.log('🔄 开始加载今日感恩记录...');
+            console.log('📅 今日日期:', currentGratitudeData.date);
+            
+            const gratitudeHistory = getGratitudeHistory();
+            
+            // 确保是数组
+            if (!Array.isArray(gratitudeHistory)) {
+                console.warn('⚠️ loadTodayGratitude: gratitudeHistory 不是数组，将使用空数组');
+                // 确保默认框为空
+                const gratitudeList = document.getElementById('gratitude-list');
+                if (gratitudeList) {
+                    const existingInputs = gratitudeList.querySelectorAll('.gratitude-input');
+                    existingInputs.forEach(input => input.value = '');
+                }
+                // 继续执行，使用空的历史记录
+                console.log('📝 使用空的历史记录继续初始化');
+            }
+            
+            // 确保gratitudeHistory是数组
+            const validHistory = Array.isArray(gratitudeHistory) ? gratitudeHistory : [];
+            console.log('📚 历史记录总数:', validHistory.length);
+            const todayRecord = validHistory.find(record => record.date === currentGratitudeData.date);
+            console.log('🔍 今日记录查找结果:', todayRecord ? '找到' : '未找到');
+            
+            if (todayRecord) {
+                console.log('📅 找到今日记录，开始恢复数据:', todayRecord);
+                currentGratitudeData = { ...todayRecord };
+                
+                // 恢复感恩项 - 不清空HTML中的默认框，而是填充内容
+                const gratitudeList = document.getElementById('gratitude-list');
+                const existingInputs = gratitudeList.querySelectorAll('.gratitude-input');
+                
+                if (todayRecord.gratitudes && todayRecord.gratitudes.length > 0) {
+                    console.log('📝 恢复感恩内容:', todayRecord.gratitudes);
+                    
+                    // 先清空现有内容
+                    existingInputs.forEach(input => input.value = '');
+                    
+                    // 填充保存的感恩内容
+                    todayRecord.gratitudes.forEach((gratitude, index) => {
+                        if (index < existingInputs.length) {
+                            // 使用现有的输入框
+                            existingInputs[index].value = gratitude;
+                } else {
+                            // 需要添加新的输入框
+                            const newItem = addGratitudeItem();
+                            if (newItem) {
+                                const newInput = newItem.querySelector('.gratitude-input');
+                                if (newInput) {
+                                    newInput.value = gratitude;
+                                }
+                            }
+                        }
+                    });
+                    
+                    console.log('✅ 感恩内容恢复完成');
+                } else {
+                    console.log('📝 没有保存的感恩内容，保持默认空白框');
+                    // 清空现有输入框
+                    existingInputs.forEach(input => input.value = '');
+                }
+                
+                // 恢复总结
+                const summaryElement = document.getElementById('gratitude-summary');
+                if (summaryElement && todayRecord.summary) {
+                    summaryElement.value = todayRecord.summary;
+                    console.log('📄 恢复感恩总结:', todayRecord.summary);
+                }
+            } else {
+                // 没有今日记录，确保默认框为空
+                console.log('🆕 没有今日记录，保持HTML中的默认空白框');
+                const gratitudeList = document.getElementById('gratitude-list');
+                const existingInputs = gratitudeList.querySelectorAll('.gratitude-input');
+                
+                // 清空所有现有输入框的内容
+                existingInputs.forEach(input => input.value = '');
+                
+                // 清空总结框
+                const summaryElement = document.getElementById('gratitude-summary');
+                if (summaryElement) {
+                    summaryElement.value = '';
+                }
+                
+                console.log('✅ 默认框已清空，准备接受新输入');
+            }
+        }
+
+        function getGratitudeHistory() {
+            try {
+                const stored = localStorage.getItem('gratitude_history');
+                console.log('📚 从localStorage读取的原始数据:', stored);
+                
+                if (!stored) {
+                    console.log('📝 没有历史数据，返回空数组');
+                    return [];
+                }
+                
+                const parsed = JSON.parse(stored);
+                console.log('🔍 解析后的数据类型:', typeof parsed, '是否为数组:', Array.isArray(parsed));
+                
+                // 确保返回的是数组
+                if (Array.isArray(parsed)) {
+                    return parsed;
+                } else {
+                    console.warn('⚠️ 数据不是数组格式，尝试转换为数组');
+                    // 尝试将非数组数据转换为数组格式
+                    if (parsed && typeof parsed === 'object') {
+                        let converted = [];
+                        // 检查是否是单个对象记录
+                        if (parsed.date && parsed.gratitudes) {
+                            converted = [parsed];
+                        } else {
+                            // 如果是多个记录的对象格式，尝试转换
+                            for (let key in parsed) {
+                                if (parsed[key] && typeof parsed[key] === 'object' && parsed[key].date) {
+                                    converted.push(parsed[key]);
+                                }
+                            }
+                        }
+                        
+                        if (converted.length > 0) {
+                            localStorage.setItem('gratitude_history', JSON.stringify(converted));
+                            console.log('🔄 已将对象转换为数组格式，转换了', converted.length, '条记录');
+                            return converted;
+                        } else {
+                            console.warn('⚠️ 无法转换对象格式，重置为空数组');
+                            localStorage.removeItem('gratitude_history');
+                            return [];
+                        }
+                    } else {
+                        console.warn('⚠️ 无法转换，重置为空数组');
+                        localStorage.removeItem('gratitude_history'); // 清除无效数据
+                        return [];
+                    }
+                }
+            } catch (error) {
+                console.error('❌ 读取感恩历史失败:', error);
+                console.log('🔧 清除损坏的数据');
+                localStorage.removeItem('gratitude_history');
+                return [];
+            }
+        }
+
+        function updateGratitudeStats() {
+            const gratitudeHistory = getGratitudeHistory();
+            
+            // 确保是数组
+            if (!Array.isArray(gratitudeHistory)) {
+                console.error('❌ updateGratitudeStats: gratitudeHistory 不是数组');
+                // 设置默认统计值
+                document.getElementById('total-gratitudes').textContent = '0';
+                document.getElementById('streak-days').textContent = '0';
+                document.getElementById('gratitude-streak-count').textContent = '0';
+                document.getElementById('this-month').textContent = '0';
+                document.getElementById('avg-daily').textContent = '0';
+                return;
+            }
+            
+            const validRecords = gratitudeHistory.filter(record => 
+                record.gratitudes && record.gratitudes.length > 0
+            );
+            
+            // 总感恩数
+            const totalGratitudes = validRecords.reduce((sum, record) => 
+                sum + record.gratitudes.length, 0
+            );
+            document.getElementById('total-gratitudes').textContent = totalGratitudes;
+            
+            // 连续天数
+            const streakDays = calculateStreak(validRecords);
+            document.getElementById('streak-days').textContent = streakDays;
+            document.getElementById('gratitude-streak-count').textContent = streakDays;
+            
+            // 本月记录
+            const currentMonth = getTodayDate().slice(0, 7);
+            const thisMonthRecords = validRecords.filter(record => 
+                record.date.startsWith(currentMonth)
+            );
+            document.getElementById('this-month').textContent = thisMonthRecords.length;
+            
+            // 日均感恩
+            const avgDaily = validRecords.length > 0 ? 
+                (totalGratitudes / validRecords.length).toFixed(1) : 0;
+            document.getElementById('avg-daily').textContent = avgDaily;
+            
+            // 更新洞察
+            updateGratitudeInsights(validRecords, totalGratitudes, streakDays);
+        }
+
+        function calculateStreak(records) {
+            if (records.length === 0) return 0;
+            
+            const today = new Date();
+            let streak = 0;
+            let currentDate = new Date(today);
+            
+            for (let i = 0; i < 90; i++) { // 最多检查90天
+                const dateStr = currentDate.toISOString().split('T')[0];
+                const hasRecord = records.some(record => record.date === dateStr);
+                
+                if (hasRecord) {
+                    streak++;
+                } else if (dateStr !== getTodayDate()) {
+                    // 如果不是今天且没有记录，则中断连续
+                    break;
+                }
+                
+                currentDate.setDate(currentDate.getDate() - 1);
+            }
+            
+            return streak;
+        }
+
+        function updateGratitudeInsights(records, totalGratitudes, streakDays) {
+            const insightsContainer = document.getElementById('gratitude-insights');
+            let insights = [];
+            
+            if (records.length === 0) {
+                insights.push('🌱 开始您的感恩之旅，每天记录值得感激的事情');
+                insights.push('💡 研究表明，感恩练习能显著提升幸福感');
+                insights.push('🎯 建议每天至少记录3个感恩事项');
+            } else {
+                // 连续天数分析
+                if (streakDays >= 21) {
+                    insights.push('🏆 太棒了！您已经坚持感恩记录超过21天，这是一个很好的习惯！');
+                } else if (streakDays >= 7) {
+                    insights.push('🌟 您已经连续记录了一周，感恩正在成为您的习惯！');
+                } else if (streakDays >= 3) {
+                    insights.push('💪 很好的开始！继续坚持，让感恩成为您的日常习惯');
+                } else {
+                    insights.push('🌱 每天坚持感恩记录，将会带来意想不到的积极变化');
+                }
+                
+                // 感恩数量分析
+                if (totalGratitudes >= 100) {
+                    insights.push('🎉 您已经记录了超过100个感恩事项，真正的感恩达人！');
+                } else if (totalGratitudes >= 50) {
+                    insights.push('🌟 您已经积累了很多感恩，继续保持这份美好！');
+                }
+                
+                // 内容分析
+                const allGratitudes = records.flatMap(r => r.gratitudes).join(' ').toLowerCase();
+                if (allGratitudes.includes('家人') || allGratitudes.includes('父母') || allGratitudes.includes('家庭')) {
+                    insights.push('❤️ 您很重视家庭关系，这是幸福生活的重要基础');
+                }
+                if (allGratitudes.includes('朋友') || allGratitudes.includes('友谊')) {
+                    insights.push('👥 友谊是您感恩的重要来源，珍惜身边的朋友们');
+                }
+                if (allGratitudes.includes('健康') || allGratitudes.includes('身体')) {
+                    insights.push('💪 您很关注健康，这是人生最宝贵的财富');
+                }
+                if (allGratitudes.includes('工作') || allGratitudes.includes('事业')) {
+                    insights.push('💼 您对工作充满感恩，这种态度会带来更多机会');
+                }
+            }
+            
+            // 限制洞察数量
+            insights = insights.slice(0, 4);
+            
+            insightsContainer.innerHTML = insights.map(insight => 
+                `<div style="margin-bottom: 8px;">${insight}</div>`
+            ).join('');
+        }
+
+        function loadGratitudeHistory() {
+            const allHistory = getGratitudeHistory();
+            
+            // 确保是数组
+            if (!Array.isArray(allHistory)) {
+                console.error('❌ loadGratitudeHistory: allHistory 不是数组');
+                const historyContainer = document.getElementById('gratitude-history');
+                if (historyContainer) {
+                    historyContainer.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;">数据格式错误，请刷新页面重试</div>';
+                }
+                return;
+            }
+            
+            const gratitudeHistory = allHistory.slice(0, 7); // 显示最近7天
+            const historyContainer = document.getElementById('gratitude-history');
+            
+            if (gratitudeHistory.length === 0) {
+                historyContainer.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;">还没有感恩记录，开始您的感恩之旅吧！</div>';
+                return;
+            }
+            
+            historyContainer.innerHTML = gratitudeHistory.map(record => {
+                const date = new Date(record.date);
+                const gratitudeItems = record.gratitudes ? record.gratitudes.filter(g => g.trim()).join('<br>• ') : '';
+                const summary = record.summary ? `<div style="margin-top: 8px; padding: 8px; background: rgba(76,175,80,0.1); border-radius: 4px;"><strong>总结：</strong>${record.summary}</div>` : '';
+                
+                return `
+                    <div class="history-item">
+                        <div class="history-date">
+                            ${date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}
+                            <span style="color: #999; font-size: 0.85em; font-weight: normal;">
+                                (${record.gratitudes ? record.gratitudes.length : 0} 个感恩)
+                            </span>
+                        </div>
+                        <div class="history-content">
+                            ${gratitudeItems ? '• ' + gratitudeItems : '无记录'}
+                            ${summary}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 保存按钮
+        document.getElementById('save-gratitude-btn')?.addEventListener('click', function() {
+            console.log('🎯 点击保存感恩按钮');
+            
+            try {
+            updateCurrentGratitudes();
+                console.log('📝 当前感恩数据:', currentGratitudeData);
+            
+            if (currentGratitudeData.gratitudes.length === 0) {
+                    console.log('⚠️ 没有感恩事项');
+                    if (typeof MessageUtils !== 'undefined' && MessageUtils.warning) {
+                MessageUtils.warning('请至少记录一个感恩事项');
+                    } else {
+                        alert('请至少记录一个感恩事项');
+                    }
+                return;
+            }
+            
+                console.log('💾 开始保存...');
+            autoSaveGratitude();
+            updateGratitudeStats();
+            loadGratitudeHistory();
+            
+                console.log('✅ 保存完成');
+                if (typeof MessageUtils !== 'undefined' && MessageUtils.success) {
+            MessageUtils.success('感恩记录保存成功！');
+                } else {
+                    alert('感恩记录保存成功！');
+                }
+            
+            // 添加庆祝效果
+                const container = document.querySelector('.gratitude-container');
+                if (container) {
+                    container.classList.add('celebration-effect');
+            setTimeout(() => {
+                        container.classList.remove('celebration-effect');
+            }, 500);
+                }
+            } catch (error) {
+                console.error('❌ 保存感恩时出错:', error);
+                if (typeof MessageUtils !== 'undefined' && MessageUtils.error) {
+                    MessageUtils.error('保存失败: ' + error.message);
+                } else {
+                    alert('保存失败: ' + error.message);
+                }
+            }
+        });
+
+        // 分享按钮
+        document.getElementById('share-gratitude-btn')?.addEventListener('click', function() {
+            updateCurrentGratitudes();
+            
+            if (currentGratitudeData.gratitudes.length === 0) {
+                MessageUtils.warning('请先记录一些感恩事项');
+                return;
+            }
+            
+            const shareText = `🙏 今日感恩\n\n${currentGratitudeData.gratitudes.map((g, i) => `${i + 1}. ${g}`).join('\n')}${currentGratitudeData.summary ? '\n\n💝 ' + currentGratitudeData.summary : ''}\n\n#感恩日记 #积极生活`;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: '今日感恩',
+                    text: shareText
+                }).then(() => {
+                    MessageUtils.success('分享成功！');
+                }).catch(err => {
+                    console.log('分享失败:', err);
+                });
+            } else {
+                // 复制到剪贴板
+                navigator.clipboard.writeText(shareText).then(() => {
+                    MessageUtils.success('感恩内容已复制到剪贴板！');
+                }).catch(() => {
+                    MessageUtils.info('请手动复制感恩内容进行分享');
+                });
+            }
+        });
+
+        // 自动保存定时器
+        setInterval(() => {
+            updateCurrentGratitudes();
+            if (currentGratitudeData.gratitudes.length > 0) {
+                autoSaveGratitude();
+            }
+        }, 30000); // 每30秒自动保存
+
+        // 页面卸载前强制保存
+        window.addEventListener('beforeunload', function() {
+            console.log('🚪 页面即将卸载，强制保存数据...');
+            updateCurrentGratitudes();
+            if (currentGratitudeData.gratitudes.length > 0 || currentGratitudeData.summary.trim()) {
+                autoSaveGratitude();
+                console.log('💾 页面卸载前数据已保存');
+            }
+        });
+
+        // 页面隐藏时也保存（适用于移动端）
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                console.log('👁️ 页面隐藏，保存数据...');
+                updateCurrentGratitudes();
+                if (currentGratitudeData.gratitudes.length > 0 || currentGratitudeData.summary.trim()) {
+                    autoSaveGratitude();
+                }
+            }
+        });
+    </script>
+    
+    <!-- 同步服务 -->
+    <script src="sync-service.js"></script>
+    <script src="sync-providers.js"></script>
+    <!-- 通用自动同步功能 -->
+    <script src="universal-auto-sync.js"></script>
+    <!-- 同步初始化修复脚本 -->
+    <script src="fix-sync-initialization.js"></script>
+    <!-- 感恩日记修复脚本 -->
+    <script src="fix-gratitude-init.js"></script>
+    <!-- 连接问题修复脚本 -->
+    <script src="fix-connection-issues.js"></script>
+</body>
+
+</html>
+
