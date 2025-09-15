@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据修复工具 - Plan Web</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #7f8c8d;
+            font-size: 16px;
+        }
+
+        .fix-section {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .fix-section h3 {
+            color: #2c3e50;
+            font-size: 18px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+        }
+
+        .fix-section h3::before {
+            content: '🔧';
+            margin-right: 8px;
+        }
+
+        .fix-section p {
+            color: #6c757d;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+
+        .fix-button {
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .fix-button:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .fix-button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .log-area {
+            background: #2c3e50;
+            color: #ecf0f1;
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin-top: 20px;
+        }
+
+        .navigation {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .nav-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 20px;
+            margin: 0 10px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: background 0.3s ease;
+        }
+
+        .nav-button:hover {
+            background: #0056b3;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-left: 8px;
+        }
+
+        .status-pending { background: #ffc107; }
+        .status-running { background: #17a2b8; animation: pulse 1s infinite; }
+        .status-success { background: #28a745; }
+        .status-error { background: #dc3545; }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #e9ecef;
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #28a745;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 数据修复工具</h1>
+            <p>检测并修复 Plan Web 应用中的数据格式和同步问题</p>
+        </div>
+
+        <div class="fix-section">
+            <h3>感恩日记数据格式修复 <span class="status-indicator status-pending" id="gratitude-status"></span></h3>
+            <p>修复感恩日记数据从对象格式转换为数组格式的问题，解决"今日记录索引: -1"的错误。</p>
+            <button class="fix-button" onclick="fixGratitudeData()" id="gratitude-btn">修复感恩日记数据</button>
+        </div>
+
+        <div class="fix-section">
+            <h3>同步配置清理 <span class="status-indicator status-pending" id="sync-status"></span></h3>
+            <p>清理无效的同步配置项，解决同步检测但无法启用的问题。</p>
+            <button class="fix-button" onclick="fixSyncConfig()" id="sync-btn">清理同步配置</button>
+        </div>
+
+        <div class="fix-section">
+            <h3>全部数据修复 <span class="status-indicator status-pending" id="all-status"></span></h3>
+            <p>一键修复所有检测到的数据格式问题，包括其他页面的类似问题。</p>
+            <button class="fix-button" onclick="fixAllData()" id="all-btn">修复所有问题</button>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress"></div>
+        </div>
+
+        <div class="log-area" id="log">准备就绪，点击上方按钮开始修复...\n</div>
+
+        <div class="navigation">
+            <a href="index.html" class="nav-button">返回首页</a>
+            <a href="sync-settings.html" class="nav-button">同步设置</a>
+            <a href="gratitude_diary.html" class="nav-button">感恩日记</a>
+        </div>
+    </div>
+
+    <script>
+        let logElement = document.getElementById('log');
+        let progressElement = document.getElementById('progress');
+        let currentProgress = 0;
+
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.textContent += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function updateProgress(percent) {
+            currentProgress = percent;
+            progressElement.style.width = percent + '%';
+        }
+
+        function setStatus(elementId, status) {
+            const element = document.getElementById(elementId);
+            element.className = `status-indicator status-${status}`;
+        }
+
+        function disableButton(buttonId) {
+            document.getElementById(buttonId).disabled = true;
+        }
+
+        function enableButton(buttonId) {
+            document.getElementById(buttonId).disabled = false;
+        }
+
+        async function fixGratitudeData() {
+            disableButton('gratitude-btn');
+            setStatus('gratitude-status', 'running');
+            log('🔧 开始修复感恩日记数据格式...');
+            updateProgress(10);
+
+            try {
+                const stored = localStorage.getItem('gratitude_history');
+                if (!stored) {
+                    log('📝 未发现感恩日记历史数据');
+                    setStatus('gratitude-status', 'success');
+                    updateProgress(100);
+                    enableButton('gratitude-btn');
+                    return;
+                }
+
+                updateProgress(30);
+                const parsed = JSON.parse(stored);
+                log(`🔍 当前数据类型: ${typeof parsed}, 是否为数组: ${Array.isArray(parsed)}`);
+
+                if (Array.isArray(parsed)) {
+                    log('✅ 感恩日记数据格式正确，无需修复');
+                    setStatus('gratitude-status', 'success');
+                    updateProgress(100);
+                    enableButton('gratitude-btn');
+                    return;
+                }
+
+                updateProgress(50);
+                let converted = [];
+                
+                if (parsed && typeof parsed === 'object') {
+                    if (parsed.date && parsed.gratitudes) {
+                        converted = [parsed];
+                        log('🔄 发现单个对象记录，转换为数组');
+                    } else {
+                        for (let key in parsed) {
+                            if (parsed[key] && typeof parsed[key] === 'object' && parsed[key].date) {
+                                converted.push(parsed[key]);
+                            }
+                        }
+                        log('🔄 发现多个对象记录，转换为数组');
+                    }
+                }
+
+                updateProgress(80);
+                if (converted.length > 0) {
+                    converted.sort((a, b) => new Date(b.date) - new Date(a.date));
+                    localStorage.setItem('gratitude_history', JSON.stringify(converted));
+                    log(`✅ 感恩日记数据格式修复完成，转换了 ${converted.length} 条记录`);
+                    setStatus('gratitude-status', 'success');
+                } else {
+                    log('⚠️ 无法转换感恩日记数据，数据可能损坏');
+                    setStatus('gratitude-status', 'error');
+                }
+
+                updateProgress(100);
+            } catch (error) {
+                log(`❌ 修复感恩日记数据时出错: ${error.message}`);
+                setStatus('gratitude-status', 'error');
+                updateProgress(100);
+            }
+
+            enableButton('gratitude-btn');
+        }
+
+        async function fixSyncConfig() {
+            disableButton('sync-btn');
+            setStatus('sync-status', 'running');
+            log('🧹 开始清理无效同步配置...');
+            updateProgress(10);
+
+            try {
+                const syncKeys = ['sync_config', 'syncConfig'];
+                let cleaned = 0;
+
+                updateProgress(30);
+                syncKeys.forEach(key => {
+                    const config = localStorage.getItem(key);
+                    if (config) {
+                        try {
+                            const parsed = JSON.parse(config);
+                            if (!parsed.enabled || !parsed.provider) {
+                                localStorage.removeItem(key);
+                                cleaned++;
+                                log(`🗑️ 清理无效配置: ${key}`);
+                            }
+                        } catch (e) {
+                            localStorage.removeItem(key);
+                            cleaned++;
+                            log(`🗑️ 清理损坏配置: ${key}`);
+                        }
+                    }
+                });
+
+                updateProgress(80);
+                if (cleaned > 0) {
+                    log(`✅ 清理了 ${cleaned} 个无效同步配置`);
+                } else {
+                    log('📝 未发现需要清理的无效同步配置');
+                }
+
+                setStatus('sync-status', 'success');
+                updateProgress(100);
+            } catch (error) {
+                log(`❌ 清理同步配置时出错: ${error.message}`);
+                setStatus('sync-status', 'error');
+                updateProgress(100);
+            }
+
+            enableButton('sync-btn');
+        }
+
+        async function fixAllData() {
+            disableButton('all-btn');
+            setStatus('all-status', 'running');
+            log('🚀 开始全面数据修复...');
+            updateProgress(0);
+
+            // 修复感恩日记
+            await new Promise(resolve => {
+                fixGratitudeData().then(resolve);
+            });
+
+            updateProgress(40);
+            log('📋 检查其他页面数据...');
+
+            // 修复其他页面数据
+            const dataKeys = [
+                'mood_history',
+                'habit_data', 
+                'reflection_history',
+                'day_plan_history',
+                'week_plan_history',
+                'month_plan_history'
+            ];
+
+            let fixedCount = 0;
+            updateProgress(50);
+
+            dataKeys.forEach(key => {
+                try {
+                    const stored = localStorage.getItem(key);
+                    if (!stored) return;
+
+                    const parsed = JSON.parse(stored);
+                    if (Array.isArray(parsed)) return;
+
+                    log(`🔧 修复 ${key} 数据格式...`);
+                    
+                    let converted = [];
+                    if (parsed && typeof parsed === 'object') {
+                        if (parsed.date || parsed.id) {
+                            converted = [parsed];
+                        } else {
+                            for (let subKey in parsed) {
+                                if (parsed[subKey] && typeof parsed[subKey] === 'object') {
+                                    converted.push(parsed[subKey]);
+                                }
+                            }
+                        }
+                    }
+
+                    if (converted.length > 0) {
+                        localStorage.setItem(key, JSON.stringify(converted));
+                        log(`✅ ${key} 数据格式修复完成，转换了 ${converted.length} 条记录`);
+                        fixedCount++;
+                    }
+                } catch (error) {
+                    log(`❌ 修复 ${key} 时出错: ${error.message}`);
+                }
+            });
+
+            updateProgress(80);
+
+            // 清理同步配置
+            await new Promise(resolve => {
+                fixSyncConfig().then(resolve);
+            });
+
+            updateProgress(100);
+            log(`🎉 全面修复完成！共修复了 ${fixedCount + 1} 个数据项`);
+            setStatus('all-status', 'success');
+            enableButton('all-btn');
+
+            // 显示完成提示
+            setTimeout(() => {
+                if (confirm('修复完成！是否刷新页面以应用更改？')) {
+                    location.reload();
+                }
+            }, 1000);
+        }
+
+        // 页面加载完成后自动检测问题
+        window.addEventListener('load', () => {
+            log('🔍 自动检测数据问题...');
+            
+            // 检查感恩日记数据
+            const gratitudeData = localStorage.getItem('gratitude_history');
+            if (gratitudeData) {
+                try {
+                    const parsed = JSON.parse(gratitudeData);
+                    if (!Array.isArray(parsed)) {
+                        log('⚠️ 发现感恩日记数据格式问题');
+                    } else {
+                        log('✅ 感恩日记数据格式正常');
+                    }
+                } catch (e) {
+                    log('❌ 感恩日记数据损坏');
+                }
+            }
+
+            // 检查同步配置
+            const syncConfig = localStorage.getItem('sync_config');
+            if (syncConfig) {
+                try {
+                    const parsed = JSON.parse(syncConfig);
+                    if (!parsed.enabled) {
+                        log('⚠️ 发现未启用的同步配置');
+                    }
+                } catch (e) {
+                    log('❌ 同步配置数据损坏');
+                }
+            }
+
+            log('🔧 检测完成，可以开始修复');
+        });
+    </script>
+</body>
+</html>
