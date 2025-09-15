@@ -26,8 +26,23 @@ class DataFormatFixer {
             console.log('🔍 当前数据类型:', typeof parsed, '是否为数组:', Array.isArray(parsed));
 
             if (Array.isArray(parsed)) {
-                console.log('✅ 感恩日记数据格式正确，无需修复');
-                return;
+                // 即使是数组，也要验证数据完整性
+                const validRecords = parsed.filter(record => 
+                    record && 
+                    typeof record === 'object' && 
+                    record.date && 
+                    Array.isArray(record.gratitudes)
+                );
+                
+                if (validRecords.length === parsed.length) {
+                    console.log('✅ 感恩日记数据格式正确，无需修复');
+                    return;
+                } else {
+                    console.log(`⚠️ 发现 ${parsed.length - validRecords.length} 条无效记录，正在清理...`);
+                    localStorage.setItem('gratitude_history', JSON.stringify(validRecords));
+                    this.fixedItems.push(`感恩日记：清理了 ${parsed.length - validRecords.length} 条无效记录`);
+                    return;
+                }
             }
 
             // 转换为数组格式
