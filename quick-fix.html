@@ -188,6 +188,12 @@
         </div>
 
         <div class="fix-section">
+            <h3>连接问题修复 <span class="status-indicator status-pending" id="connection-status"></span></h3>
+            <p>修复同步服务连接失败、错误提示显示等连接相关问题。</p>
+            <button class="fix-button" onclick="fixConnectionIssues()" id="connection-btn">修复连接问题</button>
+        </div>
+
+        <div class="fix-section">
             <h3>全部数据修复 <span class="status-indicator status-pending" id="all-status"></span></h3>
             <p>一键修复所有检测到的数据格式问题，包括其他页面的类似问题。</p>
             <button class="fix-button" onclick="fixAllData()" id="all-btn">修复所有问题</button>
@@ -477,6 +483,72 @@
             enableButton('sync-btn');
         }
 
+        async function fixConnectionIssues() {
+            disableButton('connection-btn');
+            setStatus('connection-status', 'running');
+            log('🔧 开始修复连接问题...');
+            updateProgress(10);
+
+            try {
+                // 加载连接问题修复脚本
+                if (!window.ConnectionIssuesFixer) {
+                    const script = document.createElement('script');
+                    script.src = 'fix-connection-issues.js';
+                    document.head.appendChild(script);
+                    
+                    // 等待脚本加载
+                    await new Promise((resolve) => {
+                        script.onload = resolve;
+                        setTimeout(resolve, 2000); // 超时保护
+                    });
+                }
+
+                updateProgress(30);
+                
+                if (window.ConnectionIssuesFixer) {
+                    const fixer = new window.ConnectionIssuesFixer();
+                    
+                    log('🔧 隐藏连接失败消息...');
+                    fixer.hideConnectionFailureMessages();
+                    updateProgress(50);
+                    
+                    log('🔧 禁用有问题的同步配置...');
+                    fixer.disableProblematicSyncConfigs();
+                    updateProgress(70);
+                    
+                    log('🔧 修补同步服务...');
+                    fixer.patchSyncService();
+                    updateProgress(85);
+                    
+                    log('🔧 防止自动同步错误...');
+                    fixer.preventAutoSyncErrors();
+                    updateProgress(95);
+                    
+                    // 显示结果
+                    if (fixer.fixedItems.length > 0) {
+                        fixer.fixedItems.forEach(item => log('✅ ' + item));
+                    }
+                    if (fixer.errors.length > 0) {
+                        fixer.errors.forEach(error => log('❌ ' + error));
+                    }
+                    
+                    log('🎉 连接问题修复完成！');
+                    setStatus('connection-status', 'success');
+                } else {
+                    log('❌ 无法加载连接问题修复脚本');
+                    setStatus('connection-status', 'error');
+                }
+
+                updateProgress(100);
+            } catch (error) {
+                log(`❌ 修复连接问题时出错: ${error.message}`);
+                setStatus('connection-status', 'error');
+                updateProgress(100);
+            }
+
+            enableButton('connection-btn');
+        }
+
         async function fixAllData() {
             disableButton('all-btn');
             setStatus('all-status', 'running');
@@ -542,6 +614,13 @@
             // 修复同步错误
             await new Promise(resolve => {
                 fixSyncErrors().then(resolve);
+            });
+
+            updateProgress(85);
+
+            // 修复连接问题
+            await new Promise(resolve => {
+                fixConnectionIssues().then(resolve);
             });
 
             updateProgress(100);
