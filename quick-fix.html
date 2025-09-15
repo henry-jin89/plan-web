@@ -182,9 +182,9 @@
         </div>
 
         <div class="fix-section">
-            <h3>同步配置清理 <span class="status-indicator status-pending" id="sync-status"></span></h3>
-            <p>清理无效的同步配置项，解决同步检测但无法启用的问题。</p>
-            <button class="fix-button" onclick="fixSyncConfig()" id="sync-btn">清理同步配置</button>
+            <h3>同步错误修复 <span class="status-indicator status-pending" id="sync-status"></span></h3>
+            <p>修复同步服务初始化错误、控制台错误输出等同步相关问题。</p>
+            <button class="fix-button" onclick="fixSyncErrors()" id="sync-btn">修复同步错误</button>
         </div>
 
         <div class="fix-section">
@@ -301,6 +301,69 @@
             enableButton('gratitude-btn');
         }
 
+        async function fixSyncErrors() {
+            disableButton('sync-btn');
+            setStatus('sync-status', 'running');
+            log('🔧 开始修复同步错误...');
+            updateProgress(10);
+
+            try {
+                // 加载同步错误修复脚本
+                if (!window.SyncErrorFixer) {
+                    const script = document.createElement('script');
+                    script.src = 'fix-sync-errors.js';
+                    document.head.appendChild(script);
+                    
+                    // 等待脚本加载
+                    await new Promise((resolve) => {
+                        script.onload = resolve;
+                        setTimeout(resolve, 2000); // 超时保护
+                    });
+                }
+
+                updateProgress(30);
+                
+                if (window.SyncErrorFixer) {
+                    const fixer = new window.SyncErrorFixer();
+                    
+                    // 手动执行各个修复步骤
+                    log('🔧 修复同步配置...');
+                    fixer.fixSyncConfig();
+                    updateProgress(50);
+                    
+                    log('🔄 重置同步服务...');
+                    fixer.resetSyncService();
+                    updateProgress(70);
+                    
+                    log('🔧 优化控制台输出...');
+                    fixer.patchConsoleErrors();
+                    updateProgress(90);
+                    
+                    // 显示结果
+                    if (fixer.fixedItems.length > 0) {
+                        fixer.fixedItems.forEach(item => log('✅ ' + item));
+                    }
+                    if (fixer.errors.length > 0) {
+                        fixer.errors.forEach(error => log('❌ ' + error));
+                    }
+                    
+                    log('🎉 同步错误修复完成！');
+                    setStatus('sync-status', 'success');
+                } else {
+                    log('❌ 无法加载同步错误修复脚本');
+                    setStatus('sync-status', 'error');
+                }
+
+                updateProgress(100);
+            } catch (error) {
+                log(`❌ 修复同步错误时出错: ${error.message}`);
+                setStatus('sync-status', 'error');
+                updateProgress(100);
+            }
+
+            enableButton('sync-btn');
+        }
+
         async function fixSyncConfig() {
             disableButton('sync-btn');
             setStatus('sync-status', 'running');
@@ -410,9 +473,9 @@
 
             updateProgress(80);
 
-            // 清理同步配置
+            // 修复同步错误
             await new Promise(resolve => {
-                fixSyncConfig().then(resolve);
+                fixSyncErrors().then(resolve);
             });
 
             updateProgress(100);
