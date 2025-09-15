@@ -644,15 +644,29 @@
                 // 触发云同步
                 try {
                     console.log('☁️ 触发云同步...');
+                    let syncTriggered = false;
                     
                     // 方法1: 通过syncService触发同步
-                    if (window.syncService && window.syncService.syncEnabled) {
-                        console.log('📤 通过syncService同步数据...');
-                        window.syncService.syncData().then(() => {
-                            console.log('✅ syncService同步完成');
-                        }).catch(error => {
-                            console.warn('⚠️ syncService同步失败:', error.message);
-                        });
+                    if (window.syncService) {
+                        console.log('🔍 检查syncService状态...');
+                        try {
+                            const status = window.syncService.getSyncStatus();
+                            if (status && status.enabled) {
+                                console.log('📤 通过syncService同步数据...');
+                                window.syncService.syncData().then(() => {
+                                    console.log('✅ syncService同步完成');
+                                }).catch(error => {
+                                    console.warn('⚠️ syncService同步失败:', error.message);
+                                });
+                                syncTriggered = true;
+                            } else {
+                                console.log('⚠️ syncService状态:', status);
+                            }
+                        } catch (e) {
+                            console.warn('⚠️ syncService检查失败:', e.message);
+                        }
+                    } else {
+                        console.log('⚠️ syncService未找到');
                     }
                     
                     // 方法2: 通过通用自动同步
@@ -661,6 +675,7 @@
                         setTimeout(() => {
                             window.universalAutoSync.triggerSync('manual', '感恩日记保存');
                         }, 100);
+                        syncTriggered = true;
                     }
                     
                     // 方法3: 直接触发存储事件，让其他同步机制响应
@@ -671,6 +686,48 @@
                     });
                     window.dispatchEvent(syncEvent);
                     console.log('📡 已发送存储事件通知');
+                    
+                    // 方法4: 如果以上都失败，尝试手动检查并重新初始化同步
+                    if (!syncTriggered) {
+                        console.log('🔄 尝试重新初始化同步...');
+                        // 检查是否有同步配置
+                        const syncConfig = localStorage.getItem('sync_config') || localStorage.getItem('syncConfig');
+                        if (syncConfig) {
+                            console.log('📋 发现同步配置，尝试重新启用同步');
+                            // 通知用户可以手动触发同步
+                            if (!document.getElementById('manual-sync-hint')) {
+                                const hint = document.createElement('div');
+                                hint.id = 'manual-sync-hint';
+                                hint.style.cssText = `
+                                    position: fixed;
+                                    top: 20px;
+                                    right: 20px;
+                                    background: #ff9800;
+                                    color: white;
+                                    padding: 10px 15px;
+                                    border-radius: 4px;
+                                    z-index: 1000;
+                                    font-size: 14px;
+                                    cursor: pointer;
+                                `;
+                                hint.innerHTML = '⚠️ 点击手动同步';
+                                hint.onclick = function() {
+                                    if (window.syncService && typeof window.syncService.syncData === 'function') {
+                                        window.syncService.syncData();
+                                    }
+                                    hint.remove();
+                                };
+                                document.body.appendChild(hint);
+                                
+                                // 5秒后自动移除
+                                setTimeout(() => {
+                                    if (hint.parentNode) hint.remove();
+                                }, 5000);
+                            }
+                        }
+                    } else {
+                        console.log('✅ 至少一种同步方法已触发');
+                    }
                     
                 } catch (syncError) {
                     console.warn('⚠️ 云同步触发失败，但本地保存成功:', syncError.message);
@@ -779,51 +836,99 @@
                 if (!stored && tryCloudRestore) {
                     console.log('📝 localStorage没有数据，尝试从云端恢复...');
                     
-                    // 尝试云端数据恢复
-                    try {
-                        if (window.syncService && window.syncService.syncEnabled) {
-                            console.log('☁️ 尝试通过syncService恢复数据...');
-                            // 这里我们暂时设置一个标记，让用户知道正在恢复
+                    // 检查是否有云同步配置
+                    const syncConfig = localStorage.getItem('sync_config') || localStorage.getItem('syncConfig');
+                    if (syncConfig) {
+                        console.log('🔍 发现云同步配置，尝试恢复数据...');
+                        
+                        // 创建恢复提示
+                        if (!document.getElementById('cloud-recovery-indicator')) {
                             const recoveryIndicator = document.createElement('div');
                             recoveryIndicator.id = 'cloud-recovery-indicator';
                             recoveryIndicator.style.cssText = `
                                 position: fixed;
-                                top: 50%;
+                                top: 20px;
                                 left: 50%;
-                                transform: translate(-50%, -50%);
-                                background: rgba(0,0,0,0.8);
+                                transform: translateX(-50%);
+                                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                                 color: white;
-                                padding: 20px;
+                                padding: 15px 25px;
                                 border-radius: 8px;
                                 z-index: 10001;
                                 text-align: center;
+                                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                                cursor: pointer;
                             `;
-                            recoveryIndicator.innerHTML = '☁️ 正在从云端恢复数据...<br>请稍候';
+                            recoveryIndicator.innerHTML = '☁️ 点击从云端恢复感恩记录';
+                            
+                            recoveryIndicator.onclick = function() {
+                                recoveryIndicator.innerHTML = '🔄 正在恢复...';
+                                recoveryIndicator.style.cursor = 'wait';
+                                
+                                // 尝试多种恢复方法
+                                if (window.syncService) {
+                                    try {
+                                        const status = window.syncService.getSyncStatus();
+                                        if (status && status.enabled) {
+                                            window.syncService.syncData().then(() => {
+                                                recoveryIndicator.innerHTML = '✅ 恢复完成！页面即将刷新';
+                                                setTimeout(() => {
+                                                    location.reload();
+                                                }, 1500);
+                                            }).catch(error => {
+                                                console.warn('⚠️ 同步恢复失败:', error.message);
+                                                recoveryIndicator.innerHTML = '❌ 恢复失败，请重试';
+                                                setTimeout(() => {
+                                                    recoveryIndicator.remove();
+                                                }, 3000);
+                                            });
+                                        } else {
+                                            // 尝试重新初始化同步
+                                            window.syncService.initSyncConfig();
+                                            setTimeout(() => {
+                                                if (window.syncService.syncEnabled) {
+                                                    window.syncService.syncData().then(() => {
+                                                        recoveryIndicator.innerHTML = '✅ 恢复完成！页面即将刷新';
+                                                        setTimeout(() => {
+                                                            location.reload();
+                                                        }, 1500);
+                                                    });
+                                                } else {
+                                                    recoveryIndicator.innerHTML = '⚠️ 请先到设置页面启用同步';
+                                                    setTimeout(() => {
+                                                        recoveryIndicator.remove();
+                                                    }, 3000);
+                                                }
+                                            }, 2000);
+                                        }
+                                    } catch (e) {
+                                        recoveryIndicator.innerHTML = '❌ 同步服务错误';
+                                        setTimeout(() => {
+                                            recoveryIndicator.remove();
+                                        }, 3000);
+                                    }
+                                } else {
+                                    recoveryIndicator.innerHTML = '❌ 同步服务未加载';
+                                    setTimeout(() => {
+                                        recoveryIndicator.remove();
+                                    }, 3000);
+                                }
+                            };
+                            
                             document.body.appendChild(recoveryIndicator);
                             
-                            // 尝试同步恢复
+                            // 10秒后自动移除
                             setTimeout(() => {
-                                if (window.syncService.syncEnabled) {
-                                    window.syncService.syncData().then(() => {
-                                        console.log('✅ 云端数据恢复完成，重新加载页面');
-                                        setTimeout(() => {
-                                            location.reload();
-                                        }, 1000);
-                                    }).catch(error => {
-                                        console.warn('⚠️ 云端恢复失败:', error.message);
-                                        recoveryIndicator.remove();
-                                    });
-                                } else {
-                                    console.log('⚠️ 同步未启用，移除恢复指示器');
+                                if (recoveryIndicator.parentNode) {
                                     recoveryIndicator.remove();
                                 }
-                            }, 1000);
+                            }, 10000);
                         }
-                    } catch (cloudError) {
-                        console.warn('⚠️ 云端恢复失败:', cloudError.message);
+                    } else {
+                        console.log('ℹ️ 没有云同步配置，无法恢复');
                     }
                     
-                    console.log('📝 返回空数组(等待云端恢复)');
+                    console.log('📝 返回空数组(等待手动恢复)');
                     return [];
                 }
                 
