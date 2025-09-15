@@ -22,15 +22,25 @@ class SyncService {
      * 初始化同步配置
      */
     initSyncConfig() {
-        const config = this.getSyncConfig();
-        console.log('🔍 初始化同步配置:', config);
-        if (config && config.enabled) {
-            console.log('✅ 发现已启用的同步配置，正在恢复...');
-            this.enableSync(config.provider, config.settings).catch(error => {
-                console.error('❌ 恢复同步配置失败:', error);
-            });
-        } else {
-            console.log('ℹ️ 未发现已启用的同步配置');
+        try {
+            const config = this.getSyncConfig();
+            console.log('🔍 初始化同步配置:', config);
+            
+            if (config && config.enabled && config.provider) {
+                console.log('✅ 发现已启用的同步配置，正在恢复...');
+                this.enableSync(config.provider, config.settings).catch(error => {
+                    console.error('❌ 恢复同步配置失败:', error);
+                    // 如果恢复失败，不要抛出错误，而是记录并继续
+                    console.log('⚠️ 同步配置恢复失败，但应用将继续正常运行');
+                });
+            } else if (config && !config.enabled) {
+                console.log('📝 发现同步配置但未启用');
+            } else {
+                console.log('ℹ️ 未发现有效的同步配置');
+            }
+        } catch (error) {
+            console.error('❌ 初始化同步配置时出错:', error);
+            console.log('⚠️ 同步功能初始化失败，但应用将继续正常运行');
         }
     }
 
@@ -95,7 +105,7 @@ class SyncService {
             // 验证连接（如果失败，仍然启用同步功能）
             console.log('🔗 正在验证连接...');
             try {
-                await this.syncProvider.connect();
+            await this.syncProvider.connect();
                 console.log('✅ 连接验证成功');
             } catch (connectError) {
                 console.warn('⚠️ 连接验证失败，但仍启用同步功能:', connectError.message);
@@ -187,9 +197,12 @@ class SyncService {
         });
         
         if (!this.syncEnabled) {
-            const error = new Error('同步功能未启用 - syncEnabled = false');
-            console.error('❌', error.message);
-            throw error;
+            console.log('ℹ️ 同步功能未启用，跳过同步操作');
+            return {
+                success: false,
+                message: '同步功能未启用',
+                timestamp: new Date().toISOString()
+            };
         }
         
         if (!this.syncProvider) {
