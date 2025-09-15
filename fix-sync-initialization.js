@@ -84,6 +84,12 @@
     function fixSyncServiceInitialization() {
         console.log('🔧 修复SyncService初始化...');
         
+        // 防止重复执行
+        if (window.syncServiceFixed) {
+            console.log('✅ SyncService已经修复过，跳过');
+            return;
+        }
+        
         // 等待SyncService加载
         if (typeof window.SyncService !== 'undefined' && window.syncService) {
             // 增强getSyncStatus方法
@@ -166,11 +172,23 @@
                 };
             }
             
+            // 标记已修复，防止重复执行
+            window.syncServiceFixed = true;
             console.log('✅ SyncService增强完成');
         } else {
             console.log('⚠️ SyncService未找到，将在其加载后重试');
-            // 等待SyncService加载
-            setTimeout(fixSyncServiceInitialization, 2000);
+            // 限制重试次数，防止无限循环
+            if (!window.syncServiceRetryCount) {
+                window.syncServiceRetryCount = 0;
+            }
+            window.syncServiceRetryCount++;
+            
+            if (window.syncServiceRetryCount <= 3) {
+                console.log(`🔄 第${window.syncServiceRetryCount}次重试...`);
+                setTimeout(fixSyncServiceInitialization, 2000);
+            } else {
+                console.log('❌ SyncService加载失败，停止重试');
+            }
         }
     }
     
