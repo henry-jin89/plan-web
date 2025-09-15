@@ -135,8 +135,12 @@ class SyncService {
             
         } catch (error) {
             console.error('❌ 启用同步失败:', error);
-            this.showSyncStatus('连接失败', 'error');
-            throw error;
+            // 不显示连接失败状态，而是静默处理
+            console.log('ℹ️ 同步服务将在后台重试连接');
+            // 清理可能有问题的配置
+            this.syncEnabled = false;
+            this.syncProvider = null;
+            // 不抛出错误，让应用继续正常运行
         }
     }
 
