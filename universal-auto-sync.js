@@ -571,12 +571,30 @@ class UniversalAutoSync {
             this.updateStatusBadge();
             
             if (window.syncService && window.syncService.manualSync) {
-                await window.syncService.manualSync();
+                // 检查同步是否已启用
+                if (!window.syncService.syncEnabled) {
+                    console.log('ℹ️ 同步功能未启用，跳过同步操作');
+                    return;
+                }
+                
+                const result = await window.syncService.manualSync();
                 this.lastSyncTime = Date.now();
-                console.log('手动同步完成');
+                
+                if (result && result.success !== false) {
+                    console.log('✅ 手动同步完成');
+                } else {
+                    console.log('ℹ️ 同步跳过:', result?.message || '未知原因');
+                }
+            } else {
+                console.log('⚠️ 同步服务不可用');
             }
         } catch (error) {
-            console.error('同步失败:', error);
+            // 只有真正的错误才记录为错误，配置问题记录为信息
+            if (error.message && error.message.includes('未启用')) {
+                console.log('ℹ️ 同步跳过:', error.message);
+            } else {
+                console.error('❌ 同步失败:', error);
+            }
         } finally {
             this.syncInProgress = false;
             this.updateStatusBadge();
