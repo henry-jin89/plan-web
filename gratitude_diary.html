@@ -656,18 +656,21 @@
             
             // 确保是数组
             if (!Array.isArray(gratitudeHistory)) {
-                console.error('❌ loadTodayGratitude: gratitudeHistory 不是数组');
+                console.warn('⚠️ loadTodayGratitude: gratitudeHistory 不是数组，将使用空数组');
                 // 确保默认框为空
                 const gratitudeList = document.getElementById('gratitude-list');
                 if (gratitudeList) {
                     const existingInputs = gratitudeList.querySelectorAll('.gratitude-input');
                     existingInputs.forEach(input => input.value = '');
                 }
-                return;
+                // 继续执行，使用空的历史记录
+                console.log('📝 使用空的历史记录继续初始化');
             }
             
-            console.log('📚 历史记录总数:', gratitudeHistory.length);
-            const todayRecord = gratitudeHistory.find(record => record.date === currentGratitudeData.date);
+            // 确保gratitudeHistory是数组
+            const validHistory = Array.isArray(gratitudeHistory) ? gratitudeHistory : [];
+            console.log('📚 历史记录总数:', validHistory.length);
+            const todayRecord = validHistory.find(record => record.date === currentGratitudeData.date);
             console.log('🔍 今日记录查找结果:', todayRecord ? '找到' : '未找到');
             
             if (todayRecord) {
@@ -1066,6 +1069,8 @@
     <script src="sync-providers.js"></script>
     <!-- 通用自动同步功能 -->
     <script src="universal-auto-sync.js"></script>
+    <!-- 感恩日记修复脚本 -->
+    <script src="fix-gratitude-init.js"></script>
 </body>
 
 </html>
