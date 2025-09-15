@@ -619,6 +619,8 @@
                 
             const todayIndex = gratitudeHistory.findIndex(record => record.date === currentGratitudeData.date);
                 console.log('📅 今日记录索引:', todayIndex);
+                console.log('🔍 查找日期:', currentGratitudeData.date);
+                console.log('📋 历史记录日期:', gratitudeHistory.map(r => r.date));
             
             if (todayIndex >= 0) {
                 gratitudeHistory[todayIndex] = { ...currentGratitudeData };
@@ -751,11 +753,28 @@
                     console.warn('⚠️ 数据不是数组格式，尝试转换为数组');
                     // 尝试将非数组数据转换为数组格式
                     if (parsed && typeof parsed === 'object') {
-                        // 如果是单个对象，转换为数组
-                        const converted = [parsed];
-                        localStorage.setItem('gratitude_history', JSON.stringify(converted));
-                        console.log('🔄 已将对象转换为数组格式');
-                        return converted;
+                        let converted = [];
+                        // 检查是否是单个对象记录
+                        if (parsed.date && parsed.gratitudes) {
+                            converted = [parsed];
+                        } else {
+                            // 如果是多个记录的对象格式，尝试转换
+                            for (let key in parsed) {
+                                if (parsed[key] && typeof parsed[key] === 'object' && parsed[key].date) {
+                                    converted.push(parsed[key]);
+                                }
+                            }
+                        }
+                        
+                        if (converted.length > 0) {
+                            localStorage.setItem('gratitude_history', JSON.stringify(converted));
+                            console.log('🔄 已将对象转换为数组格式，转换了', converted.length, '条记录');
+                            return converted;
+                        } else {
+                            console.warn('⚠️ 无法转换对象格式，重置为空数组');
+                            localStorage.removeItem('gratitude_history');
+                            return [];
+                        }
                     } else {
                         console.warn('⚠️ 无法转换，重置为空数组');
                         localStorage.removeItem('gratitude_history'); // 清除无效数据
@@ -801,7 +820,7 @@
             document.getElementById('gratitude-streak-count').textContent = streakDays;
             
             // 本月记录
-            const currentMonth = new Date().toISOString().slice(0, 7);
+            const currentMonth = getTodayDate().slice(0, 7);
             const thisMonthRecords = validRecords.filter(record => 
                 record.date.startsWith(currentMonth)
             );
@@ -829,7 +848,7 @@
                 
                 if (hasRecord) {
                     streak++;
-                } else if (dateStr !== new Date().toISOString().split('T')[0]) {
+                } else if (dateStr !== getTodayDate()) {
                     // 如果不是今天且没有记录，则中断连续
                     break;
                 }
