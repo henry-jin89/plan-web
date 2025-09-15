@@ -312,16 +312,57 @@
                 localStorage.setItem('sync_config', JSON.stringify(parsedConfig));
                 localStorage.setItem('syncConfig', JSON.stringify(parsedConfig));
                 
-                // 重新初始化同步服务
-                if (window.syncService && typeof window.syncService.initSyncConfig === 'function') {
-                    window.syncService.initSyncConfig();
-                    console.log('✅ 同步服务已重新初始化');
-                }
+                // 显示恢复进度
+                const progressDiv = document.createElement('div');
+                progressDiv.style.cssText = `
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: rgba(0,0,0,0.9);
+                    color: white;
+                    padding: 20px;
+                    border-radius: 8px;
+                    z-index: 10002;
+                    text-align: center;
+                    min-width: 300px;
+                `;
+                progressDiv.innerHTML = '🔄 正在恢复同步配置和数据...<br><br>第1步: 重新初始化同步服务...';
+                document.body.appendChild(progressDiv);
                 
-                // 刷新页面以确保所有组件都能识别新配置
+                // 重新初始化同步服务
                 setTimeout(() => {
-                    alert('同步配置已恢复！页面将刷新以应用更改。');
-                    location.reload();
+                    progressDiv.innerHTML = '🔄 正在恢复同步配置和数据...<br><br>第2步: 启用同步功能...';
+                    
+                    if (window.syncService && typeof window.syncService.initSyncConfig === 'function') {
+                        window.syncService.initSyncConfig();
+                        console.log('✅ 同步服务已重新初始化');
+                    }
+                    
+                    setTimeout(() => {
+                        progressDiv.innerHTML = '🔄 正在恢复同步配置和数据...<br><br>第3步: 从云端恢复数据...';
+                        
+                        // 尝试从云端恢复数据
+                        if (window.syncService && window.syncService.syncEnabled) {
+                            window.syncService.syncData().then(() => {
+                                progressDiv.innerHTML = '✅ 同步配置和数据恢复完成！<br><br>页面即将刷新...';
+                                setTimeout(() => {
+                                    location.reload();
+                                }, 2000);
+                            }).catch(error => {
+                                console.warn('⚠️ 数据恢复失败:', error);
+                                progressDiv.innerHTML = '⚠️ 配置已恢复，但数据恢复失败<br><br>页面即将刷新...';
+                                setTimeout(() => {
+                                    location.reload();
+                                }, 2000);
+                            });
+                        } else {
+                            progressDiv.innerHTML = '✅ 同步配置已恢复！<br><br>页面即将刷新...';
+                            setTimeout(() => {
+                                location.reload();
+                            }, 2000);
+                        }
+                    }, 1000);
                 }, 1000);
                 
             } catch (error) {
