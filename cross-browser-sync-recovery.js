@@ -164,7 +164,7 @@
                         <input type="text" id="github-branch" placeholder="分支名称 (默认: main)" value="main" style="width: 100%; padding: 8px; border: none; border-radius: 4px;">
                     </div>
                     <div style="display: flex; gap: 10px; justify-content: center;">
-                        <button onclick="executeGitHubRecovery()" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        <button id="github-recovery-btn" onclick="executeGitHubRecovery()" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
                             🔄 开始恢复
                         </button>
                         <button onclick="showCloudRecoveryOptions()" style="padding: 10px 20px; background: #666; color: white; border: none; border-radius: 4px; cursor: pointer;">
@@ -178,18 +178,66 @@
         
         window.executeGitHubRecovery = executeGitHubRecovery;
         window.showCloudRecoveryOptions = showCloudRecoveryOptions;
+        
+        // 备用事件绑定机制
+        setTimeout(() => {
+            const recoveryBtn = document.getElementById('github-recovery-btn');
+            if (recoveryBtn) {
+                recoveryBtn.addEventListener('click', function(e) {
+                    console.log('🖱️ 通过备用事件处理器点击恢复按钮');
+                    e.preventDefault();
+                    executeGitHubRecovery();
+                });
+                console.log('✅ 备用事件绑定完成');
+            }
+        }, 100);
     }
     
     async function executeGitHubRecovery() {
-        const token = document.getElementById('github-token').value.trim();
-        const owner = document.getElementById('github-owner').value.trim();
-        const repo = document.getElementById('github-repo').value.trim();
-        const branch = document.getElementById('github-branch').value.trim() || 'main';
+        console.log('🔄 开始执行GitHub数据恢复...');
         
+        const tokenEl = document.getElementById('github-token');
+        const ownerEl = document.getElementById('github-owner');
+        const repoEl = document.getElementById('github-repo');
+        const branchEl = document.getElementById('github-branch');
         const statusDiv = document.getElementById('recovery-status');
+        
+        if (!statusDiv) {
+            console.error('❌ 找不到状态显示元素');
+            alert('页面元素异常，请刷新页面重试');
+            return;
+        }
+        
+        // 调试信息
+        console.log('📋 输入框元素检查:', {
+            tokenEl: !!tokenEl,
+            ownerEl: !!ownerEl, 
+            repoEl: !!repoEl,
+            branchEl: !!branchEl
+        });
+        
+        if (!tokenEl || !ownerEl || !repoEl || !branchEl) {
+            statusDiv.innerHTML = '<span style="color: #f44336;">❌ 页面元素异常，请刷新页面重试</span>';
+            console.error('❌ 输入框元素缺失');
+            return;
+        }
+        
+        const token = tokenEl.value.trim();
+        const owner = ownerEl.value.trim();
+        const repo = repoEl.value.trim();
+        const branch = branchEl.value.trim() || 'main';
+        
+        // 调试信息
+        console.log('📝 输入值检查:', {
+            token: token ? `${token.substring(0,8)}...` : '空',
+            owner: owner || '空',
+            repo: repo || '空',
+            branch: branch || '空'
+        });
         
         if (!token || !owner || !repo) {
             statusDiv.innerHTML = '<span style="color: #ffeb3b;">⚠️ 请填写完整的GitHub信息</span>';
+            console.warn('⚠️ GitHub信息不完整:', { token: !!token, owner: !!owner, repo: !!repo });
             return;
         }
         
