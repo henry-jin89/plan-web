@@ -306,20 +306,37 @@
                 console.log(`✅ 自动同步完成，成功: ${successCount}/${results.length}`);
                 showSyncNotification(`✅ 数据已同步到 ${successCount} 个云端`, 'success');
                 pendingSyncs.clear();
+                // 成功后清除重试计数器
+                localStorage.removeItem('sync_retry_count');
             } else {
                 throw new Error('所有同步提供商都失败了');
             }
             
         } catch (error) {
             console.error('❌ 自动同步失败:', error);
-            showSyncNotification('⚠️ 云同步失败，数据已本地保存', 'warning');
             
-            // 失败后延迟重试
-            setTimeout(() => {
-                if (pendingSyncs.size > 0) {
-                    performAutoSync();
-                }
-            }, 30000); // 30秒后重试
+            // 根据错误类型显示不同的消息
+            if (error.message.includes('网络') || error.message.includes('连接')) {
+                showSyncNotification('🌐 网络连接异常，稍后自动重试', 'warning');
+            } else if (error.message.includes('认证') || error.message.includes('授权')) {
+                showSyncNotification('🔐 同步认证失败，请检查设置', 'error');
+            } else {
+                showSyncNotification('⚠️ 云同步暂时失败，数据已本地保存', 'warning');
+            }
+            
+            // 失败后延迟重试，但不要无限重试
+            const retryCount = parseInt(localStorage.getItem('sync_retry_count') || '0');
+            if (retryCount < 3) {
+                localStorage.setItem('sync_retry_count', (retryCount + 1).toString());
+                setTimeout(() => {
+                    if (pendingSyncs.size > 0) {
+                        performAutoSync();
+                    }
+                }, Math.min(30000 * Math.pow(2, retryCount), 300000)); // 指数退避，最大5分钟
+            } else {
+                console.log('❌ 达到最大重试次数，停止自动重试');
+                localStorage.removeItem('sync_retry_count');
+            }
         }
     }
     
@@ -529,13 +546,19 @@
     }
     
     function showSyncNotification(message, type = 'info') {
-        const existingNotification = document.getElementById('zero-config-sync-notification');
-        if (existingNotification) {
-            existingNotification.remove();
-        }
+        // 清除所有现有的同步通知，避免重复显示
+        const existingNotifications = document.querySelectorAll('[id*="sync"], [id*="notification"], [id*="status"]');
+        existingNotifications.forEach(notification => {
+            if (notification && notification.parentNode && 
+                (notification.textContent.includes('同步') || 
+                 notification.textContent.includes('失败') ||
+                 notification.textContent.includes('连接'))) {
+                notification.remove();
+            }
+        });
         
         const notification = document.createElement('div');
-        notification.id = 'zero-config-sync-notification';
+        notification.id = 'zero-config-sync-notification-' + Date.now();
         notification.style.cssText = `
             position: fixed;
             top: 20px;
@@ -548,6 +571,7 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.2);
             ${type === 'success' ? 'background: linear-gradient(135deg, #4caf50, #45a049); color: white;' : 
               type === 'warning' ? 'background: linear-gradient(135deg, #ff9800, #f57c00); color: white;' : 
+              type === 'error' ? 'background: linear-gradient(135deg, #f44336, #d32f2f); color: white;' :
               'background: linear-gradient(135deg, #2196f3, #1976d2); color: white;'}
         `;
         notification.textContent = message;
