@@ -488,6 +488,101 @@ window.APP_VERSION = Date.now();
     <script src="fix-sync-initialization.js"></script>
     <!-- 同步状态冲突修复脚本 -->
     <script src="fix-sync-status-conflict.js"></script>
+    
+    <!-- 强制清除重复通知脚本 -->
+    <script>
+        // 立即执行的强制清除脚本
+        (function() {
+            let lastClearTime = 0;
+            
+            // 强制清除函数
+            function forceClearDuplicateNotifications() {
+                const now = Date.now();
+                if (now - lastClearTime < 500) return; // 防止过于频繁的清除
+                lastClearTime = now;
+                
+                try {
+                    // 查找所有可能的重复通知
+                    const duplicateTexts = ['自动同步失败', '同步中...', '同步失败', '连接失败'];
+                    const foundElements = [];
+                    
+                    duplicateTexts.forEach(text => {
+                        const elements = Array.from(document.querySelectorAll('*')).filter(el => {
+                            return el.textContent && el.textContent.includes(text) &&
+                                   el.id !== 'syncStatusBar' &&
+                                   !el.classList.contains('sync-status-bar');
+                        });
+                        foundElements.push(...elements);
+                    });
+                    
+                    // 按文本内容分组
+                    const groups = {};
+                    foundElements.forEach(el => {
+                        const text = el.textContent.trim();
+                        if (!groups[text]) groups[text] = [];
+                        groups[text].push(el);
+                    });
+                    
+                    // 清除重复项，每种消息只保留最新的一个
+                    Object.values(groups).forEach(group => {
+                        if (group.length > 1) {
+                            console.log(`发现${group.length}个重复通知，正在清除...`);
+                            // 保留最后一个，删除其他的
+                            group.slice(0, -1).forEach(el => {
+                                try {
+                                    el.remove();
+                                } catch (e) {
+                                    console.warn('清除重复元素失败:', e);
+                                }
+                            });
+                        }
+                    });
+                } catch (e) {
+                    console.warn('强制清除执行出错:', e);
+                }
+            }
+            
+            // 拦截 createElement 方法，防止创建重复通知
+            const originalCreateElement = document.createElement;
+            document.createElement = function(tagName) {
+                const element = originalCreateElement.call(this, tagName);
+                
+                // 如果是 div 元素，监听其内容变化
+                if (tagName.toLowerCase() === 'div') {
+                    const observer = new MutationObserver(function(mutations) {
+                        mutations.forEach(function(mutation) {
+                            if (mutation.type === 'childList' || mutation.type === 'characterData') {
+                                const text = element.textContent;
+                                if (text && (text.includes('自动同步失败') || text.includes('同步中...'))) {
+                                    setTimeout(forceClearDuplicateNotifications, 100);
+                                }
+                            }
+                        });
+                    });
+                    
+                    observer.observe(element, {
+                        childList: true,
+                        subtree: true,
+                        characterData: true
+                    });
+                }
+                
+                return element;
+            };
+            
+            // 定期强制清除
+            setInterval(forceClearDuplicateNotifications, 3000);
+            
+            // 页面加载后立即清除
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', forceClearDuplicateNotifications);
+            } else {
+                forceClearDuplicateNotifications();
+            }
+            
+            console.log('💪 强制清除重复通知机制已启动');
+        })();
+    </script>
     <!-- 跨浏览器数据恢复脚本 -->
     <script src="cross-browser-sync-recovery.js"></script>
     
