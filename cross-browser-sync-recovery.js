@@ -157,14 +157,25 @@
             recoveryPanel.innerHTML = `
                 <div style="max-width: 600px; margin: 0 auto;">
                     <h3 style="margin: 0 0 15px 0;">📱 GitHub数据恢复</h3>
+                    
+                    <!-- 快速填入按钮 -->
+                    <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 6px; margin-bottom: 10px; text-align: center;">
+                        <button onclick="quickFillGitHubInfo()" style="padding: 6px 12px; background: #ffc107; color: #000; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                            ⚡ 快速填入仓库信息 (Token需手动输入)
+                        </button>
+                        <div style="font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 5px;">
+                            🔒 为了安全，Token请手动输入
+                        </div>
+                    </div>
+                    
                     <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                        <input type="text" id="github-token" placeholder="GitHub Personal Access Token" style="width: 100%; padding: 8px; margin-bottom: 8px; border: none; border-radius: 4px;">
-                        <input type="text" id="github-owner" placeholder="仓库所有者 (GitHub用户名)" style="width: 100%; padding: 8px; margin-bottom: 8px; border: none; border-radius: 4px;">
-                        <input type="text" id="github-repo" placeholder="仓库名称" style="width: 100%; padding: 8px; margin-bottom: 8px; border: none; border-radius: 4px;">
-                        <input type="text" id="github-branch" placeholder="分支名称 (默认: main)" value="main" style="width: 100%; padding: 8px; border: none; border-radius: 4px;">
+                        <input type="text" id="github-token" placeholder="GitHub Personal Access Token" style="width: 100%; padding: 8px; margin-bottom: 8px; border: none; border-radius: 4px; box-sizing: border-box;">
+                        <input type="text" id="github-owner" placeholder="仓库所有者 (GitHub用户名)" style="width: 100%; padding: 8px; margin-bottom: 8px; border: none; border-radius: 4px; box-sizing: border-box;">
+                        <input type="text" id="github-repo" placeholder="仓库名称" style="width: 100%; padding: 8px; margin-bottom: 8px; border: none; border-radius: 4px; box-sizing: border-box;">
+                        <input type="text" id="github-branch" placeholder="分支名称 (默认: main)" value="main" style="width: 100%; padding: 8px; border: none; border-radius: 4px; box-sizing: border-box;">
                     </div>
                     <div style="display: flex; gap: 10px; justify-content: center;">
-                        <button id="github-recovery-btn" onclick="executeGitHubRecovery()" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        <button id="github-recovery-btn" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
                             🔄 开始恢复
                         </button>
                         <button onclick="showCloudRecoveryOptions()" style="padding: 10px 20px; background: #666; color: white; border: none; border-radius: 4px; cursor: pointer;">
@@ -178,19 +189,81 @@
         
         window.executeGitHubRecovery = executeGitHubRecovery;
         window.showCloudRecoveryOptions = showCloudRecoveryOptions;
+        window.quickFillGitHubInfo = quickFillGitHubInfo;
         
-        // 备用事件绑定机制
+        // 立即绑定事件，多种方式确保绑定成功
         setTimeout(() => {
-            const recoveryBtn = document.getElementById('github-recovery-btn');
-            if (recoveryBtn) {
-                recoveryBtn.addEventListener('click', function(e) {
-                    console.log('🖱️ 通过备用事件处理器点击恢复按钮');
-                    e.preventDefault();
-                    executeGitHubRecovery();
-                });
-                console.log('✅ 备用事件绑定完成');
+            bindRecoveryButton();
+        }, 50);
+        
+        setTimeout(() => {
+            bindRecoveryButton();
+        }, 200);
+        
+        setTimeout(() => {
+            bindRecoveryButton();
+        }, 500);
+    }
+    
+    // 快速填入GitHub信息函数
+    function quickFillGitHubInfo() {
+        console.log('⚡ 快速填入GitHub信息...');
+        
+        const tokenEl = document.getElementById('github-token');
+        const ownerEl = document.getElementById('github-owner');
+        const repoEl = document.getElementById('github-repo');
+        const branchEl = document.getElementById('github-branch');
+        
+        if (tokenEl && ownerEl && repoEl && branchEl) {
+            // 安全提示：不能在代码中直接存储Token
+            tokenEl.placeholder = '请输入您的GitHub Personal Access Token';
+            ownerEl.value = 'henry-jin89';
+            repoEl.value = 'my-plan-data';
+            branchEl.value = 'main';
+            
+            console.log('✅ GitHub信息已快速填入');
+            
+            // 显示成功提示
+            const statusDiv = document.getElementById('recovery-status');
+            if (statusDiv) {
+                statusDiv.innerHTML = '<span style="color: #4caf50;">✅ 仓库信息已填入</span><br><span style="color: #ff9800;">⚠️ 请手动输入您的GitHub Token</span>';
             }
-        }, 100);
+        } else {
+            console.error('❌ 输入框元素未找到');
+            alert('页面元素异常，请刷新页面重试');
+        }
+    }
+    
+    // 绑定恢复按钮事件的函数
+    function bindRecoveryButton() {
+        const recoveryBtn = document.getElementById('github-recovery-btn');
+        if (recoveryBtn && !recoveryBtn.hasAttribute('data-bound')) {
+            console.log('🔧 绑定恢复按钮事件...');
+            
+            // 标记已绑定，避免重复绑定
+            recoveryBtn.setAttribute('data-bound', 'true');
+            
+            // 移除可能存在的onclick属性
+            recoveryBtn.removeAttribute('onclick');
+            
+            // 添加点击事件
+            recoveryBtn.onclick = function(e) {
+                console.log('🖱️ 点击恢复按钮 (onclick)');
+                e.preventDefault();
+                e.stopPropagation();
+                executeGitHubRecovery();
+            };
+            
+            // 添加事件监听器作为备份
+            recoveryBtn.addEventListener('click', function(e) {
+                console.log('🖱️ 点击恢复按钮 (addEventListener)');
+                e.preventDefault();
+                e.stopPropagation();
+                executeGitHubRecovery();
+            });
+            
+            console.log('✅ 恢复按钮事件绑定完成');
+        }
     }
     
     async function executeGitHubRecovery() {
