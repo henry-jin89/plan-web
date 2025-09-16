@@ -21,32 +21,66 @@
                 '[id*="status"]',
                 '.sync-status',
                 '.sync-notification',
-                '.sync-status-bar'
+                '.sync-status-bar',
+                '[class*="sync"]',
+                '[class*="notification"]'
             ];
             
+            // 更激进的清除策略
             selectors.forEach(selector => {
                 try {
                     const elements = document.querySelectorAll(selector);
                     elements.forEach(element => {
                         if (element && element.parentNode) {
                             const text = element.textContent || '';
-                            // 只清除同步相关的通知
-                            if (text.includes('同步') || 
+                            const className = element.className || '';
+                            const id = element.id || '';
+                            
+                            // 检查是否为同步相关的通知
+                            const isSyncRelated = text.includes('同步') || 
                                 text.includes('失败') ||
                                 text.includes('连接') ||
                                 text.includes('中...') ||
-                                text.includes('成功')) {
-                                
-                                // 不清除固定的同步状态栏
-                                if (!element.classList.contains('sync-status-bar') && 
-                                    element.id !== 'syncStatusBar') {
-                                    element.remove();
-                                }
+                                text.includes('成功') ||
+                                text.includes('错误') ||
+                                className.includes('notification') ||
+                                id.includes('notification') ||
+                                id.includes('sync');
+                            
+                            // 保护固定的同步状态栏，但清除其他所有同步通知
+                            const isProtected = element.classList.contains('sync-status-bar') || 
+                                element.id === 'syncStatusBar' ||
+                                element.classList.contains('main-content') ||
+                                element.tagName === 'SCRIPT' ||
+                                element.tagName === 'STYLE';
+                            
+                            if (isSyncRelated && !isProtected) {
+                                console.log('清除同步通知元素:', element);
+                                element.remove();
                             }
                         }
                     });
                 } catch (e) {
-                    // 忽略清除过程中的错误
+                    console.warn('清除通知时出错:', e);
+                }
+            });
+            
+            // 额外清除：直接查找包含特定文本的所有元素
+            const allElements = document.querySelectorAll('*');
+            allElements.forEach(element => {
+                try {
+                    if (element && element.parentNode && element.textContent) {
+                        const text = element.textContent.trim();
+                        if ((text === '自动同步失败' || text === '同步中...' || 
+                             text.includes('自动同步失败') || text.includes('同步中...')) &&
+                            element.id !== 'syncStatusBar' &&
+                            !element.classList.contains('sync-status-bar')) {
+                            console.log('清除特定文本的同步通知:', text, element);
+                            element.remove();
+                        }
+                    }
+                } catch (e) {
+                    // 忽略错误
                 }
             });
         },
@@ -191,18 +225,82 @@
         );
     });
     
-    // 页面加载完成后清理一次
+    // 定时清除机制 - 持续监控和清除重复通知
+    let clearIntervalId = null;
+    
+    function startContinuousClearing() {
+        // 清除现有的定时器
+        if (clearIntervalId) {
+            clearInterval(clearIntervalId);
+        }
+        
+        // 每2秒检查一次是否有重复通知
+        clearIntervalId = setInterval(() => {
+            try {
+                const syncNotifications = [];
+                const allElements = document.querySelectorAll('*');
+                
+                // 收集所有同步相关的通知
+                allElements.forEach(element => {
+                    if (element && element.textContent) {
+                        const text = element.textContent.trim();
+                        if ((text.includes('同步失败') || text.includes('同步中') || 
+                             text.includes('自动同步失败') || text === '同步中...') &&
+                            element.id !== 'syncStatusBar' &&
+                            !element.classList.contains('sync-status-bar')) {
+                            syncNotifications.push(element);
+                        }
+                    }
+                });
+                
+                // 如果发现重复通知，清除所有
+                if (syncNotifications.length > 1) {
+                    console.log(`发现${syncNotifications.length}个重复的同步通知，正在清除...`);
+                    syncNotifications.forEach(element => {
+                        try {
+                            element.remove();
+                        } catch (e) {
+                            console.warn('清除重复通知失败:', e);
+                        }
+                    });
+                }
+            } catch (e) {
+                console.warn('定时清除检查出错:', e);
+            }
+        }, 2000);
+        
+        console.log('✅ 启动持续清除监控机制');
+    }
+    
+    // 页面加载完成后启动清理和监控
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function() {
             setTimeout(() => {
                 window.SyncStatusManager.clearAllSyncNotifications();
+                startContinuousClearing();
             }, 1000);
         });
     } else {
         setTimeout(() => {
             window.SyncStatusManager.clearAllSyncNotifications();
+            startContinuousClearing();
         }, 1000);
     }
+    
+    // 页面隐藏时停止监控，可见时重新启动
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            if (clearIntervalId) {
+                clearInterval(clearIntervalId);
+                clearIntervalId = null;
+            }
+        } else {
+            setTimeout(() => {
+                window.SyncStatusManager.clearAllSyncNotifications();
+                startContinuousClearing();
+            }, 500);
+        }
+    });
     
     console.log('✅ 同步状态冲突修复脚本加载完成');
     
