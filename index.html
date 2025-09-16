@@ -486,6 +486,8 @@ window.APP_VERSION = Date.now();
     <script src="universal-auto-sync.js"></script>
     <!-- 同步初始化修复脚本 -->
     <script src="fix-sync-initialization.js"></script>
+    <!-- 同步状态冲突修复脚本 -->
+    <script src="fix-sync-status-conflict.js"></script>
     <!-- 跨浏览器数据恢复脚本 -->
     <script src="cross-browser-sync-recovery.js"></script>
     
@@ -1007,6 +1009,9 @@ window.APP_VERSION = Date.now();
                 logElement.style.display = 'block';
                 logElement.innerHTML = '<div style="color: #1976d2;">[测试] 正在验证配置...</div>';
                 
+                // 清除现有的同步状态显示，避免冲突
+                this.clearAllSyncNotifications();
+                
                 // 收集配置数据
                 const settings = {};
                 const fields = document.querySelectorAll('#config-fields input');
@@ -1082,7 +1087,7 @@ window.APP_VERSION = Date.now();
                     }
                     
                 } catch (error) {
-                    logElement.innerHTML += \`<div style="color: #f44336;">[错误] \${error.message}</div>\`;
+                    logElement.innerHTML += `<div style="color: #f44336;">[错误] ${error.message}</div>`;
                     
                     // 提供错误诊断
                     if (provider === 'github') {
@@ -1093,6 +1098,35 @@ window.APP_VERSION = Date.now();
                         }
                     }
                 }
+            }
+            
+            // 清除所有同步通知的方法
+            clearAllSyncNotifications() {
+                // 清除所有可能的同步相关通知元素
+                const selectors = [
+                    '[id*="sync"]',
+                    '[id*="notification"]', 
+                    '[id*="status"]',
+                    '.sync-status',
+                    '.sync-notification',
+                    '#zero-config-sync-notification'
+                ];
+                
+                selectors.forEach(selector => {
+                    try {
+                        const elements = document.querySelectorAll(selector);
+                        elements.forEach(element => {
+                            if (element && element.parentNode && 
+                                (element.textContent.includes('同步') || 
+                                 element.textContent.includes('失败') ||
+                                 element.textContent.includes('连接'))) {
+                                element.parentNode.removeChild(element);
+                            }
+                        });
+                    } catch (e) {
+                        // 忽略清除过程中的错误
+                    }
+                });
             }
             
             showSuccessMessage(provider) {
@@ -1200,18 +1234,18 @@ window.APP_VERSION = Date.now();
             
             // Google Drive OAuth简化版
             async authenticateGoogleDrive() {
-                const clientId = prompt('请输入您的Google Drive API客户端ID\\n（在Google Cloud Console中获取）:');
+                const clientId = prompt('请输入您的Google Drive API客户端ID\n（在Google Cloud Console中获取）:');
                 if (!clientId) return;
                 
                 const redirectUri = window.location.origin + window.location.pathname;
                 const scope = 'https://www.googleapis.com/auth/drive.file';
                 
-                const authUrl = \`https://accounts.google.com/o/oauth2/v2/auth?\` +
-                    \`client_id=\${encodeURIComponent(clientId)}&\` +
-                    \`redirect_uri=\${encodeURIComponent(redirectUri)}&\` +
-                    \`scope=\${encodeURIComponent(scope)}&\` +
-                    \`response_type=token&\` +
-                    \`state=google_drive_auth\`;
+                const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+                    `client_id=${encodeURIComponent(clientId)}&` +
+                    `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+                    `scope=${encodeURIComponent(scope)}&` +
+                    `response_type=token&` +
+                    `state=google_drive_auth`;
                 
                 const authWindow = window.open(authUrl, 'google_auth', 'width=500,height=600');
                 
@@ -1244,6 +1278,80 @@ window.APP_VERSION = Date.now();
         
         // 创建全局实例
         window.smartAutoSync = new SmartAutoSync();
+        
+        // 全局同步状态管理器，防止多个同步系统冲突
+        window.GlobalSyncManager = {
+            clearAllNotifications() {
+                const selectors = [
+                    '[id*="sync"]',
+                    '[id*="notification"]', 
+                    '[id*="status"]',
+                    '.sync-status',
+                    '.sync-notification'
+                ];
+                
+                selectors.forEach(selector => {
+                    try {
+                        const elements = document.querySelectorAll(selector);
+                        elements.forEach(element => {
+                            if (element && element.parentNode && 
+                                (element.textContent.includes('同步') || 
+                                 element.textContent.includes('失败') ||
+                                 element.textContent.includes('连接') ||
+                                 element.textContent.includes('中...'))) {
+                                element.parentNode.removeChild(element);
+                            }
+                        });
+                    } catch (e) {
+                        // 忽略清除过程中的错误
+                    }
+                });
+            },
+            
+            showUnifiedNotification(message, type = 'info') {
+                this.clearAllNotifications();
+                
+                const notification = document.createElement('div');
+                notification.id = 'unified-sync-notification-' + Date.now();
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 50px;
+                    right: 20px;
+                    padding: 12px 16px;
+                    border-radius: 6px;
+                    font-size: 14px;
+                    z-index: 10001;
+                    max-width: 300px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    transition: all 0.3s ease;
+                    transform: translateX(100%);
+                `;
+
+                const styles = {
+                    success: 'background: #d4edda; color: #155724; border: 1px solid #c3e6cb;',
+                    error: 'background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;',
+                    warning: 'background: #fff3cd; color: #856404; border: 1px solid #ffeaa7;',
+                    info: 'background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb;'
+                };
+
+                notification.style.cssText += styles[type];
+                notification.textContent = message;
+                document.body.appendChild(notification);
+
+                setTimeout(() => {
+                    notification.style.transform = 'translateX(0)';
+                }, 100);
+
+                setTimeout(() => {
+                    notification.style.transform = 'translateX(100%)';
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.parentNode.removeChild(notification);
+                        }
+                    }, 300);
+                }, 4000);
+            }
+        };
     </script>
     <script>
         // 同步功能初始化
@@ -1335,48 +1443,15 @@ window.APP_VERSION = Date.now();
         }
 
         function showSyncNotification(message, type = 'info') {
-            // 创建通知元素
-            const notification = document.createElement('div');
-            notification.style.cssText = `
-                position: fixed;
-                top: 50px;
-                right: 20px;
-                padding: 12px 16px;
-                border-radius: 6px;
-                font-size: 14px;
-                z-index: 10001;
-                max-width: 300px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                transition: all 0.3s ease;
-                transform: translateX(100%);
-            `;
-
-            // 设置样式
-            const styles = {
-                success: 'background: #d4edda; color: #155724; border: 1px solid #c3e6cb;',
-                error: 'background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;',
-                warning: 'background: #fff3cd; color: #856404; border: 1px solid #ffeaa7;',
-                info: 'background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb;'
-            };
-
-            notification.style.cssText += styles[type];
-            notification.textContent = message;
-            document.body.appendChild(notification);
-
-            // 显示动画
-            setTimeout(() => {
-                notification.style.transform = 'translateX(0)';
-            }, 100);
-
-            // 自动隐藏
-            setTimeout(() => {
-                notification.style.transform = 'translateX(100%)';
-                setTimeout(() => {
-                    if (notification.parentNode) {
-                        notification.parentNode.removeChild(notification);
-                    }
-                }, 300);
-            }, 4000);
+            // 使用同步状态管理器统一处理通知
+            if (window.SyncStatusManager) {
+                window.SyncStatusManager.showNotification(message, type);
+            } else if (window.GlobalSyncManager) {
+                window.GlobalSyncManager.showUnifiedNotification(message, type);
+            } else {
+                // 降级处理 - 简单的控制台输出
+                console.log(`[${type.toUpperCase()}] 同步通知:`, message);
+            }
         }
 
         // 网络状态监听
