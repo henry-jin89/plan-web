@@ -8,8 +8,6 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="mobile-styles.css">
     <link rel="manifest" href="manifest.json">
-    <script src="config.js"></script>
-    <script src="backup-helper.js"></script>
 <!-- 防缓存机制 -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
@@ -298,6 +296,42 @@ window.APP_VERSION = Date.now();
 </head>
 
 <body>
+    <!-- 加载提示 -->
+    <div id="loading-overlay" style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        color: white;
+        z-index: 9999;
+        font-family: 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
+    ">
+        <div style="
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        "></div>
+        <h2 style="margin: 0 0 10px 0;">计划管理器</h2>
+        <p style="margin: 0; opacity: 0.8;">正在加载中...</p>
+    </div>
+    
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+
     <!-- 同步状态栏 -->
     <div class="sync-status-bar" id="syncStatusBar" style="display: none;">
         <div class="sync-status-info">
@@ -472,12 +506,57 @@ window.APP_VERSION = Date.now();
         </div>
     </div>
 
+    <!-- 紧急修复脚本 -->
+    <script src="emergency-fix.js?v=20241211"></script>
+    
     <!-- 调试和错误处理 -->
     <script src="debug.js?v=20241211"></script>
     
     <!-- 核心依赖按顺序加载 -->
     <script src="common.js?v=20241211"></script>
     <script src="init.js?v=20241211"></script>
+    
+    <!-- 加载完成处理 -->
+    <script>
+        // 页面加载完成后隐藏加载提示
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('✅ DOM已加载完成');
+            
+            // 延迟隐藏加载提示，确保内容已渲染
+            setTimeout(() => {
+                const loadingOverlay = document.getElementById('loading-overlay');
+                if (loadingOverlay) {
+                    loadingOverlay.style.opacity = '0';
+                    loadingOverlay.style.transition = 'opacity 0.5s ease';
+                    setTimeout(() => {
+                        loadingOverlay.style.display = 'none';
+                        console.log('✅ 加载提示已隐藏');
+                    }, 500);
+                }
+            }, 1000);
+        });
+        
+        // 全局错误处理
+        window.addEventListener('error', function(event) {
+            console.error('❌ 页面错误:', event.error);
+            // 即使有错误也要隐藏加载提示
+            setTimeout(() => {
+                const loadingOverlay = document.getElementById('loading-overlay');
+                if (loadingOverlay && loadingOverlay.style.display !== 'none') {
+                    loadingOverlay.style.display = 'none';
+                }
+            }, 3000);
+        });
+        
+        // 超时保护
+        setTimeout(() => {
+            const loadingOverlay = document.getElementById('loading-overlay');
+            if (loadingOverlay && loadingOverlay.style.display !== 'none') {
+                console.warn('⏰ 加载超时，强制隐藏加载提示');
+                loadingOverlay.style.display = 'none';
+            }
+        }, 8000);
+    </script>
     
     <!-- 同步相关脚本（异步加载，避免阻塞） -->
     <script async src="zero-config-sync.js"></script>
