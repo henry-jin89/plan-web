@@ -1,10 +1,35 @@
 // Web版本主文件 - 替代Electron的main.js
-// 这个文件在Web版本中不需要，但保留用于兼容性
+// 确保Web版本正常运行
 
 console.log('🌐 运行在Web浏览器中');
 
+// 立即执行的初始化
+(function() {
+    console.log('🚀 立即初始化Web应用...');
+    
+    // 确保页面可见
+    document.body.style.visibility = 'visible';
+    document.body.style.opacity = '1';
+    
+    // 移除可能存在的加载遮罩
+    const removeLoadingOverlay = () => {
+        const overlay = document.getElementById('loading-overlay');
+        if (overlay) {
+            overlay.style.display = 'none';
+            console.log('✅ 移除加载遮罩');
+        }
+    };
+    
+    // 立即尝试移除，然后定时移除
+    removeLoadingOverlay();
+    setTimeout(removeLoadingOverlay, 1000);
+    setTimeout(removeLoadingOverlay, 3000);
+})();
+
 // Web应用初始化
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('📄 DOM加载完成，开始初始化...');
+    
     // 检测是否为移动设备
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     
@@ -16,22 +41,28 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('🖥️ 检测到桌面设备');
     }
     
-     // 初始化Service Worker（用于PWA功能）
-   if ('serviceWorker' in navigator) {
-       navigator.serviceWorker.register('sw.js')
-           .then(registration => {
-               console.log('Service Worker 注册成功:', registration);
-           })
-           .catch(error => {
-               console.log('Service Worker 注册失败:', error);
-           });
-   }
+    // 初始化Service Worker（用于PWA功能）- 非阻塞
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js')
+            .then(registration => {
+                console.log('✅ Service Worker 注册成功:', registration);
+            })
+            .catch(error => {
+                console.log('⚠️ Service Worker 注册失败:', error);
+            });
+    }
     
-    // 初始化应用
-    initWebApp();
+    // 立即初始化应用
+    try {
+        initWebApp();
+    } catch (error) {
+        console.error('❌ Web应用初始化失败:', error);
+    }
 });
 
 function initWebApp() {
+    console.log('🔧 初始化Web应用...');
+    
     // 设置应用版本信息
     window.appInfo = {
         name: 'Plan Manager Web',
@@ -45,15 +76,75 @@ function initWebApp() {
         getAppName: () => Promise.resolve('Plan Manager Web')
     };
     
-    // 初始化同步服务（延迟初始化以确保依赖已加载）
+    // 确保基础函数存在
+    ensureBasicFunctions();
+    
+    // 初始化统计数据
     setTimeout(() => {
-        if (window.SyncService) {
-            window.syncService = new SyncService();
-            console.log('✅ 同步服务初始化完成');
-        } else {
-            console.log('⚠️ SyncService未加载，跳过同步服务初始化');
+        try {
+            if (typeof window.updateStats === 'function') {
+                window.updateStats();
+                console.log('✅ 统计数据已更新');
+            }
+        } catch (error) {
+            console.warn('⚠️ 更新统计数据失败:', error);
         }
-    }, 1000);
+    }, 500);
+    
+    // 延迟初始化同步服务（非关键功能）
+    setTimeout(() => {
+        try {
+            if (window.SyncService) {
+                window.syncService = new SyncService();
+                console.log('✅ 同步服务初始化完成');
+            } else {
+                console.log('ℹ️ SyncService未加载，使用占位符');
+                // 创建占位符同步服务
+                window.syncService = {
+                    getSyncConfig: () => ({ enabled: false }),
+                    getSyncStatus: () => ({ enabled: false, online: false })
+                };
+            }
+        } catch (error) {
+            console.warn('⚠️ 同步服务初始化失败:', error);
+        }
+    }, 2000);
+    
+    console.log('✅ Web应用初始化完成');
+}
+
+// 确保基础函数存在
+function ensureBasicFunctions() {
+    // 确保updateStats函数存在
+    if (!window.updateStats) {
+        window.updateStats = function() {
+            console.log('📊 更新统计数据（占位符版本）');
+            try {
+                const elements = {
+                    totalPlans: document.getElementById('totalPlans'),
+                    completedTasks: document.getElementById('completedTasks'),
+                    activeHabits: document.getElementById('activeHabits'),
+                    weekStreak: document.getElementById('weekStreak')
+                };
+                
+                Object.keys(elements).forEach(key => {
+                    if (elements[key]) {
+                        elements[key].textContent = '0';
+                    }
+                });
+            } catch (error) {
+                console.error('更新统计显示失败:', error);
+            }
+        };
+    }
+    
+    // 确保calculateStreak函数存在
+    if (!window.calculateStreak) {
+        window.calculateStreak = function(dayPlans) {
+            return 0; // 占位符实现
+        };
+    }
+}
 
 // 添加安装提示（PWA）
 let deferredPrompt;
