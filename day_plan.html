@@ -2,6 +2,39 @@
 <html lang="zh-CN">
 
 <head>
+    <!-- 立即阻止弹窗的脚本 -->
+    <script>
+        // 立即禁用所有弹窗和通知
+        window.DISABLE_ALL_NOTIFICATIONS = true;
+        window.DISABLE_SYNC_NOTIFICATIONS = true;
+        window.GITHUB_PAGES_MODE = true;
+        
+        // 重写弹窗函数
+        const originalAlert = window.alert || function(){};
+        const originalConfirm = window.confirm || function(){return true;};
+        
+        window.alert = function(message) {
+            if (typeof message === 'string' && (
+                message.includes('同步') || 
+                message.includes('失败') || 
+                message.includes('错误') ||
+                message.includes('sync') ||
+                message.includes('error')
+            )) {
+                console.log('[日计划页面-弹窗已阻止]:', message);
+                return;
+            }
+            console.log('[日计划页面-Alert]:', message);
+        };
+        
+        window.confirm = function(message) {
+            console.log('[日计划页面-Confirm已阻止]:', message);
+            return true;
+        };
+        
+        console.log('🛡️ 日计划页面弹窗防护已启用');
+    </script>
+    
     <script src="config.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1214,18 +1247,23 @@
             color: #333 !important;
         }
 
+        
+        /* 隐藏所有同步相关的通知和弹窗 */
+        [id*="sync"], [id*="notification"], [id*="indicator"], 
+        [class*="sync"], [class*="notification"], [class*="indicator"],
+        .sync-notification, .zero-config-notification, 
+        #auto-sync-indicator, #universal-sync-badge {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+
     </style>
     
-    <!-- 零配置自动同步系统 -->
-    <script src="zero-config-sync.js"></script>
-    <!-- 全局同步配置管理器 -->
-    <script src="global-sync-config.js"></script>
-    <!-- 通用自动同步功能 -->
-    <script src="universal-auto-sync.js"></script>
-    <!-- 同步初始化修复脚本 -->
-    <script src="fix-sync-initialization.js"></script>
-    <!-- 跨浏览器数据恢复脚本 -->
-    <script src="cross-browser-sync-recovery.js"></script>
+    <!-- GitHub Pages优化 - 无弹窗版本 -->
+    <script src="config-simple.js"></script>
+    <script src="github-pages-optimize.js"></script>
 </body>
 
 </html>
