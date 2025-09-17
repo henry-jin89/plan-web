@@ -45,11 +45,15 @@ function initWebApp() {
         getAppName: () => Promise.resolve('Plan Manager Web')
     };
     
-    // 初始化同步服务
-if (window.SyncService) {
-    window.syncService = new SyncService();
-    console.log('✅ 同步服务初始化完成');
-}
+    // 初始化同步服务（延迟初始化以确保依赖已加载）
+    setTimeout(() => {
+        if (window.SyncService) {
+            window.syncService = new SyncService();
+            console.log('✅ 同步服务初始化完成');
+        } else {
+            console.log('⚠️ SyncService未加载，跳过同步服务初始化');
+        }
+    }, 1000);
 
 // 添加安装提示（PWA）
 let deferredPrompt;
@@ -143,9 +147,9 @@ window.addEventListener('offline', function() {
     if (window.syncService) {
         window.syncService.handleNetworkChange(false);
     }
-   });
-   
-   }
+});
+
+}
 
 
 
