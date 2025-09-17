@@ -472,14 +472,21 @@ window.APP_VERSION = Date.now();
         </div>
     </div>
 
+    <!-- 调试和错误处理 -->
+    <script src="debug.js?v=20241211"></script>
+    
+    <!-- 核心依赖按顺序加载 -->
     <script src="common.js?v=20241211"></script>
-    <!-- 零配置自动同步系统 -->
-    <script src="zero-config-sync.js"></script>
-    <script src="sync-service.js?v=20241211"></script>
-    <script src="sync-providers.js?v=20241211"></script>
-    <!-- 全局同步配置管理器 -->
-    <script src="global-sync-config.js"></script>
-    <script src="google-drive-sync.js?v=20241211"></script>
+    <script src="init.js?v=20241211"></script>
+    
+    <!-- 同步相关脚本（异步加载，避免阻塞） -->
+    <script async src="zero-config-sync.js"></script>
+    <script async src="sync-service.js?v=20241211"></script>
+    <script async src="sync-providers.js?v=20241211"></script>
+    <script async src="global-sync-config.js"></script>
+    <script async src="google-drive-sync.js?v=20241211"></script>
+    
+    <!-- Web主文件 -->
     <script src="web-main.js?v=20241211"></script>
     
     <!-- 通用自动同步功能 -->
