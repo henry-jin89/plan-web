@@ -1,101 +1,281 @@
 /**
- * 紧急修复脚本 - 确保页面能正常显示
+ * 紧急修复脚本 - 解决网页空白问题
+ * 2024年12月11日更新
  */
 
-console.log('🚨 紧急修复脚本已加载');
+console.log('🔧 启动紧急修复脚本...');
 
-// 确保页面内容可见
-function ensureContentVisible() {
-    console.log('🔧 执行紧急修复...');
-    
-    // 隐藏所有加载提示
-    const loadingElements = [
-        document.getElementById('loading-overlay'),
-        document.querySelector('.loading'),
-        document.querySelector('[id*="loading"]')
-    ];
-    
-    loadingElements.forEach(element => {
-        if (element) {
-            element.style.display = 'none';
-            console.log('✅ 隐藏加载元素');
+// 全局错误处理
+window.addEventListener('error', function(event) {
+    console.error('❌ 全局错误:', event.error);
+    // 不让错误阻止页面显示
+    event.preventDefault();
+});
+
+window.addEventListener('unhandledrejection', function(event) {
+    console.error('❌ 未处理的Promise拒绝:', event.reason);
+    // 不让Promise错误阻止页面显示
+    event.preventDefault();
+});
+
+// 确保基础对象存在
+window.APP_STATE = window.APP_STATE || {
+    initialized: false,
+    errors: []
+};
+
+// 基础工具函数 - 防止依赖缺失
+if (!window.StorageUtils) {
+    console.warn('⚠️ StorageUtils缺失，创建基础版本');
+    window.StorageUtils = {
+        savePlan: function(type, date, data) {
+            try {
+                const key = `planData_${type}`;
+                const allPlans = JSON.parse(localStorage.getItem(key) || '{}');
+                allPlans[date] = data;
+                localStorage.setItem(key, JSON.stringify(allPlans));
+                return true;
+            } catch (e) {
+                console.error('保存失败:', e);
+                return false;
+            }
+        },
+        loadPlan: function(type, date) {
+            try {
+                const key = `planData_${type}`;
+                const allPlans = JSON.parse(localStorage.getItem(key) || '{}');
+                return allPlans[date] || null;
+            } catch (e) {
+                console.error('加载失败:', e);
+                return null;
+            }
+        },
+        getAllPlans: function(type) {
+            try {
+                const key = `planData_${type}`;
+                return JSON.parse(localStorage.getItem(key) || '{}');
+            } catch (e) {
+                console.error('获取所有计划失败:', e);
+                return {};
+            }
         }
-    });
+    };
+}
+
+if (!window.DateUtils) {
+    console.warn('⚠️ DateUtils缺失，创建基础版本');
+    window.DateUtils = {
+        formatDate: function(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        },
+        getToday: function() {
+            return this.formatDate(new Date());
+        }
+    };
+}
+
+// 基础同步服务占位符
+if (!window.syncService) {
+    console.warn('⚠️ 同步服务缺失，创建占位符');
+    window.syncService = {
+        getSyncConfig: function() {
+            return { enabled: false };
+        },
+        getSyncStatus: function() {
+            return { enabled: false, online: false };
+        }
+    };
+}
+
+// 修复同步状态栏函数
+window.initSyncStatusBar = function() {
+    console.log('🔧 修复同步状态栏初始化');
+    // 安全的初始化，不依赖具体的同步服务
+    const statusBar = document.getElementById('syncStatusBar');
+    if (statusBar) {
+        // 默认隐藏，避免显示错误信息
+        statusBar.style.display = 'none';
+    }
+};
+
+window.updateSyncStatusBar = function() {
+    // 安全的状态栏更新
+    const statusBar = document.getElementById('syncStatusBar');
+    if (statusBar) {
+        statusBar.style.display = 'none'; // 暂时隐藏避免错误
+    }
+};
+
+// 修复快速同步函数
+window.quickSync = function() {
+    console.log('📱 快速同步功能暂时不可用');
+    if (window.MessageUtils && window.MessageUtils.info) {
+        window.MessageUtils.info('同步功能正在初始化中，请稍后再试');
+    } else {
+        alert('同步功能正在初始化中，请稍后再试');
+    }
+};
+
+// 修复强制刷新函数
+window.forceRefresh = function() {
+    console.log('🔄 执行强制刷新');
+    if (confirm('即将强制刷新页面，是否继续？')) {
+        // 清除可能的缓存
+        if ('caches' in window) {
+            caches.keys().then(function(names) {
+                names.forEach(function(name) {
+                    caches.delete(name);
+                });
+            }).finally(function() {
+                window.location.reload(true);
+            });
+        } else {
+            window.location.reload(true);
+        }
+    }
+};
+
+// 修复同步设置函数
+window.openSyncSettings = function() {
+    console.log('⚙️ 打开同步设置');
+    try {
+        window.open('sync-settings.html', '_blank');
+    } catch (e) {
+        console.error('无法打开同步设置:', e);
+        if (window.MessageUtils && window.MessageUtils.warning) {
+            window.MessageUtils.warning('同步设置页面暂时无法打开');
+        }
+    }
+};
+
+// 确保页面内容显示
+function ensurePageVisible() {
+    console.log('👁️ 确保页面内容可见');
+    
+    // 移除加载遮罩
+    const loadingOverlay = document.getElementById('loading-overlay');
+    if (loadingOverlay) {
+        console.log('隐藏加载遮罩');
+        loadingOverlay.style.display = 'none';
+    }
     
     // 确保主内容可见
-    const mainContent = document.querySelector('.container') || 
-                       document.querySelector('.main-content') ||
-                       document.getElementById('main-content');
-    
+    const mainContent = document.querySelector('.main-content');
     if (mainContent) {
-        mainContent.style.display = 'block';
         mainContent.style.visibility = 'visible';
         mainContent.style.opacity = '1';
-        console.log('✅ 主内容已显示');
+    }
+    
+    const container = document.querySelector('.container');
+    if (container) {
+        container.style.visibility = 'visible';
+        container.style.opacity = '1';
     }
     
     // 确保body可见
     document.body.style.visibility = 'visible';
     document.body.style.opacity = '1';
-    
-    // 检查CSS是否加载
-    const hasStyles = document.styleSheets.length > 0;
-    if (!hasStyles) {
-        console.warn('⚠️ CSS可能未加载，应用基础样式');
-        document.body.style.cssText += `
-            font-family: 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            margin: 0;
-            padding: 20px;
-            color: #333;
-            min-height: 100vh;
-        `;
-        
-        if (mainContent) {
-            mainContent.style.cssText += `
-                max-width: 900px;
-                margin: 30px auto;
-                background: rgba(255, 255, 255, 0.95);
-                border-radius: 20px;
-                padding: 24px;
-                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            `;
-        }
-    }
-    
-    console.log('✅ 紧急修复完成');
 }
 
-// 立即执行
-ensureContentVisible();
+// 立即执行页面可见性修复
+ensurePageVisible();
 
-// DOM加载完成后再次执行
+// DOM加载完成后再次确保
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', ensureContentVisible);
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('📄 DOM加载完成，再次确保页面可见');
+        setTimeout(ensurePageVisible, 100);
+    });
 } else {
-    setTimeout(ensureContentVisible, 100);
+    console.log('📄 DOM已加载，立即确保页面可见');
+    setTimeout(ensurePageVisible, 100);
 }
 
-// 延迟执行，确保其他脚本不会覆盖
-setTimeout(ensureContentVisible, 1000);
-setTimeout(ensureContentVisible, 3000);
+// 超时保护 - 5秒后强制显示页面
+setTimeout(function() {
+    console.log('⏰ 超时保护：强制显示页面内容');
+    ensurePageVisible();
+    
+    // 如果仍然有加载遮罩，强制移除
+    const loadingOverlay = document.getElementById('loading-overlay');
+    if (loadingOverlay && loadingOverlay.style.display !== 'none') {
+        console.log('🔧 强制移除持续存在的加载遮罩');
+        loadingOverlay.remove();
+    }
+}, 5000);
 
-// 提供手动修复功能
-window.emergencyFix = function() {
-    console.log('🔧 手动执行紧急修复');
-    ensureContentVisible();
-    
-    // 额外的修复措施
-    const allHiddenElements = document.querySelectorAll('[style*="display: none"], [style*="visibility: hidden"]');
-    allHiddenElements.forEach(element => {
-        if (!element.id.includes('loading') && !element.classList.contains('modal')) {
-            element.style.display = '';
-            element.style.visibility = '';
+// 修复统计更新函数
+window.updateStats = function() {
+    console.log('📊 更新统计数据');
+    try {
+        // 安全的统计更新
+        const totalPlansEl = document.getElementById('totalPlans');
+        const completedTasksEl = document.getElementById('completedTasks');
+        const activeHabitsEl = document.getElementById('activeHabits');
+        const weekStreakEl = document.getElementById('weekStreak');
+        
+        if (totalPlansEl) totalPlansEl.textContent = '0';
+        if (completedTasksEl) completedTasksEl.textContent = '0';
+        if (activeHabitsEl) activeHabitsEl.textContent = '0';
+        if (weekStreakEl) weekStreakEl.textContent = '0';
+        
+        // 如果StorageUtils可用，尝试计算真实数据
+        if (window.StorageUtils && typeof window.StorageUtils.getAllPlans === 'function') {
+            let totalPlans = 0;
+            let completedTasks = 0;
+            
+            const planTypes = ['day', 'week', 'month', 'quarter', 'halfyear', 'year'];
+            planTypes.forEach(type => {
+                try {
+                    const plans = window.StorageUtils.getAllPlans(type);
+                    totalPlans += Object.keys(plans).length;
+                    
+                    Object.values(plans).forEach(plan => {
+                        if (plan.todos) {
+                            const matches = plan.todos.match(/\[x\]/gi) || [];
+                            completedTasks += matches.length;
+                        }
+                    });
+                } catch (e) {
+                    console.warn(`获取${type}计划数据失败:`, e);
+                }
+            });
+            
+            if (totalPlansEl) totalPlansEl.textContent = totalPlans;
+            if (completedTasksEl) completedTasksEl.textContent = completedTasks;
         }
-    });
-    
-    alert('紧急修复已执行！如果页面仍有问题，请刷新页面。');
+        
+    } catch (error) {
+        console.error('更新统计数据失败:', error);
+    }
 };
 
-// 在控制台提供帮助信息
-console.log('%c🆘 如果页面仍然空白，请在控制台输入: emergencyFix()', 'color: #ff5722; font-size: 16px; font-weight: bold;');
+// 修复计算连续规划天数函数
+window.calculateStreak = function(dayPlans) {
+    try {
+        const today = new Date();
+        let streak = 0;
+        
+        for (let i = 0; i < 30; i++) {
+            const date = new Date(today);
+            date.setDate(today.getDate() - i);
+            const dateKey = window.DateUtils.formatDate(date);
+            
+            if (dayPlans[dateKey] && dayPlans[dateKey].goals) {
+                streak++;
+            } else {
+                break;
+            }
+        }
+        
+        return streak;
+    } catch (error) {
+        console.error('计算连续规划天数失败:', error);
+        return 0;
+    }
+};
+
+console.log('✅ 紧急修复脚本加载完成');
