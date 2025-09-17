@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>计划管理器 - 测试页面</title>
+    <style>
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        .title {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .status {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .status h3 {
+            margin: 0 0 15px 0;
+            color: #1976d2;
+        }
+        
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .status-item:last-child {
+            border-bottom: none;
+        }
+        
+        .status-ok {
+            color: #4caf50;
+            font-weight: bold;
+        }
+        
+        .status-error {
+            color: #f44336;
+            font-weight: bold;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #1976d2, #1565c0);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(25, 118, 210, 0.3);
+        }
+        
+        .actions {
+            text-align: center;
+            margin-top: 30px;
+        }
+        
+        .log {
+            background: #000;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">计划管理器测试页面</h1>
+        
+        <div class="status">
+            <h3>系统状态检查</h3>
+            <div class="status-item">
+                <span>本地存储</span>
+                <span id="storage-status">检查中...</span>
+            </div>
+            <div class="status-item">
+                <span>基础工具类</span>
+                <span id="utils-status">检查中...</span>
+            </div>
+            <div class="status-item">
+                <span>应用初始化</span>
+                <span id="init-status">检查中...</span>
+            </div>
+            <div class="status-item">
+                <span>同步服务</span>
+                <span id="sync-status">检查中...</span>
+            </div>
+        </div>
+        
+        <div class="actions">
+            <button class="btn" onclick="runTests()">运行测试</button>
+            <button class="btn" onclick="checkStatus()">检查状态</button>
+            <button class="btn" onclick="clearLog()">清空日志</button>
+            <button class="btn" onclick="goToMainApp()">进入主应用</button>
+        </div>
+        
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        // 简单的日志系统
+        function log(message, type = 'info') {
+            const logEl = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const color = {
+                'info': '#0f0',
+                'error': '#f44',
+                'warning': '#fa0',
+                'success': '#4f4'
+            }[type] || '#0f0';
+            
+            logEl.innerHTML += `<div style="color: ${color}">[${timestamp}] ${message}</div>`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        // 检查系统状态
+        function checkStatus() {
+            log('开始系统状态检查...', 'info');
+            
+            // 检查本地存储
+            try {
+                localStorage.setItem('test', 'ok');
+                localStorage.removeItem('test');
+                document.getElementById('storage-status').innerHTML = '<span class="status-ok">✓ 正常</span>';
+                log('本地存储: 正常', 'success');
+            } catch (error) {
+                document.getElementById('storage-status').innerHTML = '<span class="status-error">✗ 错误</span>';
+                log('本地存储: 错误 - ' + error.message, 'error');
+            }
+            
+            // 检查基础工具类
+            if (typeof StorageUtils !== 'undefined' && 
+                typeof DateUtils !== 'undefined' && 
+                typeof TodoUtils !== 'undefined') {
+                document.getElementById('utils-status').innerHTML = '<span class="status-ok">✓ 已加载</span>';
+                log('基础工具类: 已加载', 'success');
+            } else {
+                document.getElementById('utils-status').innerHTML = '<span class="status-error">✗ 未加载</span>';
+                log('基础工具类: 未加载', 'error');
+                log('StorageUtils: ' + typeof StorageUtils, 'info');
+                log('DateUtils: ' + typeof DateUtils, 'info');
+                log('TodoUtils: ' + typeof TodoUtils, 'info');
+            }
+            
+            // 检查应用初始化
+            if (window.APP_INIT && window.APP_INIT.loaded) {
+                document.getElementById('init-status').innerHTML = '<span class="status-ok">✓ 完成</span>';
+                log('应用初始化: 完成', 'success');
+                if (window.APP_INIT.errors.length > 0) {
+                    log('初始化错误: ' + window.APP_INIT.errors.join(', '), 'warning');
+                }
+            } else {
+                document.getElementById('init-status').innerHTML = '<span class="status-error">✗ 未完成</span>';
+                log('应用初始化: 未完成', 'error');
+            }
+            
+            // 检查同步服务
+            if (window.syncService) {
+                document.getElementById('sync-status').innerHTML = '<span class="status-ok">✓ 已创建</span>';
+                log('同步服务: 已创建', 'success');
+            } else if (typeof SyncService !== 'undefined') {
+                document.getElementById('sync-status').innerHTML = '<span class="status-error">✗ 未初始化</span>';
+                log('同步服务: 类存在但未初始化', 'warning');
+            } else {
+                document.getElementById('sync-status').innerHTML = '<span class="status-error">✗ 不可用</span>';
+                log('同步服务: 不可用', 'error');
+            }
+        }
+
+        // 运行测试
+        function runTests() {
+            log('开始运行测试...', 'info');
+            checkStatus();
+            
+            // 测试数据存储
+            log('测试数据存储...', 'info');
+            if (typeof StorageUtils !== 'undefined') {
+                try {
+                    const testData = { test: true, time: new Date().toISOString() };
+                    StorageUtils.setItem('test_data', testData);
+                    const retrieved = StorageUtils.getItem('test_data');
+                    if (retrieved && retrieved.test) {
+                        log('数据存储测试: 通过', 'success');
+                    } else {
+                        log('数据存储测试: 失败 - 数据不匹配', 'error');
+                    }
+                    StorageUtils.removeItem('test_data');
+                } catch (error) {
+                    log('数据存储测试: 失败 - ' + error.message, 'error');
+                }
+            } else {
+                log('数据存储测试: 跳过 - StorageUtils不可用', 'warning');
+            }
+            
+            // 测试日期工具
+            log('测试日期工具...', 'info');
+            if (typeof DateUtils !== 'undefined') {
+                try {
+                    const today = DateUtils.getToday();
+                    const weekday = DateUtils.getWeekdayName(new Date());
+                    log(`今日: ${today}, 星期: ${weekday}`, 'success');
+                    log('日期工具测试: 通过', 'success');
+                } catch (error) {
+                    log('日期工具测试: 失败 - ' + error.message, 'error');
+                }
+            } else {
+                log('日期工具测试: 跳过 - DateUtils不可用', 'warning');
+            }
+            
+            log('测试完成!', 'success');
+        }
+
+        // 清空日志
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        // 进入主应用
+        function goToMainApp() {
+            if (confirm('确定要进入主应用吗？')) {
+                window.location.href = 'index.html';
+            }
+        }
+
+        // 页面加载完成后自动检查状态
+        window.addEventListener('load', function() {
+            log('测试页面已加载', 'info');
+            setTimeout(() => {
+                checkStatus();
+            }, 1000);
+        });
+
+        // 全局错误处理
+        window.addEventListener('error', function(event) {
+            log('JavaScript错误: ' + event.message + ' (文件: ' + event.filename + ', 行: ' + event.lineno + ')', 'error');
+        });
+    </script>
+
+    <!-- 加载核心脚本 -->
+    <script src="debug.js"></script>
+    <script src="common.js"></script>
+    <script src="init.js"></script>
+</body>
+</html>
