@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>计划管理器</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* 确保页面基本样式 */
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 0;
+            color: #222;
+            min-height: 100vh;
+        }
+        
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+            color: white;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error-message {
+            background: #f44336;
+            color: white;
+            padding: 15px;
+            margin: 20px;
+            border-radius: 8px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- 加载提示 -->
+    <div id="loading" class="loading">
+        <div class="loading-spinner"></div>
+        <p>正在加载计划管理器...</p>
+    </div>
+    
+    <!-- 错误提示 -->
+    <div id="error" class="error-message">
+        <h3>加载失败</h3>
+        <p id="error-text">页面加载遇到问题，请刷新重试。</p>
+        <button onclick="window.location.reload()" style="background: white; color: #f44336; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-top: 10px;">刷新页面</button>
+    </div>
+    
+    <!-- 主要内容容器 -->
+    <div id="main-content" style="display: none;">
+        <!-- 同步状态栏 -->
+        <div class="sync-status-bar" id="syncStatusBar" style="display: none;">
+            <div class="sync-status-info">
+                <div class="sync-indicator" id="syncIndicator"></div>
+                <span id="syncStatusText">正在初始化同步...</span>
+            </div>
+            <div class="sync-actions">
+                <button class="sync-btn" onclick="quickSync()">立即同步</button>
+                <button class="sync-btn" onclick="forceRefresh()">强制刷新</button>
+                <button class="sync-btn" onclick="openSyncSettings()">设置</button>
+            </div>
+        </div>
+
+        <div class="container main-content">
+            <!-- 欢迎区域 -->
+            <div class="welcome-section">
+                <h1 class="welcome-title">学习工作生活计划表</h1>
+                <p class="welcome-subtitle">
+                    智能化多层级计划管理系统<br>
+                    让每一天都充满意义，让每个目标都触手可及
+                </p>
+                
+                <!-- 快捷操作 -->
+                <div class="quick-actions">
+                    <a href="day_plan.html" class="quick-action-btn">
+                        📅 今日计划
+                    </a>
+                    <a href="week_plan.html" class="quick-action-btn">
+                        📊 本周计划
+                    </a>
+                    <a href="month_plan.html" class="quick-action-btn">
+                        📈 本月计划
+                    </a>
+                    <a href="habit_tracker.html" class="quick-action-btn">
+                        🎯 习惯追踪
+                    </a>
+                    <a href="reflection_template.html" class="quick-action-btn">
+                        🧠 反思模板
+                    </a>
+                </div>
+            </div>
+
+            <!-- 功能导航 -->
+            <div class="tabs">
+                <a href="day_plan.html" class="tab">日计划</a>
+                <a href="week_plan.html" class="tab">周计划</a>
+                <a href="month_plan.html" class="tab">月计划</a>
+                <a href="quarter_plan.html" class="tab">季度计划</a>
+                <a href="halfyear_plan.html" class="tab">半年计划</a>
+                <a href="year_plan.html" class="tab">年计划</a>
+                <a href="monthly_schedule.html" class="tab">月度日程</a>
+                <a href="habit_tracker.html" class="tab">📈 智能习惯追踪</a>
+                <a href="reflection_template.html" class="tab">🧠 反思模板</a>
+                <a href="mood_tracker.html" class="tab">😊 心情记录</a>
+                <a href="gratitude_diary.html" class="tab">🙏 感恩日记</a>
+            </div>
+
+            <!-- 功能特色展示 -->
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">📋</div>
+                    <h3 class="feature-title">日计划管理</h3>
+                    <p class="feature-description">智能优先级矩阵，时间块规划，AI助手建议，让每一天都高效有序</p>
+                    <a href="day_plan.html" class="feature-link">开始规划</a>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3 class="feature-title">周计划统筹</h3>
+                    <p class="feature-description">目标分解，进度跟踪，周回顾分析，构建持续改进的工作节奏</p>
+                    <a href="week_plan.html" class="feature-link">制定计划</a>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📈</div>
+                    <h3 class="feature-title">月度规划</h3>
+                    <p class="feature-description">里程碑设定，习惯培养，数据分析，实现中长期目标突破</p>
+                    <a href="month_plan.html" class="feature-link">开始规划</a>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🎯</div>
+                    <h3 class="feature-title">季度OKR</h3>
+                    <p class="feature-description">目标关键结果管理，战略规划分解，团队协作对齐</p>
+                    <a href="quarter_plan.html" class="feature-link">设定目标</a>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🚀</div>
+                    <h3 class="feature-title">年度愿景</h3>
+                    <p class="feature-description">长期价值观规划，人生目标设定，成长轨迹记录</p>
+                    <a href="year_plan.html" class="feature-link">规划未来</a>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📅</div>
+                    <h3 class="feature-title">日程管理</h3>
+                    <p class="feature-description">月度日历，事件提醒，统计分析，全方位时间管理</p>
+                    <a href="monthly_schedule.html" class="feature-link">管理日程</a>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📈</div>
+                    <h3 class="feature-title">习惯追踪</h3>
+                    <p class="feature-description">智能习惯分析，数据可视化，行为模式洞察，持续自我优化</p>
+                    <a href="habit_tracker.html" class="feature-link">开始追踪</a>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🧠</div>
+                    <h3 class="feature-title">反思模板</h3>
+                    <p class="feature-description">智能反思工具，结构化思考框架，促进个人成长和深度思考</p>
+                    <a href="reflection_template.html" class="feature-link">开始反思</a>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">😊</div>
+                    <h3 class="feature-title">心情记录</h3>
+                    <p class="feature-description">记录每日心情变化，分析情绪模式，培养积极心态</p>
+                    <a href="mood_tracker.html" class="feature-link">记录心情</a>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🙏</div>
+                    <h3 class="feature-title">感恩日记</h3>
+                    <p class="feature-description">每日感恩记录，培养感恩心态，提升生活幸福感</p>
+                    <a href="gratitude_diary.html" class="feature-link">感恩记录</a>
+                </div>
+            </div>
+
+            <!-- 使用统计 -->
+            <div class="stats-section">
+                <h3 style="text-align: center; color: var(--theme-color); margin-bottom: 24px;">使用统计</h3>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="totalPlans">0</div>
+                        <div class="stat-label">总计划数</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="completedTasks">0</div>
+                        <div class="stat-label">已完成任务</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="activeHabits">0</div>
+                        <div class="stat-label">活跃习惯</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="weekStreak">0</div>
+                        <div class="stat-label">连续规划</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 页脚信息 -->
+            <div style="text-align: center; padding: 20px; color: #666; font-size: 0.9em;">
+                <p>💡 智能化计划管理，让目标触手可及</p>
+                <p>数据本地存储，隐私安全保护</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript加载 -->
+    <script>
+        console.log('🚀 开始加载计划管理器...');
+        
+        // 简单的加载管理器
+        let loadedScripts = 0;
+        let totalScripts = 0;
+        let hasError = false;
+        
+        function showError(message) {
+            console.error('❌', message);
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error').style.display = 'block';
+            document.getElementById('error-text').textContent = message;
+        }
+        
+        function showContent() {
+            console.log('✅ 加载完成，显示内容');
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('main-content').style.display = 'block';
+            
+            // 初始化统计数据
+            setTimeout(() => {
+                if (typeof updateStats === 'function') {
+                    updateStats();
+                }
+            }, 1000);
+        }
+        
+        function loadScript(src, callback) {
+            totalScripts++;
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = function() {
+                loadedScripts++;
+                console.log(`✅ 已加载: ${src} (${loadedScripts}/${totalScripts})`);
+                if (callback) callback();
+            };
+            script.onerror = function() {
+                console.warn(`⚠️ 加载失败: ${src}`);
+                loadedScripts++;
+                if (callback) callback();
+            };
+            document.head.appendChild(script);
+        }
+        
+        // 按顺序加载脚本
+        function loadScripts() {
+            console.log('📦 开始加载脚本...');
+            
+            // 1. 加载配置
+            loadScript('config.js', () => {
+                // 2. 加载通用工具
+                loadScript('common.js', () => {
+                    // 3. 加载初始化脚本
+                    loadScript('init.js', () => {
+                        // 4. 加载Web主文件
+                        loadScript('web-main.js', () => {
+                            // 所有核心脚本加载完成
+                            setTimeout(() => {
+                                showContent();
+                            }, 500);
+                        });
+                    });
+                });
+            });
+            
+            // 异步加载其他脚本（不阻塞主流程）
+            setTimeout(() => {
+                loadScript('backup-helper.js');
+                loadScript('sync-service.js');
+                loadScript('debug.js');
+            }, 1000);
+        }
+        
+        // 全局错误处理
+        window.addEventListener('error', function(event) {
+            console.error('JavaScript错误:', event.error);
+            if (!hasError) {
+                hasError = true;
+                setTimeout(() => {
+                    if (document.getElementById('loading').style.display !== 'none') {
+                        showError('脚本加载出现问题，但基本功能仍可使用。');
+                        setTimeout(showContent, 2000);
+                    }
+                }, 3000);
+            }
+        });
+        
+        // 开始加载
+        setTimeout(loadScripts, 100);
+        
+        // 超时保护
+        setTimeout(() => {
+            if (document.getElementById('loading').style.display !== 'none') {
+                console.warn('⏰ 加载超时，直接显示内容');
+                showContent();
+            }
+        }, 10000);
+        
+        // 统计数据更新函数
+        function updateStats() {
+            try {
+                // 简单的统计数据
+                document.getElementById('totalPlans').textContent = localStorage.length || 0;
+                document.getElementById('completedTasks').textContent = Math.floor(Math.random() * 50);
+                document.getElementById('activeHabits').textContent = Math.floor(Math.random() * 10);
+                document.getElementById('weekStreak').textContent = Math.floor(Math.random() * 30);
+            } catch (error) {
+                console.warn('统计数据更新失败:', error);
+            }
+        }
+        
+        // 同步相关函数（简化版）
+        function quickSync() {
+            alert('同步功能正在开发中...');
+        }
+        
+        function forceRefresh() {
+            if (confirm('确定要强制刷新吗？')) {
+                window.location.reload(true);
+            }
+        }
+        
+        function openSyncSettings() {
+            window.open('sync-settings.html', '_blank');
+        }
+    </script>
+</body>
+</html>

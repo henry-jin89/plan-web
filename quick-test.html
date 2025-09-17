@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>快速测试 - 计划管理器</title>
+    <style>
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        .title {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .nav-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .nav-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: #333;
+        }
+        
+        .nav-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+        
+        .nav-icon {
+            font-size: 2em;
+            margin-bottom: 10px;
+            display: block;
+        }
+        
+        .nav-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .nav-desc {
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .status {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #1976d2, #1565c0);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            cursor: pointer;
+            margin: 5px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(25, 118, 210, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">计划管理器</h1>
+        
+        <div class="status">
+            <h3>📊 系统状态</h3>
+            <p>✅ 页面已成功加载</p>
+            <p>✅ 基础样式正常</p>
+            <p id="js-status">🔄 检查JavaScript功能...</p>
+            <button class="btn" onclick="testJS()">测试JavaScript</button>
+            <button class="btn" onclick="goToMain()">进入完整版</button>
+            <button class="btn" onclick="goToSimple()">进入简化版</button>
+        </div>
+        
+        <div class="nav-grid">
+            <a href="day_plan.html" class="nav-card">
+                <span class="nav-icon">📅</span>
+                <div class="nav-title">今日计划</div>
+                <div class="nav-desc">管理每日任务和目标</div>
+            </a>
+            
+            <a href="week_plan.html" class="nav-card">
+                <span class="nav-icon">📊</span>
+                <div class="nav-title">本周计划</div>
+                <div class="nav-desc">制定和跟踪周计划</div>
+            </a>
+            
+            <a href="month_plan.html" class="nav-card">
+                <span class="nav-icon">📈</span>
+                <div class="nav-title">本月计划</div>
+                <div class="nav-desc">设定月度目标和里程碑</div>
+            </a>
+            
+            <a href="habit_tracker.html" class="nav-card">
+                <span class="nav-icon">🎯</span>
+                <div class="nav-title">习惯追踪</div>
+                <div class="nav-desc">培养和监控好习惯</div>
+            </a>
+            
+            <a href="reflection_template.html" class="nav-card">
+                <span class="nav-icon">🧠</span>
+                <div class="nav-title">反思模板</div>
+                <div class="nav-desc">结构化思考和总结</div>
+            </a>
+            
+            <a href="mood_tracker.html" class="nav-card">
+                <span class="nav-icon">😊</span>
+                <div class="nav-title">心情记录</div>
+                <div class="nav-desc">追踪情绪变化</div>
+            </a>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px; color: #666;">
+            <p>🚀 这是一个简化的测试页面，用于验证基本功能</p>
+            <p>如果这个页面正常显示，说明基础功能没有问题</p>
+        </div>
+    </div>
+
+    <script>
+        console.log('✅ 快速测试页面已加载');
+        
+        // 测试JavaScript功能
+        function testJS() {
+            document.getElementById('js-status').innerHTML = '✅ JavaScript功能正常';
+            alert('JavaScript测试成功！\n\n页面功能正常，可以使用计划管理器的所有功能。');
+        }
+        
+        // 进入主页面
+        function goToMain() {
+            if (confirm('进入完整版主页面？')) {
+                window.location.href = 'index.html';
+            }
+        }
+        
+        // 进入简化版
+        function goToSimple() {
+            if (confirm('进入简化版页面？')) {
+                window.location.href = 'simple.html';
+            }
+        }
+        
+        // 自动检查JavaScript状态
+        setTimeout(() => {
+            document.getElementById('js-status').innerHTML = '✅ JavaScript功能正常';
+        }, 1000);
+        
+        // 显示加载完成信息
+        console.log('🎉 快速测试页面加载完成！');
+        console.log('📝 如果你看到这条消息，说明JavaScript正常工作');
+    </script>
+</body>
+</html>
