@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>修复测试页面</title>
+    <style>
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            color: #222;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+        
+        .title {
+            text-align: center;
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 30px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .test-item {
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            border-left: 4px solid #1976d2;
+        }
+        
+        .success { border-left-color: #4caf50; }
+        .warning { border-left-color: #ff9800; }
+        .error { border-left-color: #f44336; }
+        
+        .btn {
+            background: linear-gradient(135deg, #1976d2, #1565c0);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-weight: 500;
+            margin: 5px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+        }
+        
+        #test-results {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">🔧 修复测试页面</h1>
+        
+        <div class="test-item">
+            <h3>📋 测试说明</h3>
+            <p>这个页面用于测试修复后的功能是否正常工作。</p>
+        </div>
+        
+        <div class="test-item">
+            <h3>🧪 测试控制</h3>
+            <button class="btn" onclick="runAllTests()">运行所有测试</button>
+            <button class="btn" onclick="testBasicFunctions()">测试基础功能</button>
+            <button class="btn" onclick="testStorage()">测试存储功能</button>
+            <button class="btn" onclick="clearResults()">清除结果</button>
+        </div>
+        
+        <div id="test-results"></div>
+        
+        <div class="test-item">
+            <h3>🔗 导航链接</h3>
+            <a href="index.html" class="btn">返回主页</a>
+            <a href="day_plan.html" class="btn">日计划</a>
+            <a href="week_plan.html" class="btn">周计划</a>
+        </div>
+    </div>
+
+    <!-- 加载修复脚本 -->
+    <script src="emergency-fix.js"></script>
+    <script src="debug.js"></script>
+    <script src="common.js"></script>
+    
+    <script>
+        console.log('🧪 测试页面加载完成');
+        
+        // 测试结果容器
+        const resultsContainer = document.getElementById('test-results');
+        
+        function addTestResult(title, status, message) {
+            const item = document.createElement('div');
+            item.className = `test-item ${status}`;
+            item.innerHTML = `
+                <h4>${getStatusIcon(status)} ${title}</h4>
+                <p>${message}</p>
+            `;
+            resultsContainer.appendChild(item);
+        }
+        
+        function getStatusIcon(status) {
+            switch(status) {
+                case 'success': return '✅';
+                case 'warning': return '⚠️';
+                case 'error': return '❌';
+                default: return 'ℹ️';
+            }
+        }
+        
+        function clearResults() {
+            resultsContainer.innerHTML = '';
+        }
+        
+        function testBasicFunctions() {
+            console.log('🧪 测试基础功能...');
+            
+            // 测试StorageUtils
+            if (window.StorageUtils) {
+                try {
+                    window.StorageUtils.savePlan('test', 'test-key', { test: true });
+                    const loaded = window.StorageUtils.loadPlan('test', 'test-key');
+                    if (loaded && loaded.test) {
+                        addTestResult('StorageUtils', 'success', '存储和加载功能正常');
+                    } else {
+                        addTestResult('StorageUtils', 'error', '加载数据失败');
+                    }
+                } catch (error) {
+                    addTestResult('StorageUtils', 'error', `错误: ${error.message}`);
+                }
+            } else {
+                addTestResult('StorageUtils', 'error', 'StorageUtils未加载');
+            }
+            
+            // 测试DateUtils
+            if (window.DateUtils) {
+                try {
+                    const today = window.DateUtils.getToday();
+                    if (today && today.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                        addTestResult('DateUtils', 'success', `日期功能正常，今天是: ${today}`);
+                    } else {
+                        addTestResult('DateUtils', 'error', '日期格式错误');
+                    }
+                } catch (error) {
+                    addTestResult('DateUtils', 'error', `错误: ${error.message}`);
+                }
+            } else {
+                addTestResult('DateUtils', 'error', 'DateUtils未加载');
+            }
+            
+            // 测试TodoUtils
+            if (window.TodoUtils) {
+                addTestResult('TodoUtils', 'success', 'TodoUtils已加载');
+            } else {
+                addTestResult('TodoUtils', 'warning', 'TodoUtils未加载，可能影响待办事项功能');
+            }
+            
+            // 测试MessageUtils
+            if (window.MessageUtils) {
+                try {
+                    window.MessageUtils.success('测试消息', 1000);
+                    addTestResult('MessageUtils', 'success', '消息提示功能正常');
+                } catch (error) {
+                    addTestResult('MessageUtils', 'error', `错误: ${error.message}`);
+                }
+            } else {
+                addTestResult('MessageUtils', 'warning', 'MessageUtils未加载，消息提示可能不可用');
+            }
+        }
+        
+        function testStorage() {
+            console.log('🧪 测试存储功能...');
+            
+            try {
+                // 测试localStorage可用性
+                localStorage.setItem('test', 'value');
+                const value = localStorage.getItem('test');
+                localStorage.removeItem('test');
+                
+                if (value === 'value') {
+                    addTestResult('LocalStorage', 'success', '本地存储功能正常');
+                } else {
+                    addTestResult('LocalStorage', 'error', '本地存储读写异常');
+                }
+                
+                // 测试存储空间
+                const storageInfo = {
+                    items: localStorage.length,
+                    size: JSON.stringify(localStorage).length
+                };
+                
+                addTestResult('存储状态', 'success', 
+                    `存储项目: ${storageInfo.items}个，估计大小: ${(storageInfo.size / 1024).toFixed(2)}KB`);
+                
+            } catch (error) {
+                addTestResult('LocalStorage', 'error', `存储测试失败: ${error.message}`);
+            }
+        }
+        
+        function runAllTests() {
+            console.log('🧪 运行所有测试...');
+            clearResults();
+            
+            addTestResult('测试开始', 'success', '开始执行所有测试项目');
+            
+            // 基础环境测试
+            addTestResult('浏览器环境', 'success', 
+                `浏览器: ${navigator.userAgent.split(' ').pop()}, 语言: ${navigator.language}`);
+            
+            // 页面状态测试
+            addTestResult('页面状态', 'success', 
+                `DOM状态: ${document.readyState}, 元素数量: ${document.querySelectorAll('*').length}`);
+            
+            // 运行功能测试
+            testBasicFunctions();
+            testStorage();
+            
+            // 调试信息
+            if (window.DEBUG) {
+                const report = window.DEBUG.getErrorSummary();
+                if (report.totalErrors > 0) {
+                    addTestResult('错误检查', 'warning', 
+                        `发现 ${report.totalErrors} 个错误，${report.totalWarnings} 个警告`);
+                } else {
+                    addTestResult('错误检查', 'success', '未发现严重错误');
+                }
+            }
+            
+            addTestResult('测试完成', 'success', '所有测试项目执行完毕');
+        }
+        
+        // 页面加载后自动运行基础测试
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                console.log('🔧 自动运行基础测试...');
+                testBasicFunctions();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
