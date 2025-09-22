@@ -227,48 +227,25 @@ class GratitudeInitFixer {
     }
 
     /**
-     * 在页面上显示通知
+     * 在页面上显示通知 - 已禁用弹窗，仅记录到控制台
      */
     showPageNotification() {
-        const notification = document.createElement('div');
-        notification.style.cssText = `
-            position: fixed;
-            top: 80px;
-            right: 20px;
-            background: #e8f5e8;
-            border: 1px solid #4caf50;
-            border-radius: 8px;
-            padding: 12px 16px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            z-index: 10000;
-            font-size: 14px;
-            color: #2e7d32;
-            max-width: 300px;
-        `;
-        
         const totalFixed = this.fixedItems.length;
         const totalErrors = this.errors.length;
         
         let message = '🔧 感恩日记修复完成';
         if (totalFixed > 0) {
-            message += `\n✅ 修复了 ${totalFixed} 个问题`;
+            message += ` - 修复了 ${totalFixed} 个问题`;
         }
         if (totalErrors > 0) {
-            message += `\n⚠️ ${totalErrors} 个项目需要手动处理`;
+            message += ` - ${totalErrors} 个项目需要手动处理`;
         }
         if (totalFixed === 0 && totalErrors === 0) {
-            message += '\n📝 未发现需要修复的问题';
+            message += ' - 未发现需要修复的问题';
         }
         
-        notification.textContent = message;
-        document.body.appendChild(notification);
-        
-        // 5秒后自动隐藏
-        setTimeout(() => {
-            if (notification.parentNode) {
-                notification.remove();
-            }
-        }, 5000);
+        // 仅在控制台记录，不显示弹窗
+        console.log(message);
     }
 
     /**
