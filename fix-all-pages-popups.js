@@ -21,23 +21,33 @@
         const originalConfirm = window.confirm;
         const originalPrompt = window.prompt;
         
-        // 重写alert
+        // 重写alert - 完全静默
         window.alert = function(message) {
-            console.log('[全页面弹窗阻止] Alert:', message);
+            console.log('[弹窗已阻止] Alert:', message);
             return;
         };
         
-        // 重写confirm
+        // 重写confirm - 完全静默
         window.confirm = function(message) {
-            console.log('[全页面弹窗阻止] Confirm:', message);
+            console.log('[弹窗已阻止] Confirm:', message);
             return true;
         };
         
-        // 重写prompt
+        // 重写prompt - 完全静默
         window.prompt = function(message, defaultValue) {
-            console.log('[全页面弹窗阻止] Prompt:', message);
+            console.log('[弹窗已阻止] Prompt:', message);
             return defaultValue || '';
         };
+        
+        // 阻止所有可能的通知API
+        if (window.Notification) {
+            const OriginalNotification = window.Notification;
+            window.Notification = function() {
+                console.log('[弹窗已阻止] Notification:', arguments[0]);
+                return { close: () => {} };
+            };
+            window.Notification.requestPermission = () => Promise.resolve('denied');
+        }
         
         console.log('✅ 所有弹窗函数已被重写');
     };
@@ -120,13 +130,22 @@
                             return;
                         }
                         
-                        // 检查文本内容
+                        // 检查文本内容 - 扩展阻止列表
                         if (element.textContent && (
                             element.textContent.includes('自动同步失败') ||
                             element.textContent.includes('同步中') ||
-                            element.textContent.includes('连接失败')
+                            element.textContent.includes('连接失败') ||
+                            element.textContent.includes('感恩日记修复完成') ||
+                            element.textContent.includes('修复了') ||
+                            element.textContent.includes('同步完成') ||
+                            element.textContent.includes('零配置') ||
+                            element.textContent.includes('云同步') ||
+                            element.textContent.includes('数据已同步') ||
+                            element.textContent.includes('网络连接异常') ||
+                            element.textContent.includes('同步认证失败') ||
+                            element.textContent.includes('云同步暂时失败')
                         )) {
-                            console.log('🚫 阻止创建同步通知 (文本):', element.textContent.substring(0, 50));
+                            console.log('🚫 阻止创建通知弹窗 (文本):', element.textContent.substring(0, 50));
                             element.remove();
                             return;
                         }
@@ -218,8 +237,39 @@
         // 启动DOM观察
         setTimeout(observeAndBlock, 500);
         
-        // 定期清理
-        setInterval(cleanupSyncElements, 3000);
+        // 定期清理 - 更频繁的清理
+        setInterval(cleanupSyncElements, 1000);
+        
+        // 额外的积极清理机制
+        setInterval(() => {
+            // 清理所有可能的弹窗元素
+            const popupSelectors = [
+                '[style*="position: fixed"]',
+                '[style*="z-index"]',
+                'div[style*="top:"]',
+                'div[style*="right:"]',
+                '.notification',
+                '.toast',
+                '.alert',
+                '.popup'
+            ];
+            
+            popupSelectors.forEach(selector => {
+                const elements = document.querySelectorAll(selector);
+                elements.forEach(element => {
+                    if (element.textContent && (
+                        element.textContent.includes('同步') ||
+                        element.textContent.includes('修复') ||
+                        element.textContent.includes('失败') ||
+                        element.textContent.includes('完成') ||
+                        element.textContent.includes('连接')
+                    )) {
+                        console.log('🧹 积极清理弹窗元素:', element.textContent.substring(0, 30));
+                        element.remove();
+                    }
+                });
+            });
+        }, 500);
         
         console.log('✅ 全页面弹窗防护已启用');
     };
