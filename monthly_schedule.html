@@ -1336,6 +1336,252 @@
 
         }
 
+
+
+        /* 数据恢复帮助界面样式 */
+
+        .recovery-help-modal {
+
+            position: fixed;
+
+            top: 0;
+
+            left: 0;
+
+            width: 100%;
+
+            height: 100%;
+
+            background: rgba(0, 0, 0, 0.6);
+
+            display: flex;
+
+            justify-content: center;
+
+            align-items: center;
+
+            z-index: 1001;
+
+        }
+
+
+
+        .recovery-help-content {
+
+            background: white;
+
+            border-radius: 12px;
+
+            width: 90%;
+
+            max-width: 600px;
+
+            max-height: 80vh;
+
+            display: flex;
+
+            flex-direction: column;
+
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+
+        }
+
+
+
+        .recovery-help-header {
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+            padding: 20px;
+
+            border-bottom: 1px solid #eee;
+
+            background: linear-gradient(135deg, #ff6b6b, #4ecdc4);
+
+            color: white;
+
+            border-radius: 12px 12px 0 0;
+
+        }
+
+
+
+        .recovery-help-header h3 {
+
+            margin: 0;
+
+        }
+
+
+
+        .recovery-help-body {
+
+            padding: 24px;
+
+            overflow-y: auto;
+
+        }
+
+
+
+        .recovery-options {
+
+            display: flex;
+
+            flex-direction: column;
+
+            gap: 16px;
+
+            margin-top: 16px;
+
+        }
+
+
+
+        .recovery-option {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 16px;
+
+            padding: 16px;
+
+            background: rgba(76, 175, 80, 0.05);
+
+            border-radius: 8px;
+
+            border-left: 4px solid #4caf50;
+
+            transition: all 0.3s ease;
+
+        }
+
+
+
+        .recovery-option:hover {
+
+            background: rgba(76, 175, 80, 0.1);
+
+            transform: translateX(4px);
+
+        }
+
+
+
+        .recovery-icon {
+
+            font-size: 24px;
+
+            min-width: 40px;
+
+            text-align: center;
+
+        }
+
+
+
+        .recovery-text {
+
+            flex: 1;
+
+        }
+
+
+
+        .recovery-text h4 {
+
+            margin: 0 0 8px 0;
+
+            color: var(--theme-color);
+
+            font-size: 1.1em;
+
+        }
+
+
+
+        .recovery-text p {
+
+            margin: 0;
+
+            color: #666;
+
+            font-size: 0.9em;
+
+            line-height: 1.4;
+
+        }
+
+
+
+        @media (max-width: 768px) {
+
+            .recovery-help-content {
+
+                width: 95%;
+
+                max-height: 90vh;
+
+            }
+
+
+
+            .recovery-option {
+
+                flex-direction: column;
+
+                text-align: center;
+
+                gap: 12px;
+
+            }
+
+
+
+            .recovery-icon {
+
+                min-width: auto;
+
+            }
+
+        }
+
+
+
+        /* 同步状态样式 */
+
+        #sync-data-btn {
+
+            transition: all 0.3s ease;
+
+        }
+
+
+
+        #sync-data-btn.sync-enabled {
+
+            background-color: #4caf50 !important;
+
+            color: white;
+
+        }
+
+
+
+        #sync-data-btn.sync-warning {
+
+            background-color: #ff9800 !important;
+
+            color: white;
+
+        }
+
     </style>
 
 </head>
@@ -1393,6 +1639,8 @@
                     <button type="button" id="calendar-view-btn" class="btn-main">📋 列表视图</button>
 
                     <button type="button" id="sync-data-btn" class="btn-main">☁️ 同步</button>
+
+                    <button type="button" id="sync-settings-btn" class="btn-main">⚙️ 同步设置</button>
 
                     <button type="button" id="backup-manager-btn" class="btn-main">🗄️ 备份</button>
 
@@ -1674,7 +1922,9 @@
 
             document.getElementById('calendar-view-btn')?.addEventListener('click', showListView);
 
-            document.getElementById('sync-data-btn')?.addEventListener('click', syncData);
+            document.getElementById('sync-data-btn')?.addEventListener('click', manualSyncData);
+
+            document.getElementById('sync-settings-btn')?.addEventListener('click', openSyncSettings);
 
             document.getElementById('backup-manager-btn')?.addEventListener('click', showBackupManager);
 
@@ -2328,25 +2578,127 @@
 
         function saveEvents() {
 
-            // 主要存储
+            try {
 
-            localStorage.setItem('monthlyEvents', JSON.stringify(monthlyEvents));
+                // 主要存储
 
-            
+                localStorage.setItem('monthlyEvents', JSON.stringify(monthlyEvents));
 
-            // 异步保存到 IndexedDB
+                
 
-            saveToIndexedDB(monthlyEvents).catch(error => {
+                // 创建多重备份（异步执行，不影响用户体验）
 
-                console.warn('IndexedDB保存失败:', error);
+                createMultipleBackups();
 
-            });
+                
 
-            
+            } catch (error) {
 
-            // 保存到 sessionStorage 作为临时备份
+                console.error('保存失败:', error);
 
-            sessionStorage.setItem('monthlyEventsTemp', JSON.stringify(monthlyEvents));
+                MessageUtils.error('数据保存失败，请重试');
+
+            }
+
+        }
+
+
+
+        // 创建多重备份
+
+        async function createMultipleBackups() {
+
+            try {
+
+                const dataStr = JSON.stringify(monthlyEvents);
+
+                const timestamp = new Date().toISOString();
+
+                
+
+                // 1. 保存到 sessionStorage
+
+                sessionStorage.setItem('monthlyEventsTemp', dataStr);
+
+                sessionStorage.setItem('monthlyEventsBackup', dataStr);
+
+                sessionStorage.setItem('monthlyEventsBackupTime', timestamp);
+
+                
+
+                // 2. 异步保存到 IndexedDB
+
+                saveToIndexedDB(monthlyEvents).catch(error => {
+
+                    console.warn('IndexedDB保存失败:', error);
+
+                });
+
+                
+
+                // 3. 保存到多个localStorage键
+
+                const backupKeys = ['backup_main', 'backup_secondary', 'backup_tertiary'];
+
+                backupKeys.forEach((key, index) => {
+
+                    try {
+
+                        const backupData = {
+
+                            timestamp: timestamp,
+
+                            data: monthlyEvents,
+
+                            source: 'monthly_schedule',
+
+                            backupIndex: index
+
+                        };
+
+                        localStorage.setItem(key, JSON.stringify(backupData));
+
+                    } catch (error) {
+
+                        console.warn(`${key}保存失败:`, error);
+
+                    }
+
+                });
+
+                
+
+                // 4. 尝试保存到 Cache API
+
+                if ('caches' in window) {
+
+                    try {
+
+                        const cache = await caches.open('schedule-backup-v1');
+
+                        const response = new Response(dataStr, {
+
+                            headers: { 'Content-Type': 'application/json' }
+
+                        });
+
+                        await cache.put('/schedule-backup', response);
+
+                    } catch (error) {
+
+                        console.warn('Cache保存失败:', error);
+
+                    }
+
+                }
+
+                
+
+            } catch (error) {
+
+                console.warn('多重备份失败:', error);
+
+            }
 
         }
 
@@ -2492,55 +2844,31 @@
 
 
 
-        // 云端同步功能
+        // 云端同步功能 - 重定向到真正的同步系统
 
         async function syncData() {
 
-            try {
+            // 重定向到新的手动同步功能
 
-                MessageUtils.info('正在同步数据...');
-
-                
-
-                // 模拟云端同步（实际使用时需要配置真实的云端服务）
-
-                await simulateCloudSync();
-
-                
-
-                // 创建本地备份
-
-                createLocalBackup();
-
-                
-
-                MessageUtils.success('数据同步成功！');
-
-            } catch (error) {
-
-                console.error('同步失败:', error);
-
-                MessageUtils.error('同步失败，请检查网络连接');
-
-            }
+            await manualSyncData();
 
         }
 
 
 
-        // 模拟云端同步（实际项目中需要替换为真实的API调用）
+        // 执行完整备份策略
 
-        async function simulateCloudSync() {
+        async function performFullBackup() {
 
             return new Promise((resolve, reject) => {
 
-                setTimeout(() => {
+                setTimeout(async () => {
 
                     try {
 
-                        // 保存到多个存储位置
-
                         const dataStr = JSON.stringify(monthlyEvents);
+
+                        const timestamp = new Date().toISOString();
 
                         
 
@@ -2548,31 +2876,65 @@
 
                         sessionStorage.setItem('monthlyEventsBackup', dataStr);
 
+                        sessionStorage.setItem('monthlyEventsBackupTime', timestamp);
+
                         
 
                         // 2. 保存到 IndexedDB（持久化）
 
-                        saveToIndexedDB(monthlyEvents);
+                        await saveToIndexedDB(monthlyEvents);
 
                         
 
-                        // 3. 生成下载备份（用户可选择保存）
+                        // 3. 保存到多个localStorage键（分散风险）
 
-                        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                        const backupKeys = ['backup_main', 'backup_secondary', 'backup_tertiary'];
 
-                        const backupData = {
+                        backupKeys.forEach((key, index) => {
 
-                            timestamp,
+                            const backupData = {
 
-                            data: monthlyEvents,
+                                timestamp: timestamp,
 
-                            source: 'monthly_schedule'
+                                data: monthlyEvents,
 
-                        };
+                                source: 'monthly_schedule',
+
+                                backupIndex: index
+
+                            };
+
+                            localStorage.setItem(key, JSON.stringify(backupData));
+
+                        });
 
                         
 
-                        localStorage.setItem(`backup_${timestamp}`, JSON.stringify(backupData));
+                        // 4. 尝试保存到其他可用存储
+
+                        try {
+
+                            // 使用 Cache API 作为额外备份
+
+                            if ('caches' in window) {
+
+                                const cache = await caches.open('schedule-backup-v1');
+
+                                const response = new Response(dataStr, {
+
+                                    headers: { 'Content-Type': 'application/json' }
+
+                                });
+
+                                await cache.put('/schedule-backup', response);
+
+                            }
+
+                        } catch (cacheError) {
+
+                            console.warn('Cache备份失败:', cacheError);
+
+                        }
 
                         
 
@@ -2584,7 +2946,75 @@
 
                     }
 
-                }, 1000);
+                }, 800);
+
+            });
+
+        }
+
+
+
+        // 自动下载备份文件
+
+        async function createDownloadBackup() {
+
+            return new Promise((resolve) => {
+
+                try {
+
+                    const data = {
+
+                        version: '1.0',
+
+                        exportDate: new Date().toISOString(),
+
+                        events: monthlyEvents,
+
+                        totalEvents: Object.values(monthlyEvents).reduce((total, events) => total + events.length, 0),
+
+                        autoBackup: true
+
+                    };
+
+                    
+
+                    const jsonString = JSON.stringify(data, null, 2);
+
+                    const blob = new Blob([jsonString], { type: 'application/json' });
+
+                    const url = URL.createObjectURL(blob);
+
+                    
+
+                    // 静默下载（不显示下载对话框）
+
+                    const a = document.createElement('a');
+
+                    a.href = url;
+
+                    a.download = `自动备份_${new Date().toISOString().split('T')[0]}.json`;
+
+                    a.style.display = 'none';
+
+                    document.body.appendChild(a);
+
+                    a.click();
+
+                    document.body.removeChild(a);
+
+                    URL.revokeObjectURL(url);
+
+                    
+
+                    resolve();
+
+                } catch (error) {
+
+                    console.warn('下载备份失败:', error);
+
+                    resolve();
+
+                }
 
             });
 
@@ -2762,35 +3192,127 @@
 
 
 
-        // 初始化时尝试从 IndexedDB 恢复数据
+        // 全面数据恢复机制
 
         async function initDataRecovery() {
 
             try {
 
-                const indexedData = await loadFromIndexedDB();
+                const localData = JSON.parse(localStorage.getItem('monthlyEvents') || '{}');
 
-                if (indexedData && Object.keys(indexedData).length > 0) {
+                const hasLocalData = Object.keys(localData).length > 0;
 
-                    const localData = JSON.parse(localStorage.getItem('monthlyEvents') || '{}');
+                
 
-                    
+                if (hasLocalData) {
 
-                    // 如果 IndexedDB 中的数据更新，提示用户是否恢复
+                    // 如果本地数据存在，直接使用
 
-                    if (Object.keys(localData).length === 0 && Object.keys(indexedData).length > 0) {
+                    monthlyEvents = localData;
 
-                        if (confirm('发现备份数据，是否恢复？')) {
+                    return;
 
-                            monthlyEvents = indexedData;
+                }
 
-                            saveEvents();
+                
 
-                            renderCalendar();
+                // 本地数据为空，尝试从各种备份源恢复
 
-                            updateEventStats();
+                console.log('本地数据为空，开始尝试数据恢复...');
 
-                            MessageUtils.success('数据已从备份中恢复！');
+                
+
+                let recoveredData = null;
+
+                let recoverySource = '';
+
+                
+
+                // 1. 尝试从 IndexedDB 恢复
+
+                try {
+
+                    const indexedData = await loadFromIndexedDB();
+
+                    if (indexedData && Object.keys(indexedData).length > 0) {
+
+                        recoveredData = indexedData;
+
+                        recoverySource = 'IndexedDB';
+
+                    }
+
+                } catch (error) {
+
+                    console.warn('IndexedDB恢复失败:', error);
+
+                }
+
+                
+
+                // 2. 尝试从 sessionStorage 恢复
+
+                if (!recoveredData) {
+
+                    try {
+
+                        const sessionData = sessionStorage.getItem('monthlyEventsBackup');
+
+                        if (sessionData) {
+
+                            const parsedData = JSON.parse(sessionData);
+
+                            if (Object.keys(parsedData).length > 0) {
+
+                                recoveredData = parsedData;
+
+                                recoverySource = 'SessionStorage';
+
+                            }
+
+                        }
+
+                    } catch (error) {
+
+                        console.warn('SessionStorage恢复失败:', error);
+
+                    }
+
+                }
+
+                
+
+                // 3. 尝试从多重localStorage备份恢复
+
+                if (!recoveredData) {
+
+                    const backupKeys = ['backup_main', 'backup_secondary', 'backup_tertiary'];
+
+                    for (const key of backupKeys) {
+
+                        try {
+
+                            const backupStr = localStorage.getItem(key);
+
+                            if (backupStr) {
+
+                                const backupData = JSON.parse(backupStr);
+
+                                if (backupData.data && Object.keys(backupData.data).length > 0) {
+
+                                    recoveredData = backupData.data;
+
+                                    recoverySource = `LocalStorage(${key})`;
+
+                                    break;
+
+                                }
+
+                            }
+
+                        } catch (error) {
+
+                            console.warn(`${key}恢复失败:`, error);
 
                         }
 
@@ -2798,9 +3320,223 @@
 
                 }
 
+                
+
+                // 4. 尝试从 Cache API 恢复
+
+                if (!recoveredData) {
+
+                    try {
+
+                        if ('caches' in window) {
+
+                            const cache = await caches.open('schedule-backup-v1');
+
+                            const response = await cache.match('/schedule-backup');
+
+                            if (response) {
+
+                                const cacheData = await response.json();
+
+                                if (Object.keys(cacheData).length > 0) {
+
+                                    recoveredData = cacheData;
+
+                                    recoverySource = 'Cache API';
+
+                                }
+
+                            }
+
+                        }
+
+                    } catch (error) {
+
+                        console.warn('Cache API恢复失败:', error);
+
+                    }
+
+                }
+
+                
+
+                // 5. 尝试从本地备份历史恢复
+
+                if (!recoveredData) {
+
+                    try {
+
+                        const backups = JSON.parse(localStorage.getItem('monthlyBackups') || '[]');
+
+                        if (backups.length > 0) {
+
+                            // 使用最新的备份
+
+                            const latestBackup = backups[0];
+
+                            if (latestBackup.data && Object.keys(latestBackup.data).length > 0) {
+
+                                recoveredData = latestBackup.data;
+
+                                recoverySource = '本地备份历史';
+
+                            }
+
+                        }
+
+                    } catch (error) {
+
+                        console.warn('备份历史恢复失败:', error);
+
+                    }
+
+                }
+
+                
+
+                // 如果找到了恢复数据，询问用户是否恢复
+
+                if (recoveredData) {
+
+                    const eventCount = Object.values(recoveredData).reduce((total, events) => total + events.length, 0);
+
+                    const shouldRestore = confirm(`发现备份数据！\n\n数据源: ${recoverySource}\n事件数量: ${eventCount} 个\n\n是否恢复这些数据？`);
+
+                    
+
+                    if (shouldRestore) {
+
+                        monthlyEvents = recoveredData;
+
+                        saveEvents();
+
+                        renderCalendar();
+
+                        updateEventStats();
+
+                        MessageUtils.success(`数据已从${recoverySource}恢复！共恢复 ${eventCount} 个事件`);
+
+                    }
+
+                } else {
+
+                    // 没有找到任何备份数据
+
+                    console.log('未找到任何备份数据');
+
+                    showDataRecoveryHelp();
+
+                }
+
+                
+
             } catch (error) {
 
-                console.error('数据恢复失败:', error);
+                console.error('数据恢复过程出错:', error);
+
+                showDataRecoveryHelp();
+
+            }
+
+        }
+
+
+
+        // 显示数据恢复帮助信息
+
+        function showDataRecoveryHelp() {
+
+            const helpModal = document.createElement('div');
+
+            helpModal.className = 'recovery-help-modal';
+
+            helpModal.innerHTML = `
+
+                <div class="recovery-help-content">
+
+                    <div class="recovery-help-header">
+
+                        <h3>🔍 数据恢复助手</h3>
+
+                        <button class="close-modal" onclick="closeRecoveryHelp()">&times;</button>
+
+                    </div>
+
+                    <div class="recovery-help-body">
+
+                        <p><strong>未检测到备份数据，但您可以尝试以下方法恢复：</strong></p>
+
+                        <div class="recovery-options">
+
+                            <div class="recovery-option">
+
+                                <span class="recovery-icon">📁</span>
+
+                                <div class="recovery-text">
+
+                                    <h4>从文件恢复</h4>
+
+                                    <p>如果您之前导出过数据文件，可以点击"导入"按钮选择文件恢复</p>
+
+                                </div>
+
+                                <button onclick="importCalendar(); closeRecoveryHelp();" class="btn-main">导入文件</button>
+
+                            </div>
+
+                            <div class="recovery-option">
+
+                                <span class="recovery-icon">🔄</span>
+
+                                <div class="recovery-text">
+
+                                    <h4>重新同步</h4>
+
+                                    <p>尝试重新同步，可能会找到其他存储位置的数据</p>
+
+                                </div>
+
+                                <button onclick="syncData(); closeRecoveryHelp();" class="btn-main">立即同步</button>
+
+                            </div>
+
+                            <div class="recovery-option">
+
+                                <span class="recovery-icon">💡</span>
+
+                                <div class="recovery-text">
+
+                                    <h4>预防建议</h4>
+
+                                    <p>建议定期点击"同步"按钮创建备份，并导出重要数据到本地文件</p>
+
+                                </div>
+
+                                <button onclick="closeRecoveryHelp();" class="btn-main">知道了</button>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            `;
+
+            document.body.appendChild(helpModal);
+
+        }
+
+
+
+        function closeRecoveryHelp() {
+
+            const modal = document.querySelector('.recovery-help-modal');
+
+            if (modal) {
+
+                modal.remove();
 
             }
 
@@ -2823,6 +3559,12 @@
             // 尝试数据恢复
 
             initDataRecovery();
+
+            
+
+            // 初始化同步系统
+
+            initSyncSystem();
 
             
 
@@ -3754,16 +4496,283 @@
 
         }
 
+
+
+        // 真正的云端同步功能 - 集成现有同步系统
+
+        function openSyncSettings() {
+
+            // 打开同步设置页面
+
+            window.open('sync-settings.html', '_blank');
+
+        }
+
+
+
+        // 手动同步数据
+
+        async function manualSyncData() {
+
+            if (!window.syncService) {
+
+                MessageUtils.error('同步服务未加载，请刷新页面重试');
+
+                return;
+
+            }
+
+
+
+            const status = window.syncService.getSyncStatus();
+
+            if (!status.enabled) {
+
+                const shouldOpenSettings = confirm('同步功能尚未启用。\n\n是否打开同步设置页面进行配置？');
+
+                if (shouldOpenSettings) {
+
+                    openSyncSettings();
+
+                }
+
+                return;
+
+            }
+
+
+
+            try {
+
+                MessageUtils.info('正在同步数据...');
+
+                await window.syncService.manualSync();
+
+                MessageUtils.success('数据同步成功！');
+
+                updateSyncStatusDisplay();
+
+            } catch (error) {
+
+                console.error('同步失败:', error);
+
+                MessageUtils.error('同步失败: ' + error.message);
+
+            }
+
+        }
+
+
+
+
+
+
+
+
+
+        // 同步状态显示和控制
+
+        function updateSyncStatusDisplay() {
+
+            if (!window.syncService) return;
+
+            
+
+            const status = window.syncService.getSyncStatus();
+
+            const syncBtn = document.getElementById('sync-data-btn');
+
+            
+
+            if (status.enabled) {
+
+                if (status.online) {
+
+                    syncBtn.innerHTML = '☁️ 同步 ✅';
+
+                    syncBtn.style.backgroundColor = '#4caf50';
+
+                } else {
+
+                    syncBtn.innerHTML = '☁️ 同步 ⚠️';
+
+                    syncBtn.style.backgroundColor = '#ff9800';
+
+                }
+
+            } else {
+
+                syncBtn.innerHTML = '☁️ 同步';
+
+                syncBtn.style.backgroundColor = '';
+
+            }
+
+        }
+
+
+
+        // 初始化同步系统
+
+        function initSyncSystem() {
+
+            // 等待同步服务加载完成
+
+            setTimeout(() => {
+
+                if (window.syncService) {
+
+                    console.log('✅ 同步服务已加载');
+
+                    
+
+                    // 更新同步状态显示
+
+                    updateSyncStatusDisplay();
+
+                    
+
+                    // 监听同步事件
+
+                    window.addEventListener('sync-complete', function(event) {
+
+                        console.log('同步完成:', event.detail);
+
+                        updateSyncStatusDisplay();
+
+                        MessageUtils.success('数据同步完成');
+
+                    });
+
+                    
+
+                    window.addEventListener('sync-error', function(event) {
+
+                        console.error('同步错误:', event.detail);
+
+                        updateSyncStatusDisplay();
+
+                    });
+
+                    
+
+                    // 监听数据变化，触发自动同步
+
+                    setupDataChangeSync();
+
+                    
+
+                } else {
+
+                    console.warn('⚠️ 同步服务未加载');
+
+                }
+
+            }, 1000);
+
+        }
+
+
+
+        // 设置数据变化同步
+
+        function setupDataChangeSync() {
+
+            // 重写saveEvents函数，在保存时触发同步
+
+            const originalSaveEvents = saveEvents;
+
+            saveEvents = function() {
+
+                // 调用原始保存函数
+
+                originalSaveEvents.call(this);
+
+                
+
+                // 触发数据变化事件
+
+                if (window.syncService && window.syncService.getSyncStatus().enabled) {
+
+                    // 防抖同步，避免频繁同步
+
+                    clearTimeout(window.syncTimeout);
+
+                    window.syncTimeout = setTimeout(() => {
+
+                        window.syncService.manualSync().catch(error => {
+
+                            console.error('自动同步失败:', error);
+
+                        });
+
+                    }, 3000); // 3秒后同步
+
+                }
+
+            };
+
+        }
+
+
+
+        // 页面加载时检查是否有分享链接参数
+
+        window.addEventListener('DOMContentLoaded', function() {
+
+            const urlParams = new URLSearchParams(window.location.search);
+
+            const importData = urlParams.get('import');
+
+            
+
+            if (importData) {
+
+                try {
+
+                    const jsonString = decodeURIComponent(escape(atob(importData)));
+
+                    const data = JSON.parse(jsonString);
+
+                    
+
+                    if (data.events && confirm(`检测到分享的备份数据！\n\n备份时间: ${new Date(data.exportDate).toLocaleString()}\n事件数量: ${data.totalEvents} 个\n\n是否导入这些数据？`)) {
+
+                        monthlyEvents = data.events;
+
+                        saveEvents();
+
+                        renderCalendar();
+
+                        updateEventStats();
+
+                        
+
+                        MessageUtils.success(`已导入 ${data.totalEvents} 个事件！`);
+
+                        
+
+                        // 清除URL参数
+
+                        window.history.replaceState({}, document.title, window.location.pathname);
+
+                    }
+
+                } catch (error) {
+
+                    console.error('导入分享数据失败:', error);
+
+                }
+
+            }
+
+        });
+
     </script>
 
-    <!-- 同步服务 -->
-
+    <!-- 同步服务系统 -->
     <script src="sync-service.js"></script>
-
     <script src="sync-providers.js"></script>
-
-    <!-- 通用自动同步功能 -->
-
     <script src="universal-auto-sync.js"></script>
 
 </body>
