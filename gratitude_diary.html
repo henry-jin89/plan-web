@@ -2,6 +2,8 @@
 <html lang="zh-CN">
 
 <head>
+    <!-- 首先加载弹窗阻止脚本 -->
+    <script src="fix-all-pages-popups.js"></script>
     <script src="config.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1274,23 +1276,7 @@
         });
     </script>
     
-    <!-- 零配置自动同步系统 -->
-    <script src="zero-config-sync.js"></script>
-    <!-- 同步服务 -->
-    <script src="sync-service.js"></script>
-    <script src="sync-providers.js"></script>
-    <!-- 全局同步配置管理器 -->
-    <script src="global-sync-config.js"></script>
-    <!-- 通用自动同步功能 -->
-    <script src="universal-auto-sync.js"></script>
-    <!-- 同步初始化修复脚本 -->
-    <script src="fix-sync-initialization.js"></script>
-    <!-- 跨浏览器数据恢复脚本 -->
-    <script src="cross-browser-sync-recovery.js"></script>
-    <!-- 感恩日记修复脚本 -->
-    <script src="fix-gratitude-init.js"></script>
-    <!-- 连接问题修复脚本 -->
-    <script src="fix-connection-issues.js"></script>
+    <!-- 仅保留必要的脚本，其他同步脚本已被弹窗阻止器禁用 -->
 </body>
 
 </html>
