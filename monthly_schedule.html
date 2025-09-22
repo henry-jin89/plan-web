@@ -576,6 +576,764 @@
 
             }
 
+            
+
+            .calendar-header > div {
+
+                flex-wrap: wrap;
+
+                justify-content: center;
+
+            }
+
+            
+
+            .calendar-header button {
+
+                font-size: 0.8em;
+
+                padding: 6px 10px;
+
+            }
+
+        }
+
+        
+
+        /* 列表视图样式 */
+
+        .list-view-modal {
+
+            position: fixed;
+
+            top: 0;
+
+            left: 0;
+
+            width: 100%;
+
+            height: 100%;
+
+            background: rgba(0, 0, 0, 0.5);
+
+            display: flex;
+
+            justify-content: center;
+
+            align-items: center;
+
+            z-index: 1000;
+
+        }
+
+        
+
+        .list-view-content {
+
+            background: white;
+
+            border-radius: 12px;
+
+            width: 90%;
+
+            max-width: 800px;
+
+            max-height: 80vh;
+
+            display: flex;
+
+            flex-direction: column;
+
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+
+        }
+
+        
+
+        .list-view-header {
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+            padding: 20px;
+
+            border-bottom: 1px solid #eee;
+
+        }
+
+        
+
+        .list-view-header h3 {
+
+            margin: 0;
+
+            color: var(--theme-color);
+
+        }
+
+        
+
+        .close-modal {
+
+            background: none;
+
+            border: none;
+
+            font-size: 24px;
+
+            cursor: pointer;
+
+            color: #666;
+
+            padding: 0;
+
+            width: 32px;
+
+            height: 32px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            border-radius: 50%;
+
+            transition: all 0.3s ease;
+
+        }
+
+        
+
+        .close-modal:hover {
+
+            background: #f5f5f5;
+
+            color: #333;
+
+        }
+
+        
+
+        .list-view-controls {
+
+            display: flex;
+
+            gap: 12px;
+
+            padding: 16px 20px;
+
+            border-bottom: 1px solid #eee;
+
+            flex-wrap: wrap;
+
+        }
+
+        
+
+        .list-view-controls select,
+
+        .list-view-controls input {
+
+            padding: 8px 12px;
+
+            border: 1px solid #ddd;
+
+            border-radius: 6px;
+
+            font-size: 14px;
+
+        }
+
+        
+
+        .list-view-controls input {
+
+            flex: 1;
+
+            min-width: 200px;
+
+        }
+
+        
+
+        .list-view-body {
+
+            flex: 1;
+
+            overflow-y: auto;
+
+            padding: 20px;
+
+        }
+
+        
+
+        .no-events {
+
+            text-align: center;
+
+            padding: 40px;
+
+            color: #666;
+
+        }
+
+        
+
+        .list-date-header {
+
+            font-weight: 600;
+
+            color: var(--theme-color);
+
+            margin: 20px 0 10px 0;
+
+            padding-bottom: 8px;
+
+            border-bottom: 2px solid var(--theme-color-light);
+
+            font-size: 1.1em;
+
+        }
+
+        
+
+        .list-date-header:first-child {
+
+            margin-top: 0;
+
+        }
+
+        
+
+        .list-event-item {
+
+            display: flex;
+
+            align-items: flex-start;
+
+            gap: 16px;
+
+            padding: 12px;
+
+            background: rgba(255, 255, 255, 0.8);
+
+            border-radius: 8px;
+
+            margin-bottom: 8px;
+
+            border-left: 3px solid var(--theme-color);
+
+            transition: all 0.3s ease;
+
+        }
+
+        
+
+        .list-event-item:hover {
+
+            background: rgba(25, 118, 210, 0.05);
+
+            transform: translateX(4px);
+
+        }
+
+        
+
+        .list-event-time {
+
+            font-weight: 600;
+
+            color: var(--theme-color);
+
+            min-width: 60px;
+
+            font-size: 0.9em;
+
+        }
+
+        
+
+        .list-event-content {
+
+            flex: 1;
+
+        }
+
+        
+
+        .list-event-title {
+
+            font-weight: 600;
+
+            color: #333;
+
+            margin-bottom: 4px;
+
+        }
+
+        
+
+        .list-event-category {
+
+            font-size: 0.8em;
+
+            color: #666;
+
+            margin-bottom: 4px;
+
+        }
+
+        
+
+        .list-event-description {
+
+            font-size: 0.85em;
+
+            color: #888;
+
+            line-height: 1.4;
+
+        }
+
+        
+
+        .list-event-actions {
+
+            display: flex;
+
+            gap: 8px;
+
+        }
+
+        
+
+        .list-event-actions button {
+
+            background: none;
+
+            border: none;
+
+            cursor: pointer;
+
+            padding: 4px;
+
+            border-radius: 4px;
+
+            transition: all 0.3s ease;
+
+            font-size: 16px;
+
+        }
+
+        
+
+        .list-event-actions button:hover {
+
+            background: rgba(0, 0, 0, 0.1);
+
+        }
+
+        
+
+        @media (max-width: 768px) {
+
+            .list-view-content {
+
+                width: 95%;
+
+                max-height: 90vh;
+
+            }
+
+            
+
+            .list-view-controls {
+
+                flex-direction: column;
+
+            }
+
+            
+
+            .list-view-controls input {
+
+                min-width: auto;
+
+            }
+
+            
+
+            .list-event-item {
+
+                flex-direction: column;
+
+                gap: 8px;
+
+            }
+
+            
+
+            .list-event-time {
+
+                min-width: auto;
+
+            }
+
+        }
+
+
+
+        /* 备份管理器样式 */
+
+        .backup-manager-modal {
+
+            position: fixed;
+
+            top: 0;
+
+            left: 0;
+
+            width: 100%;
+
+            height: 100%;
+
+            background: rgba(0, 0, 0, 0.5);
+
+            display: flex;
+
+            justify-content: center;
+
+            align-items: center;
+
+            z-index: 1000;
+
+        }
+
+
+
+        .backup-manager-content {
+
+            background: white;
+
+            border-radius: 12px;
+
+            width: 90%;
+
+            max-width: 700px;
+
+            max-height: 80vh;
+
+            display: flex;
+
+            flex-direction: column;
+
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+
+        }
+
+
+
+        .backup-manager-header {
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+            padding: 20px;
+
+            border-bottom: 1px solid #eee;
+
+        }
+
+
+
+        .backup-manager-body {
+
+            flex: 1;
+
+            overflow-y: auto;
+
+            padding: 20px;
+
+        }
+
+
+
+        .backup-info {
+
+            margin-bottom: 20px;
+
+        }
+
+
+
+        .protection-status {
+
+            background: rgba(76, 175, 80, 0.1);
+
+            border-radius: 8px;
+
+            padding: 16px;
+
+            margin-top: 12px;
+
+        }
+
+
+
+        .status-item {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 12px;
+
+            margin-bottom: 8px;
+
+        }
+
+
+
+        .status-item:last-child {
+
+            margin-bottom: 0;
+
+        }
+
+
+
+        .status-icon {
+
+            font-size: 16px;
+
+            width: 24px;
+
+        }
+
+
+
+        .status-ok {
+
+            color: #4caf50;
+
+            font-weight: 600;
+
+            margin-left: auto;
+
+        }
+
+
+
+        .backup-actions {
+
+            display: flex;
+
+            gap: 12px;
+
+            margin-bottom: 24px;
+
+            flex-wrap: wrap;
+
+        }
+
+
+
+        .backup-list h4 {
+
+            margin: 0 0 16px 0;
+
+            color: var(--theme-color);
+
+        }
+
+
+
+        .backup-item {
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+            padding: 12px;
+
+            background: rgba(255, 255, 255, 0.8);
+
+            border-radius: 8px;
+
+            margin-bottom: 8px;
+
+            border-left: 3px solid var(--theme-color);
+
+            transition: all 0.3s ease;
+
+        }
+
+
+
+        .backup-item:hover {
+
+            background: rgba(25, 118, 210, 0.05);
+
+            transform: translateX(4px);
+
+        }
+
+
+
+        .backup-info-item {
+
+            flex: 1;
+
+        }
+
+
+
+        .backup-time {
+
+            font-weight: 600;
+
+            color: #333;
+
+            margin-bottom: 4px;
+
+        }
+
+
+
+        .backup-details {
+
+            font-size: 0.85em;
+
+            color: #666;
+
+        }
+
+
+
+        .backup-actions-item {
+
+            display: flex;
+
+            gap: 8px;
+
+        }
+
+
+
+        .btn-small {
+
+            padding: 4px 8px;
+
+            font-size: 0.8em;
+
+            border: 1px solid #ddd;
+
+            background: white;
+
+            border-radius: 4px;
+
+            cursor: pointer;
+
+            transition: all 0.3s ease;
+
+        }
+
+
+
+        .btn-small:hover {
+
+            background: var(--theme-color-light);
+
+            border-color: var(--theme-color);
+
+        }
+
+
+
+        .btn-small.btn-danger {
+
+            color: #f44336;
+
+            border-color: #f44336;
+
+        }
+
+
+
+        .btn-small.btn-danger:hover {
+
+            background: #ffebee;
+
+            border-color: #f44336;
+
+        }
+
+
+
+        .no-backups {
+
+            text-align: center;
+
+            padding: 40px;
+
+            color: #666;
+
+            font-style: italic;
+
+        }
+
+
+
+        @media (max-width: 768px) {
+
+            .backup-manager-content {
+
+                width: 95%;
+
+                max-height: 90vh;
+
+            }
+
+
+
+            .backup-actions {
+
+                flex-direction: column;
+
+            }
+
+
+
+            .backup-item {
+
+                flex-direction: column;
+
+                align-items: flex-start;
+
+                gap: 12px;
+
+            }
+
+
+
+            .backup-actions-item {
+
+                align-self: stretch;
+
+                justify-content: space-around;
+
+            }
+
         }
 
     </style>
@@ -630,7 +1388,13 @@
 
                     <button type="button" id="export-calendar-btn" class="btn-main">📤 导出</button>
 
+                    <button type="button" id="import-calendar-btn" class="btn-main">📥 导入</button>
+
                     <button type="button" id="calendar-view-btn" class="btn-main">📋 列表视图</button>
+
+                    <button type="button" id="sync-data-btn" class="btn-main">☁️ 同步</button>
+
+                    <button type="button" id="backup-manager-btn" class="btn-main">🗄️ 备份</button>
 
                 </div>
 
@@ -808,6 +1572,12 @@
 
     </div>
 
+    
+
+    <!-- 隐藏的文件输入 -->
+
+    <input type="file" id="import-file-input" accept=".json" style="display: none;">
+
 
 
     <script src="common.js"></script>
@@ -900,11 +1670,23 @@
 
             document.getElementById('export-calendar-btn')?.addEventListener('click', exportCalendar);
 
+            document.getElementById('import-calendar-btn')?.addEventListener('click', importCalendar);
+
             document.getElementById('calendar-view-btn')?.addEventListener('click', showListView);
+
+            document.getElementById('sync-data-btn')?.addEventListener('click', syncData);
+
+            document.getElementById('backup-manager-btn')?.addEventListener('click', showBackupManager);
 
             document.getElementById('clear-day-btn')?.addEventListener('click', clearDayEvents);
 
             document.getElementById('copy-day-btn')?.addEventListener('click', copyDayEvents);
+
+            
+
+            // 文件导入处理
+
+            document.getElementById('import-file-input')?.addEventListener('change', handleFileImport);
 
         }
 
@@ -1546,7 +2328,25 @@
 
         function saveEvents() {
 
+            // 主要存储
+
             localStorage.setItem('monthlyEvents', JSON.stringify(monthlyEvents));
+
+            
+
+            // 异步保存到 IndexedDB
+
+            saveToIndexedDB(monthlyEvents).catch(error => {
+
+                console.warn('IndexedDB保存失败:', error);
+
+            });
+
+            
+
+            // 保存到 sessionStorage 作为临时备份
+
+            sessionStorage.setItem('monthlyEventsTemp', JSON.stringify(monthlyEvents));
 
         }
 
@@ -1562,7 +2362,487 @@
 
         function exportCalendar() {
 
-            MessageUtils.info('日历导出功能正在开发中...');
+            try {
+
+                const data = {
+
+                    version: '1.0',
+
+                    exportDate: new Date().toISOString(),
+
+                    events: monthlyEvents,
+
+                    totalEvents: Object.values(monthlyEvents).reduce((total, events) => total + events.length, 0)
+
+                };
+
+                
+
+                const jsonString = JSON.stringify(data, null, 2);
+
+                const blob = new Blob([jsonString], { type: 'application/json' });
+
+                const url = URL.createObjectURL(blob);
+
+                
+
+                const a = document.createElement('a');
+
+                a.href = url;
+
+                a.download = `月度日程_${new Date().toISOString().split('T')[0]}.json`;
+
+                document.body.appendChild(a);
+
+                a.click();
+
+                document.body.removeChild(a);
+
+                URL.revokeObjectURL(url);
+
+                
+
+                MessageUtils.success('日程数据已导出！');
+
+            } catch (error) {
+
+                console.error('导出失败:', error);
+
+                MessageUtils.error('导出失败，请重试');
+
+            }
+
+        }
+
+
+
+        // 数据导入功能
+
+        function importCalendar() {
+
+            document.getElementById('import-file-input').click();
+
+        }
+
+
+
+        function handleFileImport(event) {
+
+            const file = event.target.files[0];
+
+            if (!file) return;
+
+            
+
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+
+                try {
+
+                    const data = JSON.parse(e.target.result);
+
+                    
+
+                    // 验证数据格式
+
+                    if (!data.events || typeof data.events !== 'object') {
+
+                        throw new Error('无效的数据格式');
+
+                    }
+
+                    
+
+                    if (confirm('导入数据将覆盖现有数据，是否继续？')) {
+
+                        monthlyEvents = data.events;
+
+                        saveEvents();
+
+                        renderCalendar();
+
+                        updateEventStats();
+
+                        
+
+                        const totalEvents = Object.values(monthlyEvents).reduce((total, events) => total + events.length, 0);
+
+                        MessageUtils.success(`数据导入成功！共导入 ${totalEvents} 个事件`);
+
+                    }
+
+                } catch (error) {
+
+                    console.error('导入失败:', error);
+
+                    MessageUtils.error('导入失败：文件格式不正确');
+
+                }
+
+            };
+
+            
+
+            reader.readAsText(file);
+
+            event.target.value = ''; // 清空文件选择
+
+        }
+
+
+
+        // 云端同步功能
+
+        async function syncData() {
+
+            try {
+
+                MessageUtils.info('正在同步数据...');
+
+                
+
+                // 模拟云端同步（实际使用时需要配置真实的云端服务）
+
+                await simulateCloudSync();
+
+                
+
+                // 创建本地备份
+
+                createLocalBackup();
+
+                
+
+                MessageUtils.success('数据同步成功！');
+
+            } catch (error) {
+
+                console.error('同步失败:', error);
+
+                MessageUtils.error('同步失败，请检查网络连接');
+
+            }
+
+        }
+
+
+
+        // 模拟云端同步（实际项目中需要替换为真实的API调用）
+
+        async function simulateCloudSync() {
+
+            return new Promise((resolve, reject) => {
+
+                setTimeout(() => {
+
+                    try {
+
+                        // 保存到多个存储位置
+
+                        const dataStr = JSON.stringify(monthlyEvents);
+
+                        
+
+                        // 1. 保存到 sessionStorage（临时）
+
+                        sessionStorage.setItem('monthlyEventsBackup', dataStr);
+
+                        
+
+                        // 2. 保存到 IndexedDB（持久化）
+
+                        saveToIndexedDB(monthlyEvents);
+
+                        
+
+                        // 3. 生成下载备份（用户可选择保存）
+
+                        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+
+                        const backupData = {
+
+                            timestamp,
+
+                            data: monthlyEvents,
+
+                            source: 'monthly_schedule'
+
+                        };
+
+                        
+
+                        localStorage.setItem(`backup_${timestamp}`, JSON.stringify(backupData));
+
+                        
+
+                        resolve();
+
+                    } catch (error) {
+
+                        reject(error);
+
+                    }
+
+                }, 1000);
+
+            });
+
+        }
+
+
+
+        // IndexedDB 持久化存储
+
+        function saveToIndexedDB(data) {
+
+            return new Promise((resolve, reject) => {
+
+                const request = indexedDB.open('PlanManagerDB', 1);
+
+                
+
+                request.onerror = () => reject(request.error);
+
+                
+
+                request.onsuccess = () => {
+
+                    const db = request.result;
+
+                    const transaction = db.transaction(['schedules'], 'readwrite');
+
+                    const store = transaction.objectStore('schedules');
+
+                    
+
+                    const saveRequest = store.put({
+
+                        id: 'monthly_events',
+
+                        data: data,
+
+                        timestamp: new Date().toISOString()
+
+                    });
+
+                    
+
+                    saveRequest.onsuccess = () => resolve();
+
+                    saveRequest.onerror = () => reject(saveRequest.error);
+
+                };
+
+                
+
+                request.onupgradeneeded = (event) => {
+
+                    const db = event.target.result;
+
+                    if (!db.objectStoreNames.contains('schedules')) {
+
+                        db.createObjectStore('schedules', { keyPath: 'id' });
+
+                    }
+
+                };
+
+            });
+
+        }
+
+
+
+        // 从 IndexedDB 恢复数据
+
+        function loadFromIndexedDB() {
+
+            return new Promise((resolve, reject) => {
+
+                const request = indexedDB.open('PlanManagerDB', 1);
+
+                
+
+                request.onerror = () => reject(request.error);
+
+                
+
+                request.onsuccess = () => {
+
+                    const db = request.result;
+
+                    const transaction = db.transaction(['schedules'], 'readonly');
+
+                    const store = transaction.objectStore('schedules');
+
+                    
+
+                    const getRequest = store.get('monthly_events');
+
+                    
+
+                    getRequest.onsuccess = () => {
+
+                        if (getRequest.result) {
+
+                            resolve(getRequest.result.data);
+
+                        } else {
+
+                            resolve(null);
+
+                        }
+
+                    };
+
+                    
+
+                    getRequest.onerror = () => reject(getRequest.error);
+
+                };
+
+                
+
+                request.onupgradeneeded = (event) => {
+
+                    const db = event.target.result;
+
+                    if (!db.objectStoreNames.contains('schedules')) {
+
+                        db.createObjectStore('schedules', { keyPath: 'id' });
+
+                    }
+
+                };
+
+            });
+
+        }
+
+
+
+        // 创建本地备份
+
+        function createLocalBackup() {
+
+            const backups = JSON.parse(localStorage.getItem('monthlyBackups') || '[]');
+
+            const newBackup = {
+
+                id: Date.now(),
+
+                timestamp: new Date().toISOString(),
+
+                data: monthlyEvents,
+
+                eventCount: Object.values(monthlyEvents).reduce((total, events) => total + events.length, 0)
+
+            };
+
+            
+
+            backups.unshift(newBackup);
+
+            
+
+            // 只保留最近10个备份
+
+            if (backups.length > 10) {
+
+                backups.splice(10);
+
+            }
+
+            
+
+            localStorage.setItem('monthlyBackups', JSON.stringify(backups));
+
+        }
+
+
+
+        // 初始化时尝试从 IndexedDB 恢复数据
+
+        async function initDataRecovery() {
+
+            try {
+
+                const indexedData = await loadFromIndexedDB();
+
+                if (indexedData && Object.keys(indexedData).length > 0) {
+
+                    const localData = JSON.parse(localStorage.getItem('monthlyEvents') || '{}');
+
+                    
+
+                    // 如果 IndexedDB 中的数据更新，提示用户是否恢复
+
+                    if (Object.keys(localData).length === 0 && Object.keys(indexedData).length > 0) {
+
+                        if (confirm('发现备份数据，是否恢复？')) {
+
+                            monthlyEvents = indexedData;
+
+                            saveEvents();
+
+                            renderCalendar();
+
+                            updateEventStats();
+
+                            MessageUtils.success('数据已从备份中恢复！');
+
+                        }
+
+                    }
+
+                }
+
+            } catch (error) {
+
+                console.error('数据恢复失败:', error);
+
+            }
+
+        }
+
+
+
+        // 修改初始化函数
+
+        function initMonthlySchedule() {
+
+            // 设置今天为默认选择日期
+
+            const today = DateUtils.getToday();
+
+            document.getElementById('event-date').value = today;
+
+            
+
+            // 尝试数据恢复
+
+            initDataRecovery();
+
+            
+
+            // 渲染日历
+
+            renderCalendar();
+
+            updateEventStats();
+
+            
+
+            // 设置事件监听器
+
+            setupEventListeners();
+
+            
+
+            // 定期自动备份（每5分钟）
+
+            setInterval(createLocalBackup, 5 * 60 * 1000);
 
         }
 
@@ -1570,7 +2850,907 @@
 
         function showListView() {
 
-            MessageUtils.info('列表视图功能正在开发中...');
+            // 创建列表视图模态框
+
+            const modal = document.createElement('div');
+
+            modal.className = 'list-view-modal';
+
+            modal.innerHTML = `
+
+                <div class="list-view-content">
+
+                    <div class="list-view-header">
+
+                        <h3>📋 列表视图</h3>
+
+                        <button class="close-modal" onclick="closeListView()">&times;</button>
+
+                    </div>
+
+                    <div class="list-view-controls">
+
+                        <select id="list-filter-month">
+
+                            <option value="all">全部月份</option>
+
+                        </select>
+
+                        <select id="list-filter-category">
+
+                            <option value="all">全部分类</option>
+
+                            <option value="work">💼 工作</option>
+
+                            <option value="personal">👤 个人</option>
+
+                            <option value="health">🏃 健康</option>
+
+                            <option value="learning">📚 学习</option>
+
+                            <option value="social">👥 社交</option>
+
+                            <option value="other">📋 其他</option>
+
+                        </select>
+
+                        <input type="text" id="list-search" placeholder="搜索事件..." />
+
+                    </div>
+
+                    <div class="list-view-body" id="list-view-events">
+
+                        <!-- 事件列表将在这里显示 -->
+
+                    </div>
+
+                </div>
+
+            `;
+
+            
+
+            document.body.appendChild(modal);
+
+            
+
+            // 填充月份选项
+
+            populateMonthFilter();
+
+            
+
+            // 显示所有事件
+
+            renderListView();
+
+            
+
+            // 绑定筛选事件
+
+            document.getElementById('list-filter-month').addEventListener('change', renderListView);
+
+            document.getElementById('list-filter-category').addEventListener('change', renderListView);
+
+            document.getElementById('list-search').addEventListener('input', renderListView);
+
+        }
+
+
+
+        // 列表视图相关函数
+
+        function populateMonthFilter() {
+
+            const monthFilter = document.getElementById('list-filter-month');
+
+            const months = new Set();
+
+            
+
+            Object.keys(monthlyEvents).forEach(dateKey => {
+
+                const date = new Date(dateKey);
+
+                const monthKey = `${date.getFullYear()}-${date.getMonth() + 1}`;
+
+                months.add(monthKey);
+
+            });
+
+            
+
+            Array.from(months).sort().forEach(monthKey => {
+
+                const [year, month] = monthKey.split('-');
+
+                const option = document.createElement('option');
+
+                option.value = monthKey;
+
+                option.textContent = `${year}年${month}月`;
+
+                monthFilter.appendChild(option);
+
+            });
+
+        }
+
+
+
+        function renderListView() {
+
+            const container = document.getElementById('list-view-events');
+
+            const monthFilter = document.getElementById('list-filter-month').value;
+
+            const categoryFilter = document.getElementById('list-filter-category').value;
+
+            const searchTerm = document.getElementById('list-search').value.toLowerCase();
+
+            
+
+            // 收集所有事件
+
+            const allEvents = [];
+
+            Object.entries(monthlyEvents).forEach(([date, events]) => {
+
+                events.forEach(event => {
+
+                    allEvents.push({ ...event, date });
+
+                });
+
+            });
+
+            
+
+            // 筛选事件
+
+            let filteredEvents = allEvents.filter(event => {
+
+                const eventDate = new Date(event.date);
+
+                const eventMonthKey = `${eventDate.getFullYear()}-${eventDate.getMonth() + 1}`;
+
+                
+
+                // 月份筛选
+
+                if (monthFilter !== 'all' && eventMonthKey !== monthFilter) {
+
+                    return false;
+
+                }
+
+                
+
+                // 分类筛选
+
+                if (categoryFilter !== 'all' && event.category !== categoryFilter) {
+
+                    return false;
+
+                }
+
+                
+
+                // 搜索筛选
+
+                if (searchTerm && !event.title.toLowerCase().includes(searchTerm) && !event.description.toLowerCase().includes(searchTerm)) {
+
+                    return false;
+
+                }
+
+                
+
+                return true;
+
+            });
+
+            
+
+            // 按日期和时间排序
+
+            filteredEvents.sort((a, b) => {
+
+                const dateCompare = new Date(a.date) - new Date(b.date);
+
+                if (dateCompare !== 0) return dateCompare;
+
+                return a.time.localeCompare(b.time);
+
+            });
+
+            
+
+            // 渲染事件列表
+
+            if (filteredEvents.length === 0) {
+
+                container.innerHTML = `
+
+                    <div class="no-events">
+
+                        <div style="font-size: 2em; margin-bottom: 12px;">📅</div>
+
+                        <p>未找到符合条件的事件</p>
+
+                    </div>
+
+                `;
+
+                return;
+
+            }
+
+            
+
+            container.innerHTML = '';
+
+            let currentDate = '';
+
+            
+
+            filteredEvents.forEach((event, index) => {
+
+                const eventDate = new Date(event.date);
+
+                const dateStr = `${eventDate.getMonth() + 1}月${eventDate.getDate()}日 (${DateUtils.getWeekdayName(eventDate)})`;
+
+                
+
+                // 日期分组
+
+                if (dateStr !== currentDate) {
+
+                    currentDate = dateStr;
+
+                    const dateHeader = document.createElement('div');
+
+                    dateHeader.className = 'list-date-header';
+
+                    dateHeader.textContent = dateStr;
+
+                    container.appendChild(dateHeader);
+
+                }
+
+                
+
+                // 事件项
+
+                const eventItem = document.createElement('div');
+
+                eventItem.className = 'list-event-item';
+
+                eventItem.innerHTML = `
+
+                    <div class="list-event-time">${event.time}</div>
+
+                    <div class="list-event-content">
+
+                        <div class="list-event-title">${event.title}</div>
+
+                        <div class="list-event-category">${getCategoryIcon(event.category)} ${getCategoryName(event.category)}</div>
+
+                        ${event.description ? `<div class="list-event-description">${event.description}</div>` : ''}
+
+                    </div>
+
+                    <div class="list-event-actions">
+
+                        <button onclick="editEventFromList('${event.date}', ${getEventIndex(event.date, event)})" title="编辑">✏️</button>
+
+                        <button onclick="deleteEventFromList('${event.date}', ${getEventIndex(event.date, event)})" title="删除">🗑️</button>
+
+                    </div>
+
+                `;
+
+                container.appendChild(eventItem);
+
+            });
+
+        }
+
+
+
+        function getCategoryIcon(category) {
+
+            const icons = {
+
+                work: '💼',
+
+                personal: '👤',
+
+                health: '🏃',
+
+                learning: '📚',
+
+                social: '👥',
+
+                other: '📋'
+
+            };
+
+            return icons[category] || '📋';
+
+        }
+
+
+
+        function getCategoryName(category) {
+
+            const names = {
+
+                work: '工作',
+
+                personal: '个人',
+
+                health: '健康',
+
+                learning: '学习',
+
+                social: '社交',
+
+                other: '其他'
+
+            };
+
+            return names[category] || '其他';
+
+        }
+
+
+
+        function getEventIndex(date, targetEvent) {
+
+            const events = monthlyEvents[date] || [];
+
+            return events.findIndex(event => 
+
+                event.title === targetEvent.title && 
+
+                event.time === targetEvent.time && 
+
+                event.createdAt === targetEvent.createdAt
+
+            );
+
+        }
+
+
+
+        function editEventFromList(date, index) {
+
+            const event = monthlyEvents[date][index];
+
+            if (!event) return;
+
+            
+
+            // 填充表单
+
+            document.getElementById('event-title').value = event.title;
+
+            document.getElementById('event-date').value = date;
+
+            document.getElementById('event-time').value = event.time;
+
+            document.getElementById('event-category').value = event.category;
+
+            document.getElementById('event-description').value = event.description || '';
+
+            
+
+            // 删除原事件
+
+            monthlyEvents[date].splice(index, 1);
+
+            if (monthlyEvents[date].length === 0) {
+
+                delete monthlyEvents[date];
+
+            }
+
+            
+
+            saveEvents();
+
+            renderCalendar();
+
+            updateEventStats();
+
+            
+
+            // 关闭列表视图
+
+            closeListView();
+
+            
+
+            // 聚焦到表单
+
+            document.getElementById('event-title').focus();
+
+            
+
+            MessageUtils.info('事件已加载到表单中，修改后点击添加即可保存');
+
+        }
+
+
+
+        function deleteEventFromList(date, index) {
+
+            if (confirm('确定要删除这个事件吗？')) {
+
+                monthlyEvents[date].splice(index, 1);
+
+                
+
+                if (monthlyEvents[date].length === 0) {
+
+                    delete monthlyEvents[date];
+
+                }
+
+                
+
+                saveEvents();
+
+                renderCalendar();
+
+                updateEventStats();
+
+                renderListView(); // 重新渲染列表
+
+                
+
+                MessageUtils.success('事件已删除');
+
+            }
+
+        }
+
+
+
+        function closeListView() {
+
+            const modal = document.querySelector('.list-view-modal');
+
+            if (modal) {
+
+                modal.remove();
+
+            }
+
+        }
+
+
+
+        // 备份管理器
+
+        function showBackupManager() {
+
+            const backups = JSON.parse(localStorage.getItem('monthlyBackups') || '[]');
+
+            
+
+            const modal = document.createElement('div');
+
+            modal.className = 'backup-manager-modal';
+
+            modal.innerHTML = `
+
+                <div class="backup-manager-content">
+
+                    <div class="backup-manager-header">
+
+                        <h3>🗄️ 备份管理</h3>
+
+                        <button class="close-modal" onclick="closeBackupManager()">&times;</button>
+
+                    </div>
+
+                    <div class="backup-manager-body">
+
+                        <div class="backup-info">
+
+                            <p><strong>数据保护状态:</strong></p>
+
+                            <div class="protection-status">
+
+                                <div class="status-item">
+
+                                    <span class="status-icon">💾</span>
+
+                                    <span>本地存储: localStorage</span>
+
+                                    <span class="status-ok">✓</span>
+
+                                </div>
+
+                                <div class="status-item">
+
+                                    <span class="status-icon">🗃️</span>
+
+                                    <span>持久化存储: IndexedDB</span>
+
+                                    <span class="status-ok">✓</span>
+
+                                </div>
+
+                                <div class="status-item">
+
+                                    <span class="status-icon">📦</span>
+
+                                    <span>自动备份: 每5分钟</span>
+
+                                    <span class="status-ok">✓</span>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <div class="backup-actions">
+
+                            <button onclick="createManualBackup()" class="btn-main">📁 立即备份</button>
+
+                            <button onclick="downloadAllBackups()" class="btn-main">💾 下载全部备份</button>
+
+                            <button onclick="clearOldBackups()" class="btn-danger">🗑️ 清理旧备份</button>
+
+                        </div>
+
+                        <div class="backup-list">
+
+                            <h4>备份历史 (最近10个)</h4>
+
+                            <div id="backup-list-container">
+
+                                ${renderBackupList(backups)}
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            `;
+
+            
+
+            document.body.appendChild(modal);
+
+        }
+
+
+
+        function renderBackupList(backups) {
+
+            if (backups.length === 0) {
+
+                return '<div class="no-backups">暂无备份记录</div>';
+
+            }
+
+            
+
+            return backups.map(backup => {
+
+                const date = new Date(backup.timestamp);
+
+                const timeStr = date.toLocaleString('zh-CN');
+
+                const sizeKB = Math.round(JSON.stringify(backup.data).length / 1024);
+
+                
+
+                return `
+
+                    <div class="backup-item">
+
+                        <div class="backup-info-item">
+
+                            <div class="backup-time">${timeStr}</div>
+
+                            <div class="backup-details">
+
+                                ${backup.eventCount} 个事件 • ${sizeKB} KB
+
+                            </div>
+
+                        </div>
+
+                        <div class="backup-actions-item">
+
+                            <button onclick="restoreBackup(${backup.id})" class="btn-small">恢复</button>
+
+                            <button onclick="downloadBackup(${backup.id})" class="btn-small">下载</button>
+
+                            <button onclick="deleteBackup(${backup.id})" class="btn-small btn-danger">删除</button>
+
+                        </div>
+
+                    </div>
+
+                `;
+
+            }).join('');
+
+        }
+
+
+
+        function createManualBackup() {
+
+            createLocalBackup();
+
+            MessageUtils.success('手动备份已创建！');
+
+            
+
+            // 刷新备份列表
+
+            const container = document.getElementById('backup-list-container');
+
+            if (container) {
+
+                const backups = JSON.parse(localStorage.getItem('monthlyBackups') || '[]');
+
+                container.innerHTML = renderBackupList(backups);
+
+            }
+
+        }
+
+
+
+        function restoreBackup(backupId) {
+
+            const backups = JSON.parse(localStorage.getItem('monthlyBackups') || '[]');
+
+            const backup = backups.find(b => b.id === backupId);
+
+            
+
+            if (!backup) {
+
+                MessageUtils.error('备份不存在');
+
+                return;
+
+            }
+
+            
+
+            if (confirm(`确定要恢复 ${new Date(backup.timestamp).toLocaleString('zh-CN')} 的备份吗？当前数据将被覆盖。`)) {
+
+                monthlyEvents = backup.data;
+
+                saveEvents();
+
+                renderCalendar();
+
+                updateEventStats();
+
+                
+
+                closeBackupManager();
+
+                MessageUtils.success('数据已从备份中恢复！');
+
+            }
+
+        }
+
+
+
+        function downloadBackup(backupId) {
+
+            const backups = JSON.parse(localStorage.getItem('monthlyBackups') || '[]');
+
+            const backup = backups.find(b => b.id === backupId);
+
+            
+
+            if (!backup) {
+
+                MessageUtils.error('备份不存在');
+
+                return;
+
+            }
+
+            
+
+            const exportData = {
+
+                version: '1.0',
+
+                exportDate: backup.timestamp,
+
+                events: backup.data,
+
+                totalEvents: backup.eventCount,
+
+                backupId: backup.id
+
+            };
+
+            
+
+            const jsonString = JSON.stringify(exportData, null, 2);
+
+            const blob = new Blob([jsonString], { type: 'application/json' });
+
+            const url = URL.createObjectURL(blob);
+
+            
+
+            const a = document.createElement('a');
+
+            a.href = url;
+
+            a.download = `备份_${new Date(backup.timestamp).toISOString().split('T')[0]}.json`;
+
+            document.body.appendChild(a);
+
+            a.click();
+
+            document.body.removeChild(a);
+
+            URL.revokeObjectURL(url);
+
+            
+
+            MessageUtils.success('备份已下载！');
+
+        }
+
+
+
+        function deleteBackup(backupId) {
+
+            if (confirm('确定要删除这个备份吗？')) {
+
+                let backups = JSON.parse(localStorage.getItem('monthlyBackups') || '[]');
+
+                backups = backups.filter(b => b.id !== backupId);
+
+                localStorage.setItem('monthlyBackups', JSON.stringify(backups));
+
+                
+
+                // 刷新备份列表
+
+                const container = document.getElementById('backup-list-container');
+
+                if (container) {
+
+                    container.innerHTML = renderBackupList(backups);
+
+                }
+
+                
+
+                MessageUtils.success('备份已删除');
+
+            }
+
+        }
+
+
+
+        function downloadAllBackups() {
+
+            const backups = JSON.parse(localStorage.getItem('monthlyBackups') || '[]');
+
+            
+
+            if (backups.length === 0) {
+
+                MessageUtils.warning('没有可下载的备份');
+
+                return;
+
+            }
+
+            
+
+            const allData = {
+
+                version: '1.0',
+
+                exportDate: new Date().toISOString(),
+
+                backupCount: backups.length,
+
+                backups: backups
+
+            };
+
+            
+
+            const jsonString = JSON.stringify(allData, null, 2);
+
+            const blob = new Blob([jsonString], { type: 'application/json' });
+
+            const url = URL.createObjectURL(blob);
+
+            
+
+            const a = document.createElement('a');
+
+            a.href = url;
+
+            a.download = `全部备份_${new Date().toISOString().split('T')[0]}.json`;
+
+            document.body.appendChild(a);
+
+            a.click();
+
+            document.body.removeChild(a);
+
+            URL.revokeObjectURL(url);
+
+            
+
+            MessageUtils.success('全部备份已下载！');
+
+        }
+
+
+
+        function clearOldBackups() {
+
+            if (confirm('确定要清理旧备份吗？将只保留最近3个备份。')) {
+
+                let backups = JSON.parse(localStorage.getItem('monthlyBackups') || '[]');
+
+                backups = backups.slice(0, 3);
+
+                localStorage.setItem('monthlyBackups', JSON.stringify(backups));
+
+                
+
+                // 刷新备份列表
+
+                const container = document.getElementById('backup-list-container');
+
+                if (container) {
+
+                    container.innerHTML = renderBackupList(backups);
+
+                }
+
+                
+
+                MessageUtils.success('旧备份已清理');
+
+            }
+
+        }
+
+
+
+        function closeBackupManager() {
+
+            const modal = document.querySelector('.backup-manager-modal');
+
+            if (modal) {
+
+                modal.remove();
+
+            }
 
         }
 
