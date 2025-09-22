@@ -262,6 +262,51 @@
             0% { opacity: 0.8; }
             100% { opacity: 1; }
         }
+
+        /* 低调的同步状态指示器 */
+        .sync-status-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4caf50;
+            opacity: 0.6;
+            z-index: 100;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .sync-status-indicator.syncing {
+            background: #ff9800;
+            animation: pulse 1s infinite;
+        }
+
+        .sync-status-indicator.error {
+            background: #f44336;
+            animation: shake 0.5s ease-in-out;
+        }
+
+        .sync-status-indicator:hover {
+            opacity: 1;
+            transform: scale(1.3);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.6; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1); opacity: 0.6; }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-2px); }
+            75% { transform: translateX(2px); }
+        }
     </style>
 </head>
 
@@ -390,6 +435,9 @@
         </div>
     </div>
 
+    <!-- 低调的同步状态指示器 -->
+    <div id="sync-status-indicator" class="sync-status-indicator" title="同步状态: 正常"></div>
+
     <script src="common.js"></script>
     <script>
         // 确保日期格式一致性
@@ -421,6 +469,80 @@
             "感恩是快乐的磁铁，越感恩，越快乐。"
         ];
 
+        // 同步状态管理
+        const SyncStatusManager = {
+            indicator: null,
+            
+            init: function() {
+                this.indicator = document.getElementById('sync-status-indicator');
+                this.updateStatus('ready');
+                
+                // 添加点击事件监听器
+                if (this.indicator) {
+                    this.indicator.addEventListener('click', () => {
+                        this.manualSync();
+                    });
+                }
+            },
+            
+            updateStatus: function(status, message) {
+                if (!this.indicator) return;
+                
+                // 移除所有状态类
+                this.indicator.classList.remove('syncing', 'error');
+                
+                switch(status) {
+                    case 'syncing':
+                        this.indicator.classList.add('syncing');
+                        this.indicator.title = message || '正在同步...';
+                        break;
+                    case 'error':
+                        this.indicator.classList.add('error');
+                        this.indicator.title = message || '同步失败，点击重试';
+                        break;
+                    case 'success':
+                        this.indicator.title = message || '同步成功';
+                        // 2秒后恢复正常状态
+                        setTimeout(() => {
+                            this.updateStatus('ready');
+                        }, 2000);
+                        break;
+                    default: // 'ready'
+                        this.indicator.title = '同步状态: 正常 (点击手动同步)';
+                }
+            },
+            
+            manualSync: function() {
+                console.log('🖱️ 手动触发同步...');
+                this.updateStatus('syncing', '手动同步中...');
+                
+                // 先保存当前数据
+                updateCurrentGratitudes();
+                
+                try {
+                    if (window.syncService && typeof window.syncService.syncData === 'function') {
+                        window.syncService.syncData().then(() => {
+                            this.updateStatus('success', '手动同步完成');
+                        }).catch(error => {
+                            this.updateStatus('error', '手动同步失败: ' + error.message);
+                        });
+                    } else if (window.universalAutoSync && typeof window.universalAutoSync.triggerSync === 'function') {
+                        window.universalAutoSync.triggerSync('manual', '手动同步感恩记录');
+                        setTimeout(() => {
+                            this.updateStatus('success', '同步已触发');
+                        }, 1000);
+                    } else {
+                        // 没有同步服务，只能保存本地数据
+                        autoSaveGratitude();
+                        this.updateStatus('success', '本地数据已保存');
+                    }
+                } catch (error) {
+                    console.error('❌ 手动同步失败:', error);
+                    this.updateStatus('error', '手动同步失败');
+                }
+            }
+        };
+
         // 调试函数 - 可在控制台使用
         window.debugGratitude = {
             showData: function() {
@@ -448,6 +570,9 @@
         });
 
         function initGratitudeDiary() {
+            // 初始化同步状态管理器
+            SyncStatusManager.init();
+            
             // 设置每日引言
             setDailyQuote();
             
@@ -641,9 +766,11 @@
                 localStorage.setItem('gratitude_history', dataToSave);
                 console.log('✅ 感恩数据已保存到localStorage');
                 
-                // 触发云同步
+                // 触发云同步 - 使用状态指示器替代弹窗
                 try {
                     console.log('☁️ 触发云同步...');
+                    SyncStatusManager.updateStatus('syncing', '正在同步感恩记录...');
+                    
                     let syncTriggered = false;
                     
                     // 方法1: 通过syncService触发同步
@@ -655,8 +782,10 @@
                                 console.log('📤 通过syncService同步数据...');
                                 window.syncService.syncData().then(() => {
                                     console.log('✅ syncService同步完成');
+                                    SyncStatusManager.updateStatus('success', '同步完成');
                                 }).catch(error => {
                                     console.warn('⚠️ syncService同步失败:', error.message);
+                                    SyncStatusManager.updateStatus('error', '同步失败: ' + error.message);
                                 });
                                 syncTriggered = true;
                             } else {
@@ -687,50 +816,21 @@
                     window.dispatchEvent(syncEvent);
                     console.log('📡 已发送存储事件通知');
                     
-                    // 方法4: 如果以上都失败，尝试手动检查并重新初始化同步
+                    // 如果没有触发任何同步方法，显示准备就绪状态
                     if (!syncTriggered) {
-                        console.log('🔄 尝试重新初始化同步...');
-                        // 检查是否有同步配置
-                        const syncConfig = localStorage.getItem('sync_config') || localStorage.getItem('syncConfig');
-                        if (syncConfig) {
-                            console.log('📋 发现同步配置，尝试重新启用同步');
-                            // 通知用户可以手动触发同步
-                            if (!document.getElementById('manual-sync-hint')) {
-                                const hint = document.createElement('div');
-                                hint.id = 'manual-sync-hint';
-                                hint.style.cssText = `
-                                    position: fixed;
-                                    top: 20px;
-                                    right: 20px;
-                                    background: #ff9800;
-                                    color: white;
-                                    padding: 10px 15px;
-                                    border-radius: 4px;
-                                    z-index: 1000;
-                                    font-size: 14px;
-                                    cursor: pointer;
-                                `;
-                                hint.innerHTML = '⚠️ 点击手动同步';
-                                hint.onclick = function() {
-                                    if (window.syncService && typeof window.syncService.syncData === 'function') {
-                                        window.syncService.syncData();
-                                    }
-                                    hint.remove();
-                                };
-                                document.body.appendChild(hint);
-                                
-                                // 5秒后自动移除
-                                setTimeout(() => {
-                                    if (hint.parentNode) hint.remove();
-                                }, 5000);
-                            }
-                        }
+                        console.log('ℹ️ 没有可用的同步服务，仅本地保存');
+                        SyncStatusManager.updateStatus('ready');
                     } else {
                         console.log('✅ 至少一种同步方法已触发');
+                        // 如果没有其他回调，2秒后显示成功状态
+                        setTimeout(() => {
+                            SyncStatusManager.updateStatus('success', '数据已保存');
+                        }, 2000);
                     }
                     
                 } catch (syncError) {
                     console.warn('⚠️ 云同步触发失败，但本地保存成功:', syncError.message);
+                    SyncStatusManager.updateStatus('error', '同步失败，但本地已保存');
                 }
                 
                 return true;
@@ -841,89 +941,8 @@
                     if (syncConfig) {
                         console.log('🔍 发现云同步配置，尝试恢复数据...');
                         
-                        // 创建恢复提示
-                        if (!document.getElementById('cloud-recovery-indicator')) {
-                            const recoveryIndicator = document.createElement('div');
-                            recoveryIndicator.id = 'cloud-recovery-indicator';
-                            recoveryIndicator.style.cssText = `
-                                position: fixed;
-                                top: 20px;
-                                left: 50%;
-                                transform: translateX(-50%);
-                                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                                color: white;
-                                padding: 15px 25px;
-                                border-radius: 8px;
-                                z-index: 10001;
-                                text-align: center;
-                                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-                                cursor: pointer;
-                            `;
-                            recoveryIndicator.innerHTML = '☁️ 点击从云端恢复感恩记录';
-                            
-                            recoveryIndicator.onclick = function() {
-                                recoveryIndicator.innerHTML = '🔄 正在恢复...';
-                                recoveryIndicator.style.cursor = 'wait';
-                                
-                                // 尝试多种恢复方法
-                                if (window.syncService) {
-                                    try {
-                                        const status = window.syncService.getSyncStatus();
-                                        if (status && status.enabled) {
-                                            window.syncService.syncData().then(() => {
-                                                recoveryIndicator.innerHTML = '✅ 恢复完成！页面即将刷新';
-                                                setTimeout(() => {
-                                                    location.reload();
-                                                }, 1500);
-                                            }).catch(error => {
-                                                console.warn('⚠️ 同步恢复失败:', error.message);
-                                                recoveryIndicator.innerHTML = '❌ 恢复失败，请重试';
-                                                setTimeout(() => {
-                                                    recoveryIndicator.remove();
-                                                }, 3000);
-                                            });
-                                        } else {
-                                            // 尝试重新初始化同步
-                                            window.syncService.initSyncConfig();
-                                            setTimeout(() => {
-                                                if (window.syncService.syncEnabled) {
-                                                    window.syncService.syncData().then(() => {
-                                                        recoveryIndicator.innerHTML = '✅ 恢复完成！页面即将刷新';
-                                                        setTimeout(() => {
-                                                            location.reload();
-                                                        }, 1500);
-                                                    });
-                                                } else {
-                                                    recoveryIndicator.innerHTML = '⚠️ 请先到设置页面启用同步';
-                                                    setTimeout(() => {
-                                                        recoveryIndicator.remove();
-                                                    }, 3000);
-                                                }
-                                            }, 2000);
-                                        }
-                                    } catch (e) {
-                                        recoveryIndicator.innerHTML = '❌ 同步服务错误';
-                                        setTimeout(() => {
-                                            recoveryIndicator.remove();
-                                        }, 3000);
-                                    }
-                                } else {
-                                    recoveryIndicator.innerHTML = '❌ 同步服务未加载';
-                                    setTimeout(() => {
-                                        recoveryIndicator.remove();
-                                    }, 3000);
-                                }
-                            };
-                            
-                            document.body.appendChild(recoveryIndicator);
-                            
-                            // 10秒后自动移除
-                            setTimeout(() => {
-                                if (recoveryIndicator.parentNode) {
-                                    recoveryIndicator.remove();
-                                }
-                            }, 10000);
-                        }
+                        // 简化恢复提示 - 只在控制台记录，不显示弹窗
+                        console.log('ℹ️ 检测到云同步配置但无本地数据，可通过设置页面手动同步');
                     } else {
                         console.log('ℹ️ 没有云同步配置，无法恢复');
                     }
