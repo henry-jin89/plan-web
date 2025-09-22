@@ -548,63 +548,12 @@
     function showSyncNotification(message, type = 'info') {
         // 使用全局同步状态管理器，如果存在的话
         if (window.SyncStatusManager) {
-            window.SyncStatusManager.showNotification(message, type);
+            window.SyncStatusManager.updateStatus(type, message);
             return;
         }
         
-        // 降级处理：如果管理器不存在，使用简化的通知
+        // 仅在控制台记录，不显示弹窗
         console.log(`[零配置同步] ${type.toUpperCase()}: ${message}`);
-        
-        // 检查是否已经有相同的通知在显示
-        const existingNotifications = document.querySelectorAll('[id*="zero-config-sync-notification"]');
-        const hasSameMessage = Array.from(existingNotifications).some(el => 
-            el.textContent === message
-        );
-        
-        if (hasSameMessage) {
-            console.log('相同消息已在显示，跳过重复通知');
-            return;
-        }
-        
-        // 清除所有现有的同步通知，避免重复显示
-        const allSyncNotifications = document.querySelectorAll('[id*="sync"], [id*="notification"], [id*="status"]');
-        allSyncNotifications.forEach(notification => {
-            if (notification && notification.parentNode && 
-                (notification.textContent.includes('同步') || 
-                 notification.textContent.includes('失败') ||
-                 notification.textContent.includes('连接'))) {
-                notification.remove();
-            }
-        });
-        
-        const notification = document.createElement('div');
-        notification.id = 'zero-config-sync-notification-' + Date.now();
-        notification.className = 'sync-notification zero-config-notification';
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 12px 16px;
-            border-radius: 6px;
-            z-index: 9999;
-            font-size: 14px;
-            max-width: 300px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            ${type === 'success' ? 'background: linear-gradient(135deg, #4caf50, #45a049); color: white;' : 
-              type === 'warning' ? 'background: linear-gradient(135deg, #ff9800, #f57c00); color: white;' : 
-              type === 'error' ? 'background: linear-gradient(135deg, #f44336, #d32f2f); color: white;' :
-              'background: linear-gradient(135deg, #2196f3, #1976d2); color: white;'}
-        `;
-        notification.textContent = message;
-        
-        document.body.appendChild(notification);
-        
-        // 3秒后自动移除
-        setTimeout(() => {
-            if (notification.parentNode) {
-                notification.remove();
-            }
-        }, 3000);
     }
     
     // 导出全局方法
