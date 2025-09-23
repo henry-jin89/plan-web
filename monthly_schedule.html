@@ -1634,19 +1634,9 @@
 
                 <div style="display: flex; gap: 8px;">
 
-                    <button type="button" id="export-calendar-btn" class="btn-main">📤 导出</button>
-
-                    <button type="button" id="import-calendar-btn" class="btn-main">📥 导入</button>
-
                     <button type="button" id="calendar-view-btn" class="btn-main">📋 列表视图</button>
 
-                    <button type="button" id="sync-data-btn" class="btn-main">☁️ 同步</button>
-
                     <button type="button" id="sync-settings-btn" class="btn-main">⚙️ 同步设置</button>
-
-                    <button type="button" id="backup-manager-btn" class="btn-main">🗄️ 备份</button>
-
-                    <button type="button" id="repair-data-btn" class="btn-main" style="background: #ff9800;">🔧 修复数据</button>
 
                 </div>
 
@@ -1826,9 +1816,6 @@
 
     
 
-    <!-- 隐藏的文件输入 -->
-
-    <input type="file" id="import-file-input" accept=".json" style="display: none;">
 
 
 
@@ -2850,19 +2837,9 @@
 
             // 其他功能按钮
 
-            document.getElementById('export-calendar-btn')?.addEventListener('click', exportCalendar);
-
-            document.getElementById('import-calendar-btn')?.addEventListener('click', importCalendar);
-
             document.getElementById('calendar-view-btn')?.addEventListener('click', showListView);
 
-            document.getElementById('sync-data-btn')?.addEventListener('click', manualSyncData);
-
             document.getElementById('sync-settings-btn')?.addEventListener('click', openSyncSettings);
-
-            document.getElementById('backup-manager-btn')?.addEventListener('click', showBackupManager);
-
-            document.getElementById('repair-data-btn')?.addEventListener('click', forceRepairData);
 
             document.getElementById('clear-day-btn')?.addEventListener('click', clearDayEvents);
 
@@ -2870,9 +2847,6 @@
 
             
 
-            // 文件导入处理
-
-            document.getElementById('import-file-input')?.addEventListener('change', handleFileImport);
 
         }
 
