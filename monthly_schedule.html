@@ -2036,9 +2036,327 @@
 
         document.addEventListener('DOMContentLoaded', function() {
 
+            // 立即强制清理所有损坏数据
+
+            emergencyDataCleanup();
+
+            
+
             initMonthlySchedule();
 
         });
+
+        
+
+        // 紧急数据清理 - 页面加载时立即执行
+
+        function emergencyDataCleanup() {
+
+            try {
+
+                console.log('🚨 执行紧急数据清理...');
+
+                
+
+                const rawData = localStorage.getItem('monthlyEvents');
+
+                if (!rawData) {
+
+                    console.log('💡 没有数据需要清理');
+
+                    return;
+
+                }
+
+                
+
+                // 检查是否包含任何编码问题
+
+                const hasEncodingIssues = rawData.includes('Â') || 
+
+                                        rawData.includes('\u00C2') ||
+
+                                        rawData.includes('Ã¢') ||
+
+                                        rawData.includes('â€') ||
+
+                                        rawData.includes('â„¢') ||
+
+                                        rawData.includes('Å"');
+
+                
+
+                if (hasEncodingIssues) {
+
+                    console.log('🚨 检测到严重编码问题，执行强制清理...');
+
+                    
+
+                    // 暴力清理所有可能的编码问题
+
+                    let cleanedJson = rawData
+
+                        // 移除所有Â相关字符
+
+                        .replace(/Â+/g, '')
+
+                        .replace(/[\u00C2]/g, '')
+
+                        
+
+                        // 移除复杂的UTF-8编码错误
+
+                        .replace(/Ã¢â‚¬â„¢/g, "'")
+
+                        .replace(/Ã¢â‚¬Â/g, '–')
+
+                        .replace(/Ã¢â‚¬Å"/g, '"')
+
+                        .replace(/Ã¢â‚¬â€œ/g, '—')
+
+                        .replace(/Ã¢â‚¬/g, '')
+
+                        .replace(/â€™/g, "'")
+
+                        .replace(/â€œ/g, '"')
+
+                        .replace(/â€/g, '"')
+
+                        .replace(/â„¢/g, '')
+
+                        .replace(/Å"/g, '"')
+
+                        .replace(/Â®/g, '')
+
+                        
+
+                        // 移除所有控制字符和特殊字符
+
+                        .replace(/[\x00-\x1F\x7F-\x9F]/g, '')
+
+                        .replace(/\uFEFF/g, '')
+
+                        .replace(/\u200B/g, '')
+
+                        .replace(/\u00A0/g, ' ')
+
+                        .replace(/\u2028/g, '')
+
+                        .replace(/\u2029/g, '')
+
+                        
+
+                        // 清理可能的双字节问题
+
+                        .replace(/[\u0080-\u009F]/g, '')
+
+                        .replace(/[\u00A0-\u00FF]/g, function(match) {
+
+                            // 只保留常见的有用字符
+
+                            const code = match.charCodeAt(0);
+
+                            if (code === 0x00A0) return ' '; // 不间断空格转为普通空格
+
+                            if (code >= 0x00C0 && code <= 0x00FF) return ''; // 移除扩展拉丁字符
+
+                            return match;
+
+                        });
+
+                    
+
+                    try {
+
+                        // 尝试解析清理后的JSON
+
+                        const parsedData = JSON.parse(cleanedJson);
+
+                        
+
+                        // 深度清理解析后的数据
+
+                        const deepCleanedData = {};
+
+                        
+
+                        for (const [date, events] of Object.entries(parsedData)) {
+
+                            if (Array.isArray(events)) {
+
+                                const cleanedEvents = events.map(event => {
+
+                                    if (event && typeof event === 'object') {
+
+                                        return {
+
+                                            title: deepCleanText(event.title || ''),
+
+                                            time: deepCleanText(event.time || ''),
+
+                                            category: deepCleanText(event.category || 'other'),
+
+                                            description: deepCleanText(event.description || ''),
+
+                                            createdAt: event.createdAt || new Date().toISOString()
+
+                                        };
+
+                                    }
+
+                                    return null;
+
+                                }).filter(event => event && event.title && event.time);
+
+                                
+
+                                if (cleanedEvents.length > 0) {
+
+                                    deepCleanedData[date] = cleanedEvents;
+
+                                }
+
+                            }
+
+                        }
+
+                        
+
+                        // 保存清理后的数据
+
+                        const finalJson = JSON.stringify(deepCleanedData);
+
+                        localStorage.setItem('monthlyEvents', finalJson);
+
+                        
+
+                        // 更新内存中的数据
+
+                        monthlyEvents = deepCleanedData;
+
+                        
+
+                        console.log('✅ 紧急数据清理完成，清理了编码问题');
+
+                        
+
+                        // 显示清理结果
+
+                        const eventCount = Object.values(deepCleanedData).reduce((total, events) => total + events.length, 0);
+
+                        console.log(`📊 清理结果: ${Object.keys(deepCleanedData).length} 天，${eventCount} 个事件`);
+
+                        
+
+                    } catch (parseError) {
+
+                        console.error('❌ 清理后仍无法解析JSON，重置数据:', parseError);
+
+                        localStorage.removeItem('monthlyEvents');
+
+                        monthlyEvents = {};
+
+                        
+
+                        alert('检测到严重的数据损坏，已重置为空数据。请重新添加您的日程。');
+
+                    }
+
+                } else {
+
+                    console.log('✅ 数据检查通过，无需紧急清理');
+
+                }
+
+            } catch (error) {
+
+                console.error('❌ 紧急数据清理失败:', error);
+
+            }
+
+        }
+
+        
+
+        // 深度文本清理函数
+
+        function deepCleanText(text) {
+
+            if (typeof text !== 'string') {
+
+                return String(text || '');
+
+            }
+
+            
+
+            let cleaned = text;
+
+            
+
+            // 暴力清理所有可能的编码问题
+
+            cleaned = cleaned
+
+                .replace(/Â+/g, '')
+
+                .replace(/[\u00C2]/g, '')
+
+                .replace(/Ã¢â‚¬â„¢/g, "'")
+
+                .replace(/Ã¢â‚¬Â/g, '–')
+
+                .replace(/Ã¢â‚¬Å"/g, '"')
+
+                .replace(/Ã¢â‚¬â€œ/g, '—')
+
+                .replace(/Ã¢â‚¬/g, '')
+
+                .replace(/â€™/g, "'")
+
+                .replace(/â€œ/g, '"')
+
+                .replace(/â€/g, '"')
+
+                .replace(/â„¢/g, '')
+
+                .replace(/Å"/g, '"')
+
+                .replace(/Â®/g, '')
+
+                .replace(/[\x00-\x1F\x7F-\x9F]/g, '')
+
+                .replace(/\uFEFF/g, '')
+
+                .replace(/\u200B/g, '')
+
+                .replace(/\u00A0/g, ' ')
+
+                .replace(/\u2028/g, '')
+
+                .replace(/\u2029/g, '')
+
+                .replace(/[\u0080-\u009F]/g, '')
+
+                .replace(/\s+/g, ' ')
+
+                .trim();
+
+            
+
+            // 如果清理后为空或只有特殊字符，返回空字符串
+
+            if (!cleaned || /^[\s\u00A0\u200B\uFEFF\u2028\u2029]*$/.test(cleaned)) {
+
+                return '';
+
+            }
+
+            
+
+            return cleaned;
+
+        }
 
         
 
@@ -2210,25 +2528,31 @@
 
                     
 
-                    // 1. 修复localStorage中的数据
+                    // 1. 执行紧急数据清理
+
+                    emergencyDataCleanup();
+
+                    
+
+                    // 2. 修复localStorage中的数据
 
                     const repaired = repairCorruptedData();
 
                     
 
-                    // 2. 强制重新加载数据
+                    // 3. 强制重新加载数据
 
                     monthlyEvents = loadAndCleanData();
 
                     
 
-                    // 3. 强制保存清理后的数据
+                    // 4. 强制保存清理后的数据
 
                     saveEvents();
 
                     
 
-                    // 4. 重新渲染所有视图
+                    // 5. 重新渲染所有视图
 
                     renderCalendar();
 
@@ -2236,7 +2560,7 @@
 
                     
 
-                    // 5. 如果有选中的日期，更新显示
+                    // 6. 如果有选中的日期，更新显示
 
                     if (selectedDate) {
 
@@ -2246,33 +2570,85 @@
 
                     
 
-                    // 6. 清理所有可能的缓存
+                    // 7. 清理所有可能的缓存和备份
 
                     try {
 
-                        sessionStorage.removeItem('monthlyEventsTemp');
-
-                        sessionStorage.removeItem('monthlyEventsBackup');
+                        sessionStorage.clear(); // 清理所有sessionStorage
 
                         
 
-                        // 清理可能损坏的备份
+                        // 清理所有可能损坏的localStorage项
 
-                        const backupKeys = ['backup_main', 'backup_secondary', 'backup_tertiary'];
+                        const keysToCheck = [
 
-                        backupKeys.forEach(key => {
+                            'monthlyEventsTemp', 
 
-                            const backupData = localStorage.getItem(key);
+                            'monthlyEventsBackup',
 
-                            if (backupData && (backupData.includes('Â') || backupData.includes('\u00C2'))) {
+                            'backup_main', 
+
+                            'backup_secondary', 
+
+                            'backup_tertiary',
+
+                            'monthlyBackups'
+
+                        ];
+
+                        
+
+                        keysToCheck.forEach(key => {
+
+                            const data = localStorage.getItem(key);
+
+                            if (data && (data.includes('Â') || data.includes('\u00C2') || data.includes('Ã¢'))) {
 
                                 localStorage.removeItem(key);
 
-                                console.log(`🗑️ 清理损坏的备份: ${key}`);
+                                console.log(`🗑️ 清理损坏的数据: ${key}`);
 
                             }
 
                         });
+
+                        
+
+                        // 清理IndexedDB
+
+                        if ('indexedDB' in window) {
+
+                            try {
+
+                                const deleteReq = indexedDB.deleteDatabase('PlanManagerDB');
+
+                                deleteReq.onsuccess = () => console.log('🗑️ IndexedDB已清理');
+
+                                deleteReq.onerror = () => console.warn('⚠️ IndexedDB清理失败');
+
+                            } catch (idbError) {
+
+                                console.warn('⚠️ IndexedDB清理出错:', idbError);
+
+                            }
+
+                        }
+
+                        
+
+                        // 清理Cache API
+
+                        if ('caches' in window) {
+
+                            caches.delete('schedule-backup-v1').catch(error => {
+
+                                console.warn('⚠️ Cache清理失败:', error);
+
+                            });
+
+                        }
+
+                        
 
                     } catch (cleanError) {
 
@@ -2282,9 +2658,37 @@
 
                     
 
-                    MessageUtils.success('数据修复完成！如果问题仍然存在，请刷新页面。');
+                    // 8. 强制重新渲染（确保清理生效）
+
+                    setTimeout(() => {
+
+                        renderCalendar();
+
+                        updateEventStats();
+
+                        if (selectedDate) {
+
+                            displaySelectedDayEvents(selectedDate);
+
+                        }
+
+                    }, 100);
+
+                    
+
+                    MessageUtils.success('数据修复完成！页面将自动刷新以确保修复生效。');
 
                     console.log('✅ 强制数据修复完成');
+
+                    
+
+                    // 延迟刷新页面确保修复生效
+
+                    setTimeout(() => {
+
+                        window.location.reload();
+
+                    }, 2000);
 
                     
 
