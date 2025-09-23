@@ -2699,6 +2699,10 @@
 
             try {
 
+                console.log('🔄 重新加载和验证数据...');
+
+                
+
                 // 首先尝试修复损坏的数据
 
                 const repaired = repairCorruptedData();
@@ -2709,7 +2713,65 @@
 
                     const currentDataString = JSON.stringify(monthlyEvents);
 
-                    const newData = loadAndCleanData();
+                    let newData = loadAndCleanData();
+
+                    
+
+                    // 应用本地删除记录
+
+                    const deletedEvents = JSON.parse(localStorage.getItem('deletedEvents') || '[]');
+
+                    if (deletedEvents.length > 0) {
+
+                        console.log('🗑️ 重新应用删除记录...');
+
+                        
+
+                        for (const deletion of deletedEvents) {
+
+                            const { date, event: deletedEvent } = deletion;
+
+                            
+
+                            if (newData[date]) {
+
+                                newData[date] = newData[date].filter(event => {
+
+                                    const isMatch = event.title === deletedEvent.title && 
+
+                                                  event.time === deletedEvent.time;
+
+                                    
+
+                                    if (isMatch) {
+
+                                        console.log(`🗑️ 重新删除恢复的事件: ${date} - ${event.title}`);
+
+                                    }
+
+                                    
+
+                                    return !isMatch;
+
+                                });
+
+                                
+
+                                // 如果该日期没有事件了，删除整个日期条目
+
+                                if (newData[date].length === 0) {
+
+                                    delete newData[date];
+
+                                }
+
+                            }
+
+                        }
+
+                    }
+
+                    
 
                     const newDataString = JSON.stringify(newData);
 
@@ -2722,6 +2784,14 @@
                         console.log('📊 检测到数据变化，重新渲染视图');
 
                         monthlyEvents = newData;
+
+                        
+
+                        // 保存应用删除记录后的数据
+
+                        saveEvents();
+
+                        
 
                         renderCalendar();
 
@@ -2739,7 +2809,7 @@
 
                         
 
-                        MessageUtils.info('数据已更新');
+                        MessageUtils.info('数据已更新并应用删除记录');
 
                     } else {
 
@@ -3408,37 +3478,183 @@
 
             if (confirm('确定要删除这个日程吗？')) {
 
-                monthlyEvents[date].splice(index, 1);
+                try {
+
+                    console.log(`🗑️ 删除事件: ${date}[${index}]`);
+
+                    
+
+                    // 检查数据有效性
+
+                    if (!monthlyEvents[date] || !Array.isArray(monthlyEvents[date])) {
+
+                        console.error('❌ 无效的日期数据:', date);
+
+                        MessageUtils.error('删除失败：数据无效');
+
+                        return;
+
+                    }
+
+                    
+
+                    if (index < 0 || index >= monthlyEvents[date].length) {
+
+                        console.error('❌ 无效的事件索引:', index);
+
+                        MessageUtils.error('删除失败：事件不存在');
+
+                        return;
+
+                    }
+
+                    
+
+                    // 记录删除的事件
+
+                    const deletedEvent = monthlyEvents[date][index];
+
+                    console.log('删除的事件:', deletedEvent);
+
+                    
+
+                    // 删除事件
+
+                    monthlyEvents[date].splice(index, 1);
+
+                    
+
+                    // 如果日期没有事件了，删除整个日期条目
+
+                    if (monthlyEvents[date].length === 0) {
+
+                        delete monthlyEvents[date];
+
+                        console.log(`🗑️ 删除整个日期: ${date}`);
+
+                    }
+
+                    
+
+                    // 强制保存数据
+
+                    saveEvents();
+
+                    
+
+                    // 验证保存是否成功
+
+                    const savedData = JSON.parse(localStorage.getItem('monthlyEvents') || '{}');
+
+                    if (savedData[date]) {
+
+                        const eventStillExists = savedData[date].some(event => 
+
+                            event.title === deletedEvent.title && 
+
+                            event.time === deletedEvent.time
+
+                        );
+
+                        
+
+                        if (eventStillExists) {
+
+                            console.error('❌ 删除验证失败，事件仍然存在');
+
+                            MessageUtils.error('删除失败：数据保存异常');
+
+                            return;
+
+                        }
+
+                    }
+
+                    
+
+                    console.log('✅ 删除验证通过');
+
+                    
+
+                    // 重新渲染界面
+
+                    renderCalendar();
+
+                    updateEventStats();
+
+                    
+
+                    if (selectedDate === date) {
+
+                        displaySelectedDayEvents(date);
+
+                    }
+
+                    
+
+                    // 记录删除操作到删除日志
+
+                    recordDeletion(date, deletedEvent);
+
+                    
+
+                    MessageUtils.success('日程已删除');
+
+                    
+
+                } catch (error) {
+
+                    console.error('❌ 删除操作失败:', error);
+
+                    MessageUtils.error('删除失败，请重试');
+
+                }
+
+            }
+
+        }
+
+        
+
+        // 记录删除操作
+
+        function recordDeletion(date, event) {
+
+            try {
+
+                const deletions = JSON.parse(localStorage.getItem('deletedEvents') || '[]');
+
+                deletions.push({
+
+                    date: date,
+
+                    event: event,
+
+                    deletedAt: new Date().toISOString(),
+
+                    userAgent: navigator.userAgent
+
+                });
 
                 
 
-                // 如果日期没有事件了，删除整个日期条目
+                // 只保留最近100个删除记录
 
-                if (monthlyEvents[date].length === 0) {
+                if (deletions.length > 100) {
 
-                    delete monthlyEvents[date];
+                    deletions.splice(0, deletions.length - 100);
 
                 }
 
                 
 
-                saveEvents();
+                localStorage.setItem('deletedEvents', JSON.stringify(deletions));
 
-                renderCalendar();
+                console.log('📝 删除记录已保存');
 
-                updateEventStats();
+            } catch (error) {
 
-                
-
-                if (selectedDate === date) {
-
-                    displaySelectedDayEvents(date);
-
-                }
-
-                
-
-                MessageUtils.success('日程已删除');
+                console.warn('⚠️ 删除记录保存失败:', error);
 
             }
 
@@ -3450,17 +3666,105 @@
 
             if (selectedDate && confirm('确定要清空当天所有日程吗？')) {
 
-                delete monthlyEvents[selectedDate];
+                try {
 
-                saveEvents();
+                    console.log(`🗑️ 清空当天所有日程: ${selectedDate}`);
 
-                renderCalendar();
+                    
 
-                updateEventStats();
+                    // 记录被清空的所有事件
 
-                displaySelectedDayEvents(selectedDate);
+                    if (monthlyEvents[selectedDate]) {
 
-                MessageUtils.success('当天日程已清空');
+                        const eventsToDelete = monthlyEvents[selectedDate];
+
+                        
+
+                        // 将所有事件添加到删除记录
+
+                        for (const event of eventsToDelete) {
+
+                            recordDeletion(selectedDate, event);
+
+                        }
+
+                        
+
+                        console.log(`📝 记录了 ${eventsToDelete.length} 个删除的事件`);
+
+                    }
+
+                    
+
+                    delete monthlyEvents[selectedDate];
+
+                    saveEvents();
+
+                    renderCalendar();
+
+                    updateEventStats();
+
+                    displaySelectedDayEvents(selectedDate);
+
+                    
+
+                    MessageUtils.success('当天日程已清空');
+
+                    
+
+                } catch (error) {
+
+                    console.error('❌ 清空日程失败:', error);
+
+                    MessageUtils.error('清空失败，请重试');
+
+                }
+
+            }
+
+        }
+
+        
+
+        // 清理删除记录（用于调试和维护）
+
+        function clearDeletionRecords() {
+
+            try {
+
+                localStorage.removeItem('deletedEvents');
+
+                console.log('🧹 删除记录已清理');
+
+                MessageUtils.success('删除记录已清理');
+
+            } catch (error) {
+
+                console.error('❌ 清理删除记录失败:', error);
+
+                MessageUtils.error('清理失败');
+
+            }
+
+        }
+
+        
+
+        // 查看删除记录（用于调试）
+
+        function viewDeletionRecords() {
+
+            try {
+
+                const deletions = JSON.parse(localStorage.getItem('deletedEvents') || '[]');
+
+                console.log('📝 删除记录:', deletions);
+
+                alert(`删除记录数量: ${deletions.length} 个\n\n详细信息请查看控制台。`);
+
+            } catch (error) {
+
+                console.error('❌ 查看删除记录失败:', error);
 
             }
 
@@ -4715,11 +5019,52 @@
         // 处理同步后的数据
         function handleSyncedData() {
             try {
+                console.log('🔄 处理同步后的数据...');
+                
+                // 获取本地删除记录
+                const deletedEvents = JSON.parse(localStorage.getItem('deletedEvents') || '[]');
+                console.log('📝 本地删除记录:', deletedEvents.length, '个');
+                
                 // 重新加载数据
                 const rawData = localStorage.getItem('monthlyEvents');
                 if (rawData) {
                     const parsedData = JSON.parse(rawData);
-                    monthlyEvents = cleanupEventData(parsedData);
+                    let cleanedData = cleanupEventData(parsedData);
+                    
+                    // 应用本地删除记录，确保删除的事件不会因为同步而恢复
+                    if (deletedEvents.length > 0) {
+                        console.log('🗑️ 应用本地删除记录...');
+                        
+                        for (const deletion of deletedEvents) {
+                            const { date, event: deletedEvent } = deletion;
+                            
+                            if (cleanedData[date]) {
+                                // 查找并移除匹配的事件
+                                cleanedData[date] = cleanedData[date].filter(event => {
+                                    const isMatch = event.title === deletedEvent.title && 
+                                                  event.time === deletedEvent.time;
+                                    
+                                    if (isMatch) {
+                                        console.log(`🗑️ 重新应用删除: ${date} - ${event.title}`);
+                                    }
+                                    
+                                    return !isMatch;
+                                });
+                                
+                                // 如果该日期没有事件了，删除整个日期条目
+                                if (cleanedData[date].length === 0) {
+                                    delete cleanedData[date];
+                                }
+                            }
+                        }
+                        
+                        console.log('✅ 删除记录应用完成');
+                    }
+                    
+                    monthlyEvents = cleanedData;
+                    
+                    // 保存应用删除记录后的数据
+                    saveEvents();
                     
                     // 重新渲染视图
                     renderCalendar();
