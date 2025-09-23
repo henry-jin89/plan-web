@@ -6,11 +6,13 @@
 
 <head>
 
-    <script src="config.js"></script>
-
     <meta charset="UTF-8">
 
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <script src="config.js"></script>
 
     <title>月度日程 - 智能计划管理系统</title>
 
@@ -1644,6 +1646,8 @@
 
                     <button type="button" id="backup-manager-btn" class="btn-main">🗄️ 备份</button>
 
+                    <button type="button" id="repair-data-btn" class="btn-main" style="background: #ff9800;">🔧 修复数据</button>
+
                 </div>
 
             </div>
@@ -1838,44 +1842,181 @@
 
         let selectedDate = null;
 
-        let monthlyEvents = JSON.parse(localStorage.getItem('monthlyEvents') || '{}');
+        let monthlyEvents = loadAndCleanData();
 
-        // 数据清理和验证函数
+        // 安全的数据加载函数
+        function loadAndCleanData() {
+            try {
+                const rawData = localStorage.getItem('monthlyEvents');
+                if (!rawData) {
+                    console.log('🔄 没有找到本地数据，初始化为空对象');
+                    return {};
+                }
+                
+                // 尝试解析JSON
+                let parsedData;
+                try {
+                    parsedData = JSON.parse(rawData);
+                } catch (parseError) {
+                    console.error('❌ JSON解析失败，尝试修复:', parseError);
+                    // 尝试修复常见的JSON问题
+                    const fixedJson = rawData.replace(/[\x00-\x1F\x7F-\x9F]/g, '')
+                                           .replace(/\uFEFF/g, '')
+                                           .replace(/Â+/g, '');
+                    try {
+                        parsedData = JSON.parse(fixedJson);
+                        console.log('✅ JSON修复成功');
+                    } catch (fixError) {
+                        console.error('❌ JSON修复失败，使用空对象:', fixError);
+                        return {};
+                    }
+                }
+                
+                // 清理和验证数据
+                const cleanedData = cleanupEventData(parsedData || {});
+                console.log('✅ 数据加载和清理完成');
+                return cleanedData;
+                
+            } catch (error) {
+                console.error('❌ 数据加载失败:', error);
+                return {};
+            }
+        }
+
+        // 数据清理和验证函数 - 增强版本
         function sanitizeText(text) {
             if (typeof text !== 'string') {
                 return String(text || '');
             }
             
-            // 移除可能的控制字符和特殊字符
-            return text.replace(/[\x00-\x1F\x7F-\x9F]/g, '')
-                      .replace(/\uFEFF/g, '') // 移除BOM
-                      .trim();
+            // 处理各种编码问题
+            let cleaned = text;
+            
+            // 第一轮：处理常见的UTF-8编码问题
+            cleaned = cleaned.replace(/Â+/g, '') // 移除多余的Â字符
+                           .replace(/Ã¢â‚¬â„¢/g, "'") // 修复智能引号
+                           .replace(/Ã¢â‚¬Â/g, '–') // 修复破折号
+                           .replace(/Ã¢â‚¬Å"/g, '"') // 修复左双引号
+                           .replace(/Ã¢â‚¬Â/g, '"') // 修复右双引号
+                           .replace(/Ã¢â‚¬â€œ/g, '—') // 修复长破折号
+                           .replace(/[\u00C2\u00A0]/g, ' ') // 替换不间断空格
+                           .replace(/[\x00-\x1F\x7F-\x9F]/g, '') // 移除控制字符
+                           .replace(/\uFEFF/g, '') // 移除BOM
+                           .replace(/\u200B/g, '') // 移除零宽空格
+                           .replace(/\u00A0/g, ' ') // 替换不间断空格为普通空格
+                           .replace(/\u2028/g, '') // 移除行分隔符
+                           .replace(/\u2029/g, ''); // 移除段落分隔符
+            
+            // 第二轮：处理可能的双重编码问题
+            try {
+                // 尝试解码可能的双重编码
+                if (cleaned.includes('Â') || cleaned.includes('\u00C2')) {
+                    // 将字符串转换为字节数组，然后重新解码
+                    const bytes = [];
+                    for (let i = 0; i < cleaned.length; i++) {
+                        const code = cleaned.charCodeAt(i);
+                        if (code <= 0xFF) {
+                            bytes.push(code);
+                        } else {
+                            // 对于非ASCII字符，保持原样
+                            bytes.push(code);
+                        }
+                    }
+                    
+                    // 重新构建字符串，跳过问题字符
+                    let rebuilt = '';
+                    for (let i = 0; i < bytes.length; i++) {
+                        const byte = bytes[i];
+                        if (byte === 0xC2 && i + 1 < bytes.length && bytes[i + 1] >= 0x80 && bytes[i + 1] <= 0xBF) {
+                            // 跳过UTF-8的Â字符序列
+                            i++; // 跳过下一个字节
+                            continue;
+                        } else if (byte >= 32 && byte <= 126) {
+                            // 只保留可打印的ASCII字符
+                            rebuilt += String.fromCharCode(byte);
+                        } else if (byte > 127) {
+                            // 保留非ASCII字符（可能是正常的中文等）
+                            rebuilt += String.fromCharCode(byte);
+                        }
+                    }
+                    cleaned = rebuilt;
+                }
+            } catch (error) {
+                console.warn('字符解码失败，使用基础清理:', error);
+            }
+            
+            // 第三轮：最终清理
+            cleaned = cleaned.replace(/\s+/g, ' ') // 合并多个空格
+                           .trim();
+            
+            // 如果清理后为空或只有特殊字符，返回空字符串
+            if (!cleaned || /^[\s\u00A0\u200B\uFEFF\u2028\u2029]*$/.test(cleaned)) {
+                return '';
+            }
+            
+            return cleaned;
         }
 
         function cleanupEventData(events) {
             const cleaned = {};
             
+            if (!events || typeof events !== 'object') {
+                console.warn('⚠️ 无效的事件数据格式，返回空对象');
+                return {};
+            }
+            
             for (const [date, eventList] of Object.entries(events)) {
-                if (!Array.isArray(eventList)) continue;
+                // 验证日期格式
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                    console.warn('⚠️ 跳过无效日期格式:', date);
+                    continue;
+                }
+                
+                if (!Array.isArray(eventList)) {
+                    console.warn('⚠️ 跳过非数组事件列表:', date);
+                    continue;
+                }
                 
                 const validEvents = eventList.filter(event => {
-                    return event && 
-                           typeof event === 'object' &&
-                           event.title && 
-                           event.time;
-                }).map(event => ({
-                    title: sanitizeText(event.title),
-                    time: sanitizeText(event.time),
-                    category: sanitizeText(event.category || 'other'),
-                    description: sanitizeText(event.description || ''),
-                    createdAt: event.createdAt || new Date().toISOString()
-                }));
+                    if (!event || typeof event !== 'object') {
+                        console.warn('⚠️ 跳过无效事件对象:', event);
+                        return false;
+                    }
+                    
+                    const hasTitle = event.title && typeof event.title === 'string';
+                    const hasTime = event.time && typeof event.time === 'string';
+                    
+                    if (!hasTitle || !hasTime) {
+                        console.warn('⚠️ 跳过缺少必需字段的事件:', event);
+                        return false;
+                    }
+                    
+                    return true;
+                }).map(event => {
+                    const cleanedTitle = sanitizeText(event.title);
+                    const cleanedTime = sanitizeText(event.time);
+                    
+                    // 如果清理后的标题或时间为空，跳过此事件
+                    if (!cleanedTitle || !cleanedTime) {
+                        console.warn('⚠️ 清理后标题或时间为空，跳过事件');
+                        return null;
+                    }
+                    
+                    return {
+                        title: cleanedTitle,
+                        time: cleanedTime,
+                        category: sanitizeText(event.category || 'other') || 'other',
+                        description: sanitizeText(event.description || ''),
+                        createdAt: event.createdAt || new Date().toISOString()
+                    };
+                }).filter(event => event !== null); // 移除null值
                 
                 if (validEvents.length > 0) {
                     cleaned[date] = validEvents;
                 }
             }
             
+            console.log(`✅ 数据清理完成，有效日期: ${Object.keys(cleaned).length}`);
             return cleaned;
         }
 
@@ -1899,6 +2040,332 @@
 
         });
 
+        
+
+        // 监听页面可见性变化，重新加载数据
+
+        document.addEventListener('visibilitychange', function() {
+
+            if (!document.hidden) {
+
+                console.log('🔄 页面重新可见，检查数据一致性');
+
+                reloadAndValidateData();
+
+            }
+
+        });
+
+        
+
+        // 监听窗口焦点变化
+
+        window.addEventListener('focus', function() {
+
+            console.log('🔄 窗口获得焦点，检查数据一致性');
+
+            reloadAndValidateData();
+
+        });
+
+        
+
+        // 立即修复现有损坏数据
+
+        function repairCorruptedData() {
+
+            try {
+
+                console.log('🔧 开始修复损坏的数据...');
+
+                
+
+                const rawData = localStorage.getItem('monthlyEvents');
+
+                if (!rawData) {
+
+                    console.log('💡 没有数据需要修复');
+
+                    return;
+
+                }
+
+                
+
+                // 检查是否包含损坏的字符
+
+                if (rawData.includes('Â') || rawData.includes('\u00C2')) {
+
+                    console.log('🚨 检测到损坏的数据，开始修复...');
+
+                    
+
+                    // 深度清理JSON字符串
+
+                    let cleanedJson = rawData;
+
+                    
+
+                    // 修复常见的编码问题
+
+                    cleanedJson = cleanedJson.replace(/Â+/g, '') // 移除Â字符
+
+                                           .replace(/[\u00C2]/g, '') // 移除C2字符
+
+                                           .replace(/[\x00-\x1F\x7F-\x9F]/g, '') // 移除控制字符
+
+                                           .replace(/\uFEFF/g, '') // 移除BOM
+
+                                           .replace(/\u200B/g, '') // 移除零宽空格
+
+                                           .replace(/\u00A0/g, ' ') // 替换不间断空格
+
+                                           .replace(/\u2028/g, '') // 移除行分隔符
+
+                                           .replace(/\u2029/g, ''); // 移除段落分隔符
+
+                    
+
+                    // 尝试解析修复后的JSON
+
+                    try {
+
+                        const parsedData = JSON.parse(cleanedJson);
+
+                        const repairedData = cleanupEventData(parsedData);
+
+                        
+
+                        // 保存修复后的数据
+
+                        const repairedJson = JSON.stringify(repairedData);
+
+                        localStorage.setItem('monthlyEvents', repairedJson);
+
+                        
+
+                        // 更新内存中的数据
+
+                        monthlyEvents = repairedData;
+
+                        
+
+                        console.log('✅ 数据修复成功');
+
+                        MessageUtils.success('检测到数据问题已自动修复');
+
+                        
+
+                        return true;
+
+                    } catch (parseError) {
+
+                        console.error('❌ 修复后的JSON仍然无效:', parseError);
+
+                        
+
+                        // 如果修复失败，清空数据
+
+                        localStorage.removeItem('monthlyEvents');
+
+                        monthlyEvents = {};
+
+                        
+
+                        MessageUtils.warning('数据损坏严重，已重置为空');
+
+                        return false;
+
+                    }
+
+                } else {
+
+                    console.log('✅ 数据完整，无需修复');
+
+                    return true;
+
+                }
+
+            } catch (error) {
+
+                console.error('❌ 数据修复过程出错:', error);
+
+                return false;
+
+            }
+
+        }
+
+        
+
+        // 强制修复数据（用户手动触发）
+
+        function forceRepairData() {
+
+            if (confirm('这将强制修复所有数据问题，可能会丢失部分损坏的数据。\n\n是否继续？')) {
+
+                try {
+
+                    console.log('🔧 用户触发强制数据修复...');
+
+                    
+
+                    // 1. 修复localStorage中的数据
+
+                    const repaired = repairCorruptedData();
+
+                    
+
+                    // 2. 强制重新加载数据
+
+                    monthlyEvents = loadAndCleanData();
+
+                    
+
+                    // 3. 强制保存清理后的数据
+
+                    saveEvents();
+
+                    
+
+                    // 4. 重新渲染所有视图
+
+                    renderCalendar();
+
+                    updateEventStats();
+
+                    
+
+                    // 5. 如果有选中的日期，更新显示
+
+                    if (selectedDate) {
+
+                        displaySelectedDayEvents(selectedDate);
+
+                    }
+
+                    
+
+                    // 6. 清理所有可能的缓存
+
+                    try {
+
+                        sessionStorage.removeItem('monthlyEventsTemp');
+
+                        sessionStorage.removeItem('monthlyEventsBackup');
+
+                        
+
+                        // 清理可能损坏的备份
+
+                        const backupKeys = ['backup_main', 'backup_secondary', 'backup_tertiary'];
+
+                        backupKeys.forEach(key => {
+
+                            const backupData = localStorage.getItem(key);
+
+                            if (backupData && (backupData.includes('Â') || backupData.includes('\u00C2'))) {
+
+                                localStorage.removeItem(key);
+
+                                console.log(`🗑️ 清理损坏的备份: ${key}`);
+
+                            }
+
+                        });
+
+                    } catch (cleanError) {
+
+                        console.warn('清理缓存时出错:', cleanError);
+
+                    }
+
+                    
+
+                    MessageUtils.success('数据修复完成！如果问题仍然存在，请刷新页面。');
+
+                    console.log('✅ 强制数据修复完成');
+
+                    
+
+                } catch (error) {
+
+                    console.error('❌ 强制修复失败:', error);
+
+                    MessageUtils.error('修复失败，建议清空浏览器数据后重新开始');
+
+                }
+
+            }
+
+        }
+
+        
+
+        // 重新加载和验证数据
+
+        function reloadAndValidateData() {
+
+            try {
+
+                // 首先尝试修复损坏的数据
+
+                const repaired = repairCorruptedData();
+
+                
+
+                if (repaired) {
+
+                    const currentDataString = JSON.stringify(monthlyEvents);
+
+                    const newData = loadAndCleanData();
+
+                    const newDataString = JSON.stringify(newData);
+
+                    
+
+                    // 如果数据发生变化，重新渲染
+
+                    if (currentDataString !== newDataString) {
+
+                        console.log('📊 检测到数据变化，重新渲染视图');
+
+                        monthlyEvents = newData;
+
+                        renderCalendar();
+
+                        updateEventStats();
+
+                        
+
+                        // 如果有选中的日期，更新显示
+
+                        if (selectedDate) {
+
+                            displaySelectedDayEvents(selectedDate);
+
+                        }
+
+                        
+
+                        MessageUtils.info('数据已更新');
+
+                    } else {
+
+                        console.log('✅ 数据一致，无需更新');
+
+                    }
+
+                }
+
+            } catch (error) {
+
+                console.error('❌ 数据重新加载失败:', error);
+
+            }
+
+        }
+
 
 
         function initMonthlySchedule() {
@@ -1908,6 +2375,12 @@
             const today = DateUtils.getToday();
 
             document.getElementById('event-date').value = today;
+
+            
+
+            // 立即修复任何损坏的数据
+
+            repairCorruptedData();
 
             
 
@@ -1984,6 +2457,8 @@
             document.getElementById('sync-settings-btn')?.addEventListener('click', openSyncSettings);
 
             document.getElementById('backup-manager-btn')?.addEventListener('click', showBackupManager);
+
+            document.getElementById('repair-data-btn')?.addEventListener('click', forceRepairData);
 
             document.getElementById('clear-day-btn')?.addEventListener('click', clearDayEvents);
 
@@ -2369,21 +2844,35 @@
 
         function addEvent() {
 
-            const title = document.getElementById('event-title').value.trim();
+            const rawTitle = document.getElementById('event-title').value || '';
 
             const date = document.getElementById('event-date').value;
 
-            const time = document.getElementById('event-time').value;
+            const rawTime = document.getElementById('event-time').value || '';
 
-            const category = document.getElementById('event-category').value;
+            const category = document.getElementById('event-category').value || 'other';
 
-            const description = document.getElementById('event-description').value.trim();
+            const rawDescription = document.getElementById('event-description').value || '';
 
             
 
-            if (!title || !date || !time) {
+            // 清理输入数据
 
-                MessageUtils.error('请填写完整的日程信息');
+            const title = sanitizeText(rawTitle);
+
+            const time = sanitizeText(rawTime);
+
+            const description = sanitizeText(rawDescription);
+
+            
+
+            // 验证必需字段
+
+            if (!title) {
+
+                MessageUtils.error('请输入日程标题');
+
+                document.getElementById('event-title').focus();
 
                 return;
 
@@ -2391,21 +2880,77 @@
 
             
 
+            if (!date) {
+
+                MessageUtils.error('请选择日期');
+
+                document.getElementById('event-date').focus();
+
+                return;
+
+            }
+
+            
+
+            if (!time) {
+
+                MessageUtils.error('请选择时间');
+
+                document.getElementById('event-time').focus();
+
+                return;
+
+            }
+
+            
+
+            // 验证日期格式
+
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+
+                MessageUtils.error('日期格式不正确');
+
+                return;
+
+            }
+
+            
+
+            // 验证时间格式
+
+            if (!/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(time)) {
+
+                MessageUtils.error('时间格式不正确');
+
+                return;
+
+            }
+
+            
+
+            // 创建事件对象
+
             const event = {
 
-                title,
+                title: title,
 
-                time,
+                time: time,
 
-                category,
+                category: category,
 
-                description,
+                description: description,
 
                 createdAt: new Date().toISOString()
 
             };
 
             
+
+            console.log('🔄 添加事件:', event);
+
+            
+
+            // 添加到数据中
 
             if (!monthlyEvents[date]) {
 
@@ -2416,6 +2961,10 @@
             
 
             monthlyEvents[date].push(event);
+
+            
+
+            // 保存数据
 
             saveEvents();
 
@@ -2450,6 +2999,8 @@
             
 
             MessageUtils.success('日程添加成功！');
+
+            console.log('✅ 事件添加完成');
 
         }
 
@@ -2695,11 +3246,99 @@
 
                 
 
+                // 使用自定义JSON序列化，确保字符编码正确
+
+                const jsonString = safeJsonStringify(cleanedEvents);
+
+                
+
+                if (!jsonString) {
+
+                    console.error('❌ JSON序列化失败');
+
+                    MessageUtils.error('数据序列化失败，保存失败');
+
+                    return;
+
+                }
+
+                
+
+                // 验证JSON字符串是否有效且不含问题字符
+
+                try {
+
+                    const testParse = JSON.parse(jsonString);
+
+                    
+
+                    // 检查是否包含问题字符
+
+                    if (jsonString.includes('Â') || jsonString.includes('\u00C2')) {
+
+                        console.error('❌ JSON包含编码问题字符');
+
+                        MessageUtils.error('数据包含编码问题，保存失败');
+
+                        return;
+
+                    }
+
+                    
+
+                } catch (validateError) {
+
+                    console.error('❌ JSON验证失败:', validateError);
+
+                    MessageUtils.error('数据格式错误，保存失败');
+
+                    return;
+
+                }
+
+                
+
                 // 主要存储
 
-                localStorage.setItem('monthlyEvents', JSON.stringify(cleanedEvents));
+                localStorage.setItem('monthlyEvents', jsonString);
 
                 monthlyEvents = cleanedEvents;
+
+                
+
+                // 验证保存是否成功
+
+                const savedData = localStorage.getItem('monthlyEvents');
+
+                if (savedData !== jsonString) {
+
+                    console.warn('⚠️ 保存验证失败，数据可能不一致');
+
+                    
+
+                    // 尝试重新保存
+
+                    try {
+
+                        localStorage.setItem('monthlyEvents', jsonString);
+
+                        console.log('✅ 重新保存成功');
+
+                    } catch (retryError) {
+
+                        console.error('❌ 重新保存失败:', retryError);
+
+                        MessageUtils.error('数据保存失败，请重试');
+
+                        return;
+
+                    }
+
+                }
+
+                
+
+                console.log('✅ 数据保存成功');
 
                 
 
@@ -2711,9 +3350,43 @@
 
             } catch (error) {
 
-                console.error('保存失败:', error);
+                console.error('❌ 保存失败:', error);
 
                 MessageUtils.error('数据保存失败，请重试');
+
+            }
+
+        }
+
+        
+
+        // 安全的JSON序列化函数
+
+        function safeJsonStringify(data) {
+
+            try {
+
+                // 使用自定义替换器确保字符安全
+
+                return JSON.stringify(data, function(key, value) {
+
+                    if (typeof value === 'string') {
+
+                        // 对字符串值进行清理
+
+                        return sanitizeText(value);
+
+                    }
+
+                    return value;
+
+                }, 0);
+
+            } catch (error) {
+
+                console.error('❌ JSON序列化失败:', error);
+
+                return null;
 
             }
 
