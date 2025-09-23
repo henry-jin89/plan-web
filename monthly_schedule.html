@@ -1697,6 +1697,7 @@
                     <button type="button" id="sync-settings-btn" class="btn-main">⚙️ 同步设置</button>
 
                     <button type="button" id="force-save-btn" class="btn-main" style="background: #4caf50; color: white;">💾 保存</button>
+                    <button type="button" id="reset-help-btn" class="btn-main" style="background: #2196f3; color: white; display: none;">🔄 重置助手</button>
 
                 </div>
 
@@ -2983,6 +2984,7 @@
             document.getElementById('clear-day-btn')?.addEventListener('click', clearDayEvents);
 
             document.getElementById('copy-day-btn')?.addEventListener('click', copyDayEvents);
+            document.getElementById('reset-help-btn')?.addEventListener('click', resetRecoveryHelp);
 
             
 
@@ -5375,6 +5377,20 @@
         // 显示数据恢复帮助信息
 
         function showDataRecoveryHelp() {
+            // 检查是否已经关闭过恢复助手
+            const helpDismissed = localStorage.getItem('recoveryHelpDismissed');
+            if (helpDismissed === 'true') {
+                console.log('💡 用户已关闭过恢复助手，不再显示');
+                return;
+            }
+            
+            // 检查是否是首次访问
+            const firstVisit = !localStorage.getItem('monthlyScheduleVisited');
+            if (firstVisit) {
+                localStorage.setItem('monthlyScheduleVisited', 'true');
+                console.log('💡 首次访问，不显示恢复助手');
+                return;
+            }
 
             const helpModal = document.createElement('div');
 
@@ -5442,10 +5458,17 @@
 
                                 </div>
 
-                                <button onclick="closeRecoveryHelp();" class="btn-main">知道了</button>
+                                <button onclick="dismissRecoveryHelp();" class="btn-main">知道了，不再显示</button>
 
                             </div>
 
+                        </div>
+                        
+                        <div style="text-align: center; margin-top: 16px; padding-top: 16px; border-top: 1px solid #eee;">
+                            <label style="display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9em; color: #666; cursor: pointer;">
+                                <input type="checkbox" id="dontShowAgain" />
+                                <span>不再显示此助手</span>
+                            </label>
                         </div>
 
                     </div>
@@ -5461,15 +5484,62 @@
 
 
         function closeRecoveryHelp() {
-
             const modal = document.querySelector('.recovery-help-modal');
-
             if (modal) {
-
+                // 检查是否勾选了"不再显示"
+                const dontShowAgain = document.getElementById('dontShowAgain');
+                if (dontShowAgain && dontShowAgain.checked) {
+                    localStorage.setItem('recoveryHelpDismissed', 'true');
+                    console.log('💡 用户选择不再显示恢复助手');
+                }
                 modal.remove();
-
             }
-
+        }
+        
+        // 永久关闭恢复助手
+        function dismissRecoveryHelp() {
+            localStorage.setItem('recoveryHelpDismissed', 'true');
+            console.log('💡 用户永久关闭恢复助手');
+            closeRecoveryHelp();
+            
+            // 显示重置按钮
+            const resetBtn = document.getElementById('reset-help-btn');
+            if (resetBtn) {
+                resetBtn.style.display = 'inline-block';
+                resetBtn.title = '重新启用数据恢复助手';
+            }
+        }
+        
+        // 重置恢复助手设置
+        function resetRecoveryHelp() {
+            if (confirm('确定要重新启用数据恢复助手吗？\n\n重新启用后，当检测不到数据时会显示恢复助手。')) {
+                localStorage.removeItem('recoveryHelpDismissed');
+                localStorage.removeItem('monthlyScheduleVisited');
+                console.log('💡 恢复助手设置已重置');
+                
+                // 隐藏重置按钮
+                const resetBtn = document.getElementById('reset-help-btn');
+                if (resetBtn) {
+                    resetBtn.style.display = 'none';
+                }
+                
+                alert('恢复助手已重新启用！\n\n下次打开页面时，如果没有数据将会显示恢复助手。');
+            }
+        }
+        
+        // 检查重置按钮的可见性
+        function checkResetButtonVisibility() {
+            const helpDismissed = localStorage.getItem('recoveryHelpDismissed');
+            const resetBtn = document.getElementById('reset-help-btn');
+            
+            if (resetBtn) {
+                if (helpDismissed === 'true') {
+                    resetBtn.style.display = 'inline-block';
+                    resetBtn.title = '重新启用数据恢复助手';
+                } else {
+                    resetBtn.style.display = 'none';
+                }
+            }
         }
 
 
@@ -5637,6 +5707,9 @@
             // 设置事件监听器
 
             setupEventListeners();
+            
+            // 检查是否需要显示重置助手按钮
+            checkResetButtonVisibility();
 
             
 
