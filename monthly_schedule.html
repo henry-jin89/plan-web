@@ -1584,6 +1584,62 @@
 
         }
 
+        
+
+        /* 保存按钮闪烁动画 */
+
+        @keyframes pulse {
+
+            0% {
+
+                transform: scale(1);
+
+                opacity: 1;
+
+            }
+
+            50% {
+
+                transform: scale(1.05);
+
+                opacity: 0.8;
+
+            }
+
+            100% {
+
+                transform: scale(1);
+
+                opacity: 1;
+
+            }
+
+        }
+
+        
+
+        /* 保存按钮特殊样式 */
+
+        #force-save-btn {
+
+            transition: all 0.3s ease;
+
+            font-weight: 600;
+
+        }
+
+        
+
+        #force-save-btn:hover {
+
+            background: #45a049 !important;
+
+            transform: translateY(-1px);
+
+            box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+
+        }
+
     </style>
 
 </head>
@@ -1637,6 +1693,8 @@
                     <button type="button" id="calendar-view-btn" class="btn-main">📋 列表视图</button>
 
                     <button type="button" id="sync-settings-btn" class="btn-main">⚙️ 同步设置</button>
+
+                    <button type="button" id="force-save-btn" class="btn-main" style="background: #4caf50; color: white;">💾 保存</button>
 
                 </div>
 
@@ -2911,6 +2969,8 @@
 
             document.getElementById('sync-settings-btn')?.addEventListener('click', openSyncSettings);
 
+            document.getElementById('force-save-btn')?.addEventListener('click', forceSaveData);
+
             document.getElementById('clear-day-btn')?.addEventListener('click', clearDayEvents);
 
             document.getElementById('copy-day-btn')?.addEventListener('click', copyDayEvents);
@@ -3520,25 +3580,25 @@
 
                     // 删除事件
 
-                    monthlyEvents[date].splice(index, 1);
+                monthlyEvents[date].splice(index, 1);
 
-                    
+                
 
-                    // 如果日期没有事件了，删除整个日期条目
+                // 如果日期没有事件了，删除整个日期条目
 
-                    if (monthlyEvents[date].length === 0) {
+                if (monthlyEvents[date].length === 0) {
 
-                        delete monthlyEvents[date];
+                    delete monthlyEvents[date];
 
                         console.log(`🗑️ 删除整个日期: ${date}`);
 
-                    }
+                }
 
-                    
+                
 
                     // 强制保存数据
 
-                    saveEvents();
+                saveEvents();
 
                     
 
@@ -3578,17 +3638,17 @@
 
                     // 重新渲染界面
 
-                    renderCalendar();
+                renderCalendar();
 
-                    updateEventStats();
+                updateEventStats();
 
-                    
+                
 
-                    if (selectedDate === date) {
+                if (selectedDate === date) {
 
-                        displaySelectedDayEvents(date);
+                    displaySelectedDayEvents(date);
 
-                    }
+                }
 
                     
 
@@ -3596,9 +3656,9 @@
 
                     recordDeletion(date, deletedEvent);
 
-                    
+                
 
-                    MessageUtils.success('日程已删除');
+                MessageUtils.success('日程已删除');
 
                     
 
@@ -3696,19 +3756,19 @@
 
                     
 
-                    delete monthlyEvents[selectedDate];
+                delete monthlyEvents[selectedDate];
 
-                    saveEvents();
+                saveEvents();
 
-                    renderCalendar();
+                renderCalendar();
 
-                    updateEventStats();
+                updateEventStats();
 
-                    displaySelectedDayEvents(selectedDate);
+                displaySelectedDayEvents(selectedDate);
 
                     
 
-                    MessageUtils.success('当天日程已清空');
+                MessageUtils.success('当天日程已清空');
 
                     
 
@@ -3765,6 +3825,230 @@
             } catch (error) {
 
                 console.error('❌ 查看删除记录失败:', error);
+
+            }
+
+        }
+
+        
+
+        // 强制保存数据到云端（覆盖同步数据）
+
+        async function forceSaveData() {
+
+            try {
+
+                console.log('💾 开始强制保存数据...');
+
+                
+
+                const confirmed = confirm(
+
+                    '将强制保存当前数据到云端，覆盖云端的错误数据。\n\n' +
+
+                    '这将确保15号等日期的错误内容被彻底清除。\n\n' +
+
+                    '是否继续？'
+
+                );
+
+                
+
+                if (!confirmed) {
+
+                    return;
+
+                }
+
+                
+
+                // 1. 首先清理当前数据
+
+                console.log('🧹 清理当前数据...');
+
+                emergencyDataCleanup();
+
+                
+
+                // 2. 验证数据清洁度
+
+                const cleanedEvents = cleanupEventData(monthlyEvents);
+
+                monthlyEvents = cleanedEvents;
+
+                
+
+                // 3. 强制本地保存
+
+                console.log('💾 强制本地保存...');
+
+                saveEvents();
+
+                
+
+                // 4. 如果有同步服务，强制上传
+
+                if (window.syncService) {
+
+                    const status = window.syncService.getSyncStatus();
+
+                    
+
+                    if (status.enabled) {
+
+                        try {
+
+                            console.log('☁️ 强制同步到云端...');
+
+                            
+
+                            // 显示保存进度
+
+                            MessageUtils.info('正在保存数据到云端...');
+
+                            
+
+                            // 执行强制同步
+
+                            await window.syncService.manualSync();
+
+                            
+
+                            // 再次验证本地数据（防止同步覆盖）
+
+                            setTimeout(() => {
+
+                                const afterSyncData = JSON.parse(localStorage.getItem('monthlyEvents') || '{}');
+
+                                const hasCorruptedData = JSON.stringify(afterSyncData).includes('Â');
+
+                                
+
+                                if (hasCorruptedData) {
+
+                                    console.log('⚠️ 检测到同步后仍有损坏数据，重新强制保存...');
+
+                                    
+
+                                    // 恢复清洁数据
+
+                                    monthlyEvents = cleanedEvents;
+
+                                    saveEvents();
+
+                                    
+
+                                    // 重新渲染
+
+                                    renderCalendar();
+
+                                    updateEventStats();
+
+                                    
+
+                                    MessageUtils.warning('云端数据已更新，但检测到残留问题已自动修复');
+
+                                } else {
+
+                                    console.log('✅ 同步验证通过，数据保存成功');
+
+                                    MessageUtils.success('数据已成功保存到云端！');
+
+                                }
+
+                            }, 1000);
+
+                            
+
+                        } catch (syncError) {
+
+                            console.error('❌ 云端同步失败:', syncError);
+
+                            MessageUtils.warning('本地保存成功，但云端同步失败: ' + syncError.message);
+
+                        }
+
+                    } else {
+
+                        console.log('💡 同步未启用，仅保存到本地');
+
+                        MessageUtils.success('数据已保存到本地！');
+
+                    }
+
+                } else {
+
+                    console.log('💡 无同步服务，仅保存到本地');
+
+                    MessageUtils.success('数据已保存到本地！');
+
+                }
+
+                
+
+                // 5. 重新渲染界面
+
+                renderCalendar();
+
+                updateEventStats();
+
+                
+
+                if (selectedDate) {
+
+                    displaySelectedDayEvents(selectedDate);
+
+                }
+
+                
+
+                // 6. 更新保存时间显示
+
+                updateSaveTimeDisplay();
+
+                
+
+                console.log('✅ 强制保存完成');
+
+                
+
+            } catch (error) {
+
+                console.error('❌ 强制保存失败:', error);
+
+                MessageUtils.error('保存失败: ' + error.message);
+
+            }
+
+        }
+
+        
+
+        // 更新保存时间显示
+
+        function updateSaveTimeDisplay() {
+
+            const now = new Date();
+
+            const timeStr = now.toLocaleTimeString('zh-CN');
+
+            
+
+            const saveBtn = document.getElementById('force-save-btn');
+
+            if (saveBtn) {
+
+                saveBtn.innerHTML = `💾 保存 (${timeStr})`;
+
+                
+
+                // 3秒后恢复原始文本
+
+                setTimeout(() => {
+
+                    saveBtn.innerHTML = '💾 保存';
+
+                }, 3000);
 
             }
 
@@ -5031,6 +5315,23 @@
                     const parsedData = JSON.parse(rawData);
                     let cleanedData = cleanupEventData(parsedData);
                     
+                    // 检测是否仍有损坏数据（特别是15号）
+                    let hasCorruptedData = false;
+                    const corruptedDates = [];
+                    
+                    for (const [date, events] of Object.entries(cleanedData)) {
+                        if (Array.isArray(events)) {
+                            for (const event of events) {
+                                if (event.title && (event.title.includes('Â') || event.title.includes('\u00C2'))) {
+                                    hasCorruptedData = true;
+                                    if (!corruptedDates.includes(date)) {
+                                        corruptedDates.push(date);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
                     // 应用本地删除记录，确保删除的事件不会因为同步而恢复
                     if (deletedEvents.length > 0) {
                         console.log('🗑️ 应用本地删除记录...');
@@ -5075,11 +5376,50 @@
                         displaySelectedDayEvents(selectedDate);
                     }
                     
+                    // 如果检测到损坏数据，提示用户强制保存
+                    if (hasCorruptedData) {
+                        console.log('🚨 检测到同步后仍有损坏数据:', corruptedDates);
+                        
+                        setTimeout(() => {
+                            const shouldForceSave = confirm(
+                                `检测到同步后仍有损坏数据！\n\n` +
+                                `受影响的日期: ${corruptedDates.join(', ')}\n\n` +
+                                `建议点击"💾 保存"按钮强制保存正确数据到云端，\n` +
+                                `这将彻底解决15号等日期的错误显示问题。\n\n` +
+                                `是否现在强制保存？`
+                            );
+                            
+                            if (shouldForceSave) {
+                                forceSaveData();
+                            } else {
+                                MessageUtils.warning('检测到数据问题，建议手动点击"💾 保存"按钮');
+                                // 高亮保存按钮
+                                highlightSaveButton();
+                            }
+                        }, 1000);
+                    }
+                    
                     console.log('✅ 同步数据已处理和清理');
                 }
             } catch (error) {
                 console.error('❌ 处理同步数据失败:', error);
                 MessageUtils.error('同步数据处理失败，请刷新页面重试');
+            }
+        }
+        
+        // 高亮保存按钮
+        function highlightSaveButton() {
+            const saveBtn = document.getElementById('force-save-btn');
+            if (saveBtn) {
+                // 添加闪烁效果
+                saveBtn.style.animation = 'pulse 1s infinite';
+                saveBtn.style.boxShadow = '0 0 10px #4caf50';
+                
+                // 5秒后移除效果
+                setTimeout(() => {
+                    saveBtn.style.animation = '';
+                    saveBtn.style.boxShadow = '';
+                }, 5000);
             }
         }
 
