@@ -334,6 +334,8 @@
             <h1 class="page-title">📈 智能习惯追踪</h1>
             <div style="display: flex; gap: 8px;">
                 <a href="day_plan.html" class="btn-main" style="font-size: 0.9em;">日计划</a>
+                <button type="button" id="clean-habit-data-btn" class="btn-main" style="background: #ff9800; color: white;">🧹 清理数据</button>
+                <button type="button" id="force-save-habit-btn" class="btn-main" style="background: #4caf50; color: white;">💾 保存</button>
                 <button type="button" id="add-habit-btn" class="btn-main">➕ 新增习惯</button>
             </div>
         </div>
@@ -686,6 +688,31 @@
                 return;
             }
             
+            // 执行数据清理检查
+            setTimeout(() => {
+                try {
+                    console.log('🧹 执行启动时数据清理检查...');
+                    
+                    // 检查是否有编码问题
+                    let needsCleaning = false;
+                    for (const [habitId, habit] of Object.entries(habitsData)) {
+                        if (habit && habit.name && hasEncodingIssues(habit.name)) {
+                            needsCleaning = true;
+                            break;
+                        }
+                    }
+                    
+                    if (needsCleaning) {
+                        console.log('⚠️ 检测到习惯数据编码问题，自动清理...');
+                        cleanHabitData();
+                    } else {
+                        console.log('✅ 习惯数据检查通过');
+                    }
+                } catch (error) {
+                    console.warn('⚠️ 启动时数据清理失败:', error);
+                }
+            }, 500);
+            
             // 初始化
             try {
                 initHabitTracker();
@@ -828,6 +855,10 @@
             document.getElementById('cal-next').addEventListener('click', () => navigateCalendar(1));
             document.getElementById('generate-insights-btn').addEventListener('click', generateHabitInsights);
             
+            // 新增的功能按钮
+            document.getElementById('clean-habit-data-btn')?.addEventListener('click', cleanHabitData);
+            document.getElementById('force-save-habit-btn')?.addEventListener('click', forceSaveHabitData);
+            
             // 习惯分析按钮事件绑定 - 使用多种方式确保绑定成功
             const analyticsBtn = document.getElementById('habits-analytics-btn');
             console.log('查找习惯分析按钮:', analyticsBtn);
@@ -942,9 +973,14 @@
             const streak = calculateStreak(habit);
             const completionRate = calculateCompletionRate(habit);
 
+            // 安全的文本处理，防止编码问题显示
+            const safeIcon = sanitizeHabitText(habit.icon || '📋');
+            const safeName = sanitizeHabitText(habit.name || '');
+            const safeUnit = sanitizeHabitText(habit.unit || '次');
+            
             card.innerHTML = `
                 <div class="habit-header">
-                    <div class="habit-name">${habit.icon} ${habit.name}</div>
+                    <div class="habit-name">${safeIcon} ${safeName}</div>
                     <div class="habit-streak">连续 ${streak} 天</div>
                 </div>
                 
@@ -954,7 +990,7 @@
                     </div>
                     <div class="habit-stats">
                         <span>完成率: ${completionRate}%</span>
-                        <span>目标: ${habit.target}${habit.unit}</span>
+                        <span>目标: ${habit.target}${safeUnit}</span>
                     </div>
                 </div>
                 
@@ -1396,7 +1432,7 @@
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
                         <div style="background: linear-gradient(135deg, rgba(76,175,80,0.1), rgba(76,175,80,0.05)); padding: 20px; border-radius: 12px; border-left: 4px solid #4caf50; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                             <h4 style="margin: 0 0 12px 0; color: #2e7d32; font-size: 1.1em;">🏆 表现最佳习惯</h4>
-                            <p style="margin: 0; font-size: 1.2em; font-weight: 600;"><strong>${bestHabit.icon || '📋'} ${bestHabit.name}</strong></p>
+                            <p style="margin: 0; font-size: 1.2em; font-weight: 600;"><strong>${sanitizeHabitText(bestHabit.icon || '📋')} ${sanitizeHabitText(bestHabit.name || '')}</strong></p>
                             <p style="margin: 8px 0 0 0; color: #666; font-size: 1em;">完成率: <strong style="color: #2e7d32;">${maxRate}%</strong></p>
                         </div>
                         
@@ -1503,10 +1539,12 @@
                             <div style="max-height: 80px; overflow-y: auto;">
                     `;
                     completedHabits.forEach(habit => {
+                        const safeIcon = sanitizeHabitText(habit.icon || '📋');
+                        const safeName = sanitizeHabitText(habit.name || '');
                         tooltipHtml += `
                             <div style="display: flex; align-items: center; gap: 6px; padding: 4px 0; font-size: 0.9em;">
-                                <span style="font-size: 1.1em;">${habit.icon || '📋'}</span>
-                                <span style="color: #333; flex: 1;">${habit.name}</span>
+                                <span style="font-size: 1.1em;">${safeIcon}</span>
+                                <span style="color: #333; flex: 1;">${safeName}</span>
                                 <span style="background: #4caf50; color: white; font-size: 0.8em; padding: 2px 8px; border-radius: 8px;">完成</span>
                             </div>
                         `;
@@ -1524,10 +1562,12 @@
                             <div style="max-height: 70px; overflow-y: auto;">
                     `;
                     skippedHabits.forEach(habit => {
+                        const safeIcon = sanitizeHabitText(habit.icon || '📋');
+                        const safeName = sanitizeHabitText(habit.name || '');
                         tooltipHtml += `
                             <div style="display: flex; align-items: center; gap: 6px; padding: 4px 0; font-size: 0.9em;">
-                                <span style="font-size: 1.1em;">${habit.icon || '📋'}</span>
-                                <span style="color: #333; flex: 1;">${habit.name}</span>
+                                <span style="font-size: 1.1em;">${safeIcon}</span>
+                                <span style="color: #333; flex: 1;">${safeName}</span>
                                 <span style="background: #ff9800; color: white; font-size: 0.8em; padding: 2px 8px; border-radius: 8px;">跳过</span>
                             </div>
                         `;
@@ -1545,10 +1585,12 @@
                             <div style="max-height: 70px; overflow-y: auto;">
                     `;
                     missedHabits.forEach(habit => {
+                        const safeIcon = sanitizeHabitText(habit.icon || '📋');
+                        const safeName = sanitizeHabitText(habit.name || '');
                         tooltipHtml += `
                             <div style="display: flex; align-items: center; gap: 6px; padding: 4px 0; font-size: 0.9em;">
-                                <span style="font-size: 1.1em;">${habit.icon || '📋'}</span>
-                                <span style="color: #333; flex: 1;">${habit.name}</span>
+                                <span style="font-size: 1.1em;">${safeIcon}</span>
+                                <span style="color: #333; flex: 1;">${safeName}</span>
                                 <span style="background: #f44336; color: white; font-size: 0.8em; padding: 2px 8px; border-radius: 8px;">未做</span>
                             </div>
                         `;
@@ -1646,8 +1688,252 @@
             };
         }
 
+        // 清理习惯数据中的编码问题
+        function cleanHabitData() {
+            try {
+                console.log('🧹 开始清理习惯数据...');
+                
+                let foundCorruption = false;
+                const cleanedData = {};
+                
+                // 遍历所有习惯
+                for (const [habitId, habit] of Object.entries(habitsData)) {
+                    if (!habit || typeof habit !== 'object') {
+                        console.warn('⚠️ 跳过无效习惯:', habitId);
+                        continue;
+                    }
+                    
+                    const cleanedHabit = {
+                        id: habitId,
+                        name: sanitizeHabitText(habit.name || ''),
+                        icon: sanitizeHabitText(habit.icon || '📋'),
+                        target: parseInt(habit.target) || 1,
+                        unit: sanitizeHabitText(habit.unit || '次'),
+                        createdAt: habit.createdAt || new Date().toISOString(),
+                        updatedAt: habit.updatedAt,
+                        records: {}
+                    };
+                    
+                    // 检查是否有编码问题
+                    if (habit.name && hasEncodingIssues(habit.name)) {
+                        console.log(`🗑️ 发现损坏习惯名称: ${habit.name}`);
+                        foundCorruption = true;
+                        continue; // 跳过损坏的习惯
+                    }
+                    
+                    // 清理记录数据
+                    if (habit.records && typeof habit.records === 'object') {
+                        for (const [date, record] of Object.entries(habit.records)) {
+                            if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                                console.warn('⚠️ 跳过无效日期:', date);
+                                continue;
+                            }
+                            
+                            if (record && typeof record === 'object') {
+                                cleanedHabit.records[date] = {
+                                    completed: Boolean(record.completed),
+                                    skipped: Boolean(record.skipped),
+                                    timestamp: record.timestamp || new Date().toISOString()
+                                };
+                            }
+                        }
+                    }
+                    
+                    cleanedData[habitId] = cleanedHabit;
+                }
+                
+                if (foundCorruption) {
+                    console.log('✅ 发现并清理了损坏的习惯数据');
+                    habitsData = cleanedData;
+                    saveHabitsData();
+                    
+                    // 重新渲染界面
+                    renderHabits();
+                    renderCalendar();
+                    updateStats();
+                    
+                    MessageUtils.success('已清理损坏的习惯数据！');
+                    return true;
+                } else {
+                    console.log('✅ 习惯数据完整，无需清理');
+                    MessageUtils.info('数据检查完成，未发现问题');
+                    return false;
+                }
+                
+            } catch (error) {
+                console.error('❌ 清理习惯数据失败:', error);
+                MessageUtils.error('数据清理失败: ' + error.message);
+                return false;
+            }
+        }
+        
+        // 检查文本是否有编码问题
+        function hasEncodingIssues(text) {
+            if (typeof text !== 'string') return false;
+            
+            // 检查常见的编码错误字符
+            const encodingIssuePatterns = [
+                /Â+/g,
+                /\u00C2/g,
+                /Ã¢â‚¬/g,
+                /â€/g,
+                /¥€/g,
+                /®®/g,
+                /[^\x20-\x7E\u4e00-\u9fff]/g // 非正常显示字符
+            ];
+            
+            return encodingIssuePatterns.some(pattern => pattern.test(text));
+        }
+        
+        // 清理文本中的编码问题
+        function sanitizeHabitText(text) {
+            if (typeof text !== 'string') {
+                return String(text || '');
+            }
+            
+            let cleaned = text;
+            
+            // 移除或替换编码错误字符
+            cleaned = cleaned
+                .replace(/Â+/g, '') // 移除Â字符
+                .replace(/\u00C2/g, '') // 移除C2字符
+                .replace(/Ã¢â‚¬â„¢/g, "'") // 修复智能引号
+                .replace(/Ã¢â‚¬Â/g, '–') // 修复破折号
+                .replace(/Ã¢â‚¬Å"/g, '"') // 修复左双引号
+                .replace(/Ã¢â‚¬/g, '')
+                .replace(/â€™/g, "'")
+                .replace(/â€œ/g, '"')
+                .replace(/â€/g, '"')
+                .replace(/â„¢/g, '')
+                .replace(/¥€/g, '')
+                .replace(/®®/g, '')
+                .replace(/[\x00-\x1F\x7F-\x9F]/g, '') // 移除控制字符
+                .replace(/\uFEFF/g, '') // 移除BOM
+                .replace(/\u200B/g, '') // 移除零宽空格
+                .replace(/\u00A0/g, ' ') // 替换不间断空格
+                .replace(/\s+/g, ' ') // 合并多个空格
+                .trim();
+            
+            // 如果清理后为空，返回默认值
+            if (!cleaned) {
+                return '';
+            }
+            
+            return cleaned;
+        }
+        
+        // 强制保存习惯数据
+        async function forceSaveHabitData() {
+            try {
+                console.log('💾 开始强制保存习惯数据...');
+                
+                const confirmed = confirm(
+                    '将强制保存当前习惯数据，并清理任何损坏的数据。\n\n' +
+                    '这将确保数据的完整性和正确性。\n\n' +
+                    '是否继续？'
+                );
+                
+                if (!confirmed) {
+                    return;
+                }
+                
+                // 1. 先清理数据
+                console.log('🧹 步骤1：清理损坏数据');
+                cleanHabitData();
+                
+                // 2. 验证数据格式
+                console.log('✅ 步骤2：验证数据格式');
+                const validatedData = validateHabitData(habitsData);
+                habitsData = validatedData;
+                
+                // 3. 强制保存到localStorage
+                console.log('💾 步骤3：保存到本地存储');
+                const jsonString = JSON.stringify(habitsData, null, 0);
+                localStorage.setItem('habitTrackerData', jsonString);
+                
+                // 4. 如果有同步服务，推送到云端
+                if (window.syncService) {
+                    const status = window.syncService.getSyncStatus();
+                    
+                    if (status.enabled) {
+                        try {
+                            console.log('☁️ 步骤4：同步到云端');
+                            MessageUtils.info('正在同步到云端...');
+                            await window.syncService.manualSync();
+                            MessageUtils.success('✅ 习惯数据已保存并同步到云端！');
+                        } catch (syncError) {
+                            console.error('❌ 云端同步失败:', syncError);
+                            MessageUtils.warning('本地保存成功，但云端同步失败: ' + syncError.message);
+                        }
+                    } else {
+                        MessageUtils.success('✅ 习惯数据已保存到本地！');
+                    }
+                } else {
+                    MessageUtils.success('✅ 习惯数据已保存到本地！');
+                }
+                
+                // 5. 重新渲染界面确保数据一致性
+                console.log('🎨 步骤5：重新渲染界面');
+                renderHabits();
+                renderCalendar();
+                updateStats();
+                
+                console.log('✅ 强制保存完成');
+                
+            } catch (error) {
+                console.error('❌ 强制保存失败:', error);
+                MessageUtils.error('保存失败: ' + error.message);
+            }
+        }
+        
+        // 验证习惯数据格式
+        function validateHabitData(data) {
+            const validatedData = {};
+            
+            if (!data || typeof data !== 'object') {
+                console.warn('⚠️ 习惯数据格式无效，返回空对象');
+                return {};
+            }
+            
+            for (const [habitId, habit] of Object.entries(data)) {
+                if (!habit || typeof habit !== 'object') {
+                    console.warn('⚠️ 跳过无效习惯:', habitId);
+                    continue;
+                }
+                
+                // 验证必需字段
+                if (!habit.name || !habit.id) {
+                    console.warn('⚠️ 跳过缺少必需字段的习惯:', habitId);
+                    continue;
+                }
+                
+                validatedData[habitId] = {
+                    id: habit.id,
+                    name: sanitizeHabitText(habit.name),
+                    icon: sanitizeHabitText(habit.icon || '📋'),
+                    target: Math.max(1, parseInt(habit.target) || 1),
+                    unit: sanitizeHabitText(habit.unit || '次'),
+                    createdAt: habit.createdAt || new Date().toISOString(),
+                    updatedAt: habit.updatedAt,
+                    records: habit.records || {}
+                };
+            }
+            
+            console.log(`✅ 验证完成，有效习惯: ${Object.keys(validatedData).length} 个`);
+            return validatedData;
+        }
+
         function saveHabitsData() {
-            localStorage.setItem('habitTrackerData', JSON.stringify(habitsData));
+            try {
+                // 在保存前先清理数据
+                const cleanedData = validateHabitData(habitsData);
+                const jsonString = JSON.stringify(cleanedData, null, 0);
+                localStorage.setItem('habitTrackerData', jsonString);
+                habitsData = cleanedData;
+            } catch (error) {
+                console.error('❌ 保存习惯数据失败:', error);
+                MessageUtils.error('数据保存失败，请重试');
+            }
         }
     </script>
     
