@@ -1840,6 +1840,57 @@
 
         let monthlyEvents = JSON.parse(localStorage.getItem('monthlyEvents') || '{}');
 
+        // 数据清理和验证函数
+        function sanitizeText(text) {
+            if (typeof text !== 'string') {
+                return String(text || '');
+            }
+            
+            // 移除可能的控制字符和特殊字符
+            return text.replace(/[\x00-\x1F\x7F-\x9F]/g, '')
+                      .replace(/\uFEFF/g, '') // 移除BOM
+                      .trim();
+        }
+
+        function cleanupEventData(events) {
+            const cleaned = {};
+            
+            for (const [date, eventList] of Object.entries(events)) {
+                if (!Array.isArray(eventList)) continue;
+                
+                const validEvents = eventList.filter(event => {
+                    return event && 
+                           typeof event === 'object' &&
+                           event.title && 
+                           event.time;
+                }).map(event => ({
+                    title: sanitizeText(event.title),
+                    time: sanitizeText(event.time),
+                    category: sanitizeText(event.category || 'other'),
+                    description: sanitizeText(event.description || ''),
+                    createdAt: event.createdAt || new Date().toISOString()
+                }));
+                
+                if (validEvents.length > 0) {
+                    cleaned[date] = validEvents;
+                }
+            }
+            
+            return cleaned;
+        }
+
+        function validateAndCleanData() {
+            try {
+                monthlyEvents = cleanupEventData(monthlyEvents);
+                localStorage.setItem('monthlyEvents', JSON.stringify(monthlyEvents));
+                console.log('✅ 数据已清理和验证');
+            } catch (error) {
+                console.error('❌ 数据清理失败:', error);
+                // 如果数据严重损坏，尝试恢复备份
+                initDataRecovery();
+            }
+        }
+
 
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -1857,6 +1908,12 @@
             const today = DateUtils.getToday();
 
             document.getElementById('event-date').value = today;
+
+            
+
+            // 验证和清理现有数据
+
+            validateAndCleanData();
 
             
 
@@ -2068,17 +2125,19 @@
 
                 eventPreview.className = 'event-preview';
 
-                // 确保文本内容正确显示，避免乱码
+                // 确保数据安全性和正确显示，处理同步后的数据格式问题
 
-                const timeText = event.time || '';
+                const timeText = sanitizeText(event.time || '');
 
-                const titleText = event.title || '';
+                const titleText = sanitizeText(event.title || '');
 
-                eventPreview.textContent = `${timeText} ${titleText}`.trim();
+                const displayText = `${timeText} ${titleText}`.trim();
 
-                // 添加title属性以便悬停查看完整内容
+                // 防止XSS攻击和显示异常，使用textContent
 
-                eventPreview.title = `${timeText} ${titleText}`.trim();
+                eventPreview.textContent = displayText;
+
+                eventPreview.title = displayText;
 
                 dayEventsContainer.appendChild(eventPreview);
 
@@ -2228,27 +2287,77 @@
 
             
 
-            // 按时间排序
+            // 数据清理和排序
 
-            events.sort((a, b) => a.time.localeCompare(b.time));
+            const cleanEvents = events.filter(event => event && event.time && event.title)
+
+                                    .map(event => ({
+
+                                        ...event,
+
+                                        time: sanitizeText(event.time),
+
+                                        title: sanitizeText(event.title),
+
+                                        description: sanitizeText(event.description || '')
+
+                                    }));
 
             
 
-            events.forEach((event, index) => {
+            // 按时间排序
+
+            cleanEvents.sort((a, b) => a.time.localeCompare(b.time));
+
+            
+
+            cleanEvents.forEach((event, index) => {
 
                 const eventItem = document.createElement('div');
 
                 eventItem.className = 'event-item';
 
-                eventItem.innerHTML = `
+                
 
-                    <div class="event-time">${event.time}</div>
+                // 创建时间元素
 
-                    <div class="event-title">${event.title}</div>
+                const timeDiv = document.createElement('div');
 
-                    <button class="event-delete" onclick="deleteEvent('${dateKey}', ${index})" title="删除">×</button>
+                timeDiv.className = 'event-time';
 
-                `;
+                timeDiv.textContent = event.time;
+
+                
+
+                // 创建标题元素
+
+                const titleDiv = document.createElement('div');
+
+                titleDiv.className = 'event-title';
+
+                titleDiv.textContent = event.title;
+
+                
+
+                // 创建删除按钮
+
+                const deleteBtn = document.createElement('button');
+
+                deleteBtn.className = 'event-delete';
+
+                deleteBtn.textContent = '×';
+
+                deleteBtn.title = '删除';
+
+                deleteBtn.onclick = () => deleteEvent(dateKey, index);
+
+                
+
+                eventItem.appendChild(timeDiv);
+
+                eventItem.appendChild(titleDiv);
+
+                eventItem.appendChild(deleteBtn);
 
                 container.appendChild(eventItem);
 
@@ -2580,9 +2689,17 @@
 
             try {
 
+                // 数据清理和验证
+
+                const cleanedEvents = cleanupEventData(monthlyEvents);
+
+                
+
                 // 主要存储
 
-                localStorage.setItem('monthlyEvents', JSON.stringify(monthlyEvents));
+                localStorage.setItem('monthlyEvents', JSON.stringify(cleanedEvents));
+
+                monthlyEvents = cleanedEvents;
 
                 
 
@@ -3543,6 +3660,32 @@
         }
 
 
+
+        // 处理同步后的数据
+        function handleSyncedData() {
+            try {
+                // 重新加载数据
+                const rawData = localStorage.getItem('monthlyEvents');
+                if (rawData) {
+                    const parsedData = JSON.parse(rawData);
+                    monthlyEvents = cleanupEventData(parsedData);
+                    
+                    // 重新渲染视图
+                    renderCalendar();
+                    updateEventStats();
+                    
+                    // 如果有选中的日期，更新显示
+                    if (selectedDate) {
+                        displaySelectedDayEvents(selectedDate);
+                    }
+                    
+                    console.log('✅ 同步数据已处理和清理');
+                }
+            } catch (error) {
+                console.error('❌ 处理同步数据失败:', error);
+                MessageUtils.error('同步数据处理失败，请刷新页面重试');
+            }
+        }
 
         // 修改初始化函数
 
@@ -4548,6 +4691,14 @@
 
                 await window.syncService.manualSync();
 
+                
+
+                // 处理同步后的数据
+
+                handleSyncedData();
+
+                
+
                 MessageUtils.success('数据同步成功！');
 
                 updateSyncStatusDisplay();
@@ -4639,6 +4790,14 @@
                         console.log('同步完成:', event.detail);
 
                         updateSyncStatusDisplay();
+
+                        
+
+                        // 处理同步后的数据
+
+                        handleSyncedData();
+
+                        
 
                         MessageUtils.success('数据同步完成');
 
