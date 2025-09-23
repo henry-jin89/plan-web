@@ -1692,6 +1692,8 @@
 
                     <button type="button" id="calendar-view-btn" class="btn-main">📋 列表视图</button>
 
+                    <button type="button" id="one-click-fix-btn" class="btn-main" style="background: #ff9800; color: white;">🔧 一键修复</button>
+
                     <button type="button" id="sync-settings-btn" class="btn-main">⚙️ 同步设置</button>
 
                     <button type="button" id="force-save-btn" class="btn-main" style="background: #4caf50; color: white;">💾 保存</button>
@@ -2085,7 +2087,12 @@
 
             emergencyDataCleanup();
 
-            
+            // 执行专门的15号等损坏数据清理
+            setTimeout(() => {
+                if (typeof forceCleanSpecificDates === 'function') {
+                    forceCleanSpecificDates();
+                }
+            }, 500);
 
             initMonthlySchedule();
 
@@ -2967,6 +2974,8 @@
 
             document.getElementById('calendar-view-btn')?.addEventListener('click', showListView);
 
+            document.getElementById('one-click-fix-btn')?.addEventListener('click', oneClickFixAll);
+
             document.getElementById('sync-settings-btn')?.addEventListener('click', openSyncSettings);
 
             document.getElementById('force-save-btn')?.addEventListener('click', forceSaveData);
@@ -3832,6 +3841,170 @@
 
         
 
+        // 彻底清除15号等损坏数据的专门函数
+        function forceCleanSpecificDates() {
+            try {
+                console.log('🧹 开始彻底清除损坏数据...');
+                
+                let foundCorruptedData = false;
+                const corruptedDates = [];
+                
+                // 检查所有日期的损坏数据
+                for (const [date, events] of Object.entries(monthlyEvents)) {
+                    if (Array.isArray(events)) {
+                        for (let i = events.length - 1; i >= 0; i--) {
+                            const event = events[i];
+                            if (event && event.title) {
+                                // 检查是否包含编码错误字符（根据截图中的内容）
+                                if (event.title.includes('¥€') || 
+                                    event.title.includes('®®') || 
+                                    event.title.includes('Â') || 
+                                    event.title.includes('\u00C2') ||
+                                    event.title.includes('â€') ||
+                                    event.title.includes('Ã¢') ||
+                                    event.title.includes('¥') ||
+                                    event.title.includes('€') ||
+                                    event.title.includes('@¥') ||
+                                    event.title.includes('/4') ||
+                                    event.title.includes('/"') ||
+                                    event.title.match(/[¥€®@]/g) ||
+                                    /[^\x20-\x7E\u4e00-\u9fff]/g.test(event.title)) {
+                                    
+                                    console.log(`🗑️ 发现损坏事件: ${date} - ${event.title}`);
+                                    foundCorruptedData = true;
+                                    if (!corruptedDates.includes(date)) {
+                                        corruptedDates.push(date);
+                                    }
+                                    
+                                    // 记录删除操作
+                                    recordDeletion(date, event);
+                                    
+                                    // 删除损坏的事件
+                                    events.splice(i, 1);
+                                }
+                            }
+                        }
+                        
+                        // 如果该日期没有事件了，删除整个日期条目
+                        if (events.length === 0) {
+                            delete monthlyEvents[date];
+                            console.log(`🗑️ 删除空日期: ${date}`);
+                        }
+                    }
+                }
+                
+                if (foundCorruptedData) {
+                    console.log(`🧹 清理了 ${corruptedDates.length} 个日期的损坏数据:`, corruptedDates);
+                    
+                    // 立即保存清理后的数据
+                    saveEvents();
+                    
+                    // 重新渲染界面
+                    renderCalendar();
+                    updateEventStats();
+                    
+                    if (selectedDate) {
+                        displaySelectedDayEvents(selectedDate);
+                    }
+                    
+                    MessageUtils.success(`已清理 ${corruptedDates.length} 个日期的损坏数据！`);
+                    return true;
+                } else {
+                    console.log('✅ 未发现损坏数据，数据状态正常');
+                    return false;
+                }
+                
+            } catch (error) {
+                console.error('❌ 清理损坏数据失败:', error);
+                MessageUtils.error('清理失败: ' + error.message);
+                return false;
+            }
+        }
+
+        // 一键修复所有15号等损坏数据问题
+        async function oneClickFixAll() {
+            try {
+                const confirmed = confirm(
+                    '🔧 一键修复功能\n\n' +
+                    '将执行以下操作：\n' +
+                    '1. 彻底清理所有损坏数据（包括15号的编码错误）\n' +
+                    '2. 强制保存正确数据到本地\n' +
+                    '3. 推送到云端覆盖错误数据\n' +
+                    '4. 防止损坏数据重新出现\n\n' +
+                    '是否立即执行？'
+                );
+                
+                if (!confirmed) {
+                    return;
+                }
+                
+                MessageUtils.info('正在执行一键修复...');
+                
+                // 步骤1：彻底清理损坏数据
+                console.log('🧹 步骤1：清理损坏数据');
+                const hadCorruption = forceCleanSpecificDates();
+                
+                // 步骤2：执行紧急数据清理
+                console.log('🧹 步骤2：紧急数据清理');
+                emergencyDataCleanup();
+                
+                // 步骤3：再次执行专门清理
+                console.log('🧹 步骤3：专门清理');
+                forceCleanSpecificDates();
+                
+                // 步骤4：强制保存到云端
+                console.log('☁️ 步骤4：强制保存到云端');
+                
+                // 如果有同步服务，强制上传
+                if (window.syncService) {
+                    const status = window.syncService.getSyncStatus();
+                    
+                    if (status.enabled) {
+                        try {
+                            await window.syncService.manualSync();
+                            MessageUtils.success('✅ 一键修复完成！数据已清理并同步到云端');
+                        } catch (syncError) {
+                            console.error('❌ 云端同步失败:', syncError);
+                            MessageUtils.warning('本地修复完成，但云端同步失败: ' + syncError.message);
+                        }
+                    } else {
+                        MessageUtils.success('✅ 一键修复完成！（同步未启用，仅修复本地数据）');
+                    }
+                } else {
+                    MessageUtils.success('✅ 一键修复完成！（无同步服务，仅修复本地数据）');
+                }
+                
+                // 步骤5：重新渲染界面
+                console.log('🎨 步骤5：重新渲染界面');
+                renderCalendar();
+                updateEventStats();
+                
+                if (selectedDate) {
+                    displaySelectedDayEvents(selectedDate);
+                }
+                
+                // 步骤6：清理删除记录（防止冲突）
+                console.log('🧹 步骤6：清理删除记录');
+                try {
+                    const deletions = JSON.parse(localStorage.getItem('deletedEvents') || '[]');
+                    if (deletions.length > 50) {
+                        // 只保留最近50个删除记录
+                        const recentDeletions = deletions.slice(-50);
+                        localStorage.setItem('deletedEvents', JSON.stringify(recentDeletions));
+                        console.log('🧹 删除记录已优化，保留最近50个');
+                    }
+                } catch (error) {
+                    console.warn('⚠️ 删除记录清理失败:', error);
+                }
+                
+                console.log('✅ 一键修复完成');
+                
+            } catch (error) {
+                console.error('❌ 一键修复失败:', error);
+                MessageUtils.error('修复失败: ' + error.message);
+            }
+        }
+
         // 强制保存数据到云端（覆盖同步数据）
 
         async function forceSaveData() {
@@ -3840,7 +4013,8 @@
 
                 console.log('💾 开始强制保存数据...');
 
-                
+                // 在保存前先进行最后一次清理
+                const hadCorruptedData = forceCleanSpecificDates();
 
                 const confirmed = confirm(
 
@@ -5314,6 +5488,11 @@
                 if (rawData) {
                     const parsedData = JSON.parse(rawData);
                     let cleanedData = cleanupEventData(parsedData);
+                    
+                    // 特别检查并清理损坏数据（如15号的编码错误）
+                    monthlyEvents = cleanedData;
+                    const hadCorruption = forceCleanSpecificDates();
+                    cleanedData = monthlyEvents; // 获取清理后的数据
                     
                     // 检测是否仍有损坏数据（特别是15号）
                     let hasCorruptedData = false;
