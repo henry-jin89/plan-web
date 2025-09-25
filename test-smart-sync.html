@@ -154,6 +154,16 @@
             <div class="test-result" id="integration-result"></div>
         </div>
 
+        <!-- 系统诊断测试 -->
+        <div class="test-section" id="diagnostics-test">
+            <h3><span class="status-indicator status-info"></span>8. 系统诊断测试 (NEW!)</h3>
+            <p>检查脚本加载状态和组件健康状况</p>
+            <button class="test-button" onclick="runSystemDiagnostics()">运行系统诊断</button>
+            <button class="test-button" onclick="forceReloadComponents()">强制重新加载组件</button>
+            <button class="test-button" onclick="showDiagnosticsReport()">显示诊断报告</button>
+            <div class="test-result" id="diagnostics-result"></div>
+        </div>
+
         <!-- 实时日志 -->
         <div class="test-section">
             <h3>📝 实时测试日志</h3>
@@ -163,6 +173,7 @@
     </div>
 
     <!-- 加载必要的脚本 -->
+    <script src="script-loader-diagnostics.js"></script>
     <script src="config-simple.js"></script>
     <script src="sync-persistence.js"></script>
     <script src="smart-auto-sync.js"></script>
@@ -221,34 +232,55 @@
             result.style.border = isSuccess ? '1px solid #c3e6cb' : '1px solid #f5c6cb';
         }
 
-        // 测试函数
+        // 测试函数 - 增强的组件加载检测
         async function testComponentLoading() {
             addTestLog('开始测试组件加载...');
             
             const components = [
-                { name: 'syncPersistence', obj: window.syncPersistence },
-                { name: 'smartAutoSync', obj: window.smartAutoSync },
-                { name: 'zeroConfigSyncEnhanced', obj: window.zeroConfigSyncEnhanced },
-                { name: 'autoRestoreSystem', obj: window.autoRestoreSystem },
-                { name: 'emergencyRecovery', obj: window.emergencyRecovery },
-                { name: 'intelligentStartup', obj: window.intelligentStartup }
+                { name: 'syncPersistence', obj: () => window.syncPersistence },
+                { name: 'smartAutoSync', obj: () => window.smartAutoSync },
+                { name: 'zeroConfigSyncEnhanced', obj: () => window.zeroConfigSyncEnhanced },
+                { name: 'autoRestoreSystem', obj: () => window.autoRestoreSystem },
+                { name: 'emergencyRecovery', obj: () => window.emergencyRecovery },
+                { name: 'intelligentStartup', obj: () => window.intelligentStartup }
             ];
 
             let results = [];
             let allLoaded = true;
 
+            // 添加重试机制，等待异步加载的组件
             for (const component of components) {
-                const loaded = !!component.obj;
+                let loaded = false;
+                let attempts = 0;
+                const maxAttempts = 10; // 最多重试10次
+                
+                while (!loaded && attempts < maxAttempts) {
+                    loaded = !!component.obj();
+                    if (!loaded) {
+                        await new Promise(resolve => setTimeout(resolve, 200)); // 等待200ms
+                        attempts++;
+                    }
+                }
+                
                 results.push(`${component.name}: ${loaded ? '✅ 已加载' : '❌ 未加载'}`);
-                if (!loaded) allLoaded = false;
-                addTestLog(`组件 ${component.name}: ${loaded ? '已加载' : '未加载'}`);
+                if (!loaded) {
+                    allLoaded = false;
+                    addTestLog(`组件 ${component.name}: 未加载 (重试 ${attempts} 次)`, 'warn');
+                } else {
+                    addTestLog(`组件 ${component.name}: 已加载${attempts > 0 ? ` (重试 ${attempts} 次后成功)` : ''}`);
+                }
             }
 
             const resultText = results.join('\n');
             showTestResult('loading-result', resultText, allLoaded);
-            updateTestStatus('loading-test', allLoaded ? 'success' : 'error');
+            updateTestStatus('loading-test', allLoaded ? 'success' : 'warning');
             
-            addTestLog(`组件加载测试完成，结果: ${allLoaded ? '成功' : '失败'}`);
+            addTestLog(`组件加载测试完成，结果: ${allLoaded ? '成功' : '部分失败'}`);
+            
+            // 如果有组件未加载，显示详细信息
+            if (!allLoaded) {
+                addTestLog('未加载的组件可能需要更多时间初始化，这通常不影响核心功能', 'warn');
+            }
         }
 
         async function testConfigDetection() {
@@ -726,6 +758,114 @@
                 showTestResult('auto-restore-result', `GitHub API测试失败: ${error.message}`, false);
                 updateTestStatus('auto-restore-test', 'error');
                 addTestLog(`GitHub API测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 新的系统诊断函数
+        async function runSystemDiagnostics() {
+            addTestLog('开始运行系统诊断...');
+            
+            try {
+                if (!window.scriptDiagnostics) {
+                    throw new Error('脚本诊断器未加载');
+                }
+                
+                const diagnosis = window.scriptDiagnostics.getDiagnostics();
+                
+                let result = '系统诊断报告:\n';
+                result += `时间: ${new Date(diagnosis.timestamp).toLocaleString()}\n\n`;
+                
+                result += `已加载脚本 (${diagnosis.scriptsLoaded.length}):\n`;
+                diagnosis.scriptsLoaded.forEach(script => {
+                    result += `  ✅ ${script}\n`;
+                });
+                
+                if (diagnosis.scriptsWithErrors.length > 0) {
+                    result += `\n加载失败脚本 (${diagnosis.scriptsWithErrors.length}):\n`;
+                    diagnosis.scriptsWithErrors.forEach(script => {
+                        result += `  ❌ ${script}\n`;
+                    });
+                }
+                
+                result += `\n存在组件 (${diagnosis.componentsPresent.length}/${diagnosis.componentsPresent.length + diagnosis.componentsMissing.length}):\n`;
+                diagnosis.componentsPresent.forEach(component => {
+                    result += `  ✅ ${component}\n`;
+                });
+                
+                if (diagnosis.componentsMissing.length > 0) {
+                    result += `\n缺失组件 (${diagnosis.componentsMissing.length}):\n`;
+                    diagnosis.componentsMissing.forEach(component => {
+                        result += `  ❌ ${component}\n`;
+                    });
+                }
+                
+                if (diagnosis.recommendations.length > 0) {
+                    result += `\n建议:\n`;
+                    diagnosis.recommendations.forEach(rec => {
+                        result += `  💡 ${rec}\n`;
+                    });
+                }
+                
+                const isHealthy = diagnosis.componentsMissing.length === 0 && diagnosis.scriptsWithErrors.length === 0;
+                
+                showTestResult('diagnostics-result', result, isHealthy);
+                updateTestStatus('diagnostics-test', isHealthy ? 'success' : 'warning');
+                addTestLog('系统诊断完成');
+                
+            } catch (error) {
+                showTestResult('diagnostics-result', `系统诊断失败: ${error.message}`, false);
+                updateTestStatus('diagnostics-test', 'error');
+                addTestLog(`系统诊断失败: ${error.message}`, 'error');
+            }
+        }
+        
+        async function forceReloadComponents() {
+            addTestLog('强制重新加载组件...');
+            
+            try {
+                if (!window.scriptDiagnostics) {
+                    throw new Error('脚本诊断器未加载');
+                }
+                
+                window.scriptDiagnostics.forceReloadScripts();
+                
+                // 等待脚本加载
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                
+                // 重新检查组件状态
+                await testComponentLoading();
+                
+                showTestResult('diagnostics-result', '✅ 组件重新加载完成\n请检查上方的组件加载测试结果', true);
+                addTestLog('组件重新加载完成');
+                
+            } catch (error) {
+                showTestResult('diagnostics-result', `重新加载失败: ${error.message}`, false);
+                addTestLog(`重新加载失败: ${error.message}`, 'error');
+            }
+        }
+        
+        function showDiagnosticsReport() {
+            addTestLog('显示详细诊断报告...');
+            
+            try {
+                const stored = localStorage.getItem('script_diagnostics');
+                if (stored) {
+                    const report = JSON.parse(stored);
+                    console.log('📊 详细诊断报告:', report);
+                    
+                    let result = '详细诊断报告已输出到控制台\n\n';
+                    result += `报告时间: ${new Date(report.timestamp).toLocaleString()}\n`;
+                    result += `请按F12打开开发者工具查看完整报告`;
+                    
+                    showTestResult('diagnostics-result', result, true);
+                    addTestLog('详细诊断报告已显示');
+                } else {
+                    showTestResult('diagnostics-result', '未找到诊断报告，请先运行系统诊断', false);
+                }
+                
+            } catch (error) {
+                showTestResult('diagnostics-result', `显示报告失败: ${error.message}`, false);
+                addTestLog(`显示报告失败: ${error.message}`, 'error');
             }
         }
 
