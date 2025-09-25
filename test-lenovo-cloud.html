@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>联想个人云同步测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #1976d2;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        .highlight {
+            background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            border-left: 4px solid #2196f3;
+        }
+        .status-card {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 15px 0;
+            transition: all 0.3s ease;
+        }
+        .status-card.success {
+            background: linear-gradient(135deg, #e8f5e8, #f1f8e9);
+            border-color: #4caf50;
+            color: #2e7d32;
+        }
+        .status-card.warning {
+            background: linear-gradient(135deg, #fff3e0, #fef7e0);
+            border-color: #ff9800;
+            color: #ef6c00;
+        }
+        .status-card.error {
+            background: linear-gradient(135deg, #ffebee, #fce4ec);
+            border-color: #f44336;
+            color: #c62828;
+        }
+        .test-section {
+            margin: 25px 0;
+            padding: 25px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            background: #fafafa;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .test-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .test-item {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .test-item h4 {
+            margin: 0 0 15px 0;
+            color: #1976d2;
+        }
+        button {
+            background: linear-gradient(135deg, #1976d2, #1565c0);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(25,118,210,0.3);
+        }
+        button:hover { 
+            background: linear-gradient(135deg, #1565c0, #0d47a1);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(25,118,210,0.4);
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .success-btn { 
+            background: linear-gradient(135deg, #4caf50, #45a049);
+        }
+        .success-btn:hover { 
+            background: linear-gradient(135deg, #45a049, #388e3c);
+        }
+        .danger-btn { 
+            background: linear-gradient(135deg, #f44336, #d32f2f);
+        }
+        .danger-btn:hover { 
+            background: linear-gradient(135deg, #d32f2f, #c62828);
+        }
+        .warning-btn { 
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+        }
+        .warning-btn:hover { 
+            background: linear-gradient(135deg, #f57c00, #ef6c00);
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            box-sizing: border-box;
+            margin: 8px 0;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #2196f3;
+            box-shadow: 0 0 0 3px rgba(33,150,243,0.1);
+        }
+        textarea { 
+            height: 80px; 
+            resize: vertical; 
+        }
+        
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin: 15px 0;
+        }
+        .config-display {
+            background: linear-gradient(135deg, #f1f8e9, #e8f5e8);
+            border: 1px solid #8bc34a;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        .device-info {
+            background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-size: 14px;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4caf50, #8bc34a);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏠 联想个人云同步测试</h1>
+        <div class="subtitle">比GitHub更简单的本地云同步方案</div>
+        
+        <div class="highlight">
+            <h4 style="margin: 0 0 10px 0; color: #1976d2;">✨ 联想个人云的优势</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 14px;">
+                <div>✅ 无需Token，只要用户名密码</div>
+                <div>🚀 本地网络，同步更快</div>
+                <div>🔒 数据完全私有，更安全</div>
+                <div>🔍 支持自动设备发现</div>
+            </div>
+        </div>
+        
+        <!-- 服务状态检测 -->
+        <div class="test-section">
+            <h3>📊 联想云服务状态</h3>
+            <div id="service-status" class="status-card">正在检测联想云同步服务状态...</div>
+            <div id="device-info" class="device-info" style="display: none;"></div>
+            <div id="config-display" class="config-display" style="display: none;"></div>
+            <div style="text-align: center;">
+                <button onclick="checkServiceStatus()">🔍 重新检测</button>
+                <button onclick="showCurrentConfig()">⚙️ 显示配置</button>
+                <button onclick="autoDetectDevice()">🔍 自动发现设备</button>
+                <button onclick="testConnection()">🔗 测试连接</button>
+            </div>
+        </div>
+        
+        <!-- 设备检测和配置 -->
+        <div class="test-section">
+            <h3>🔧 设备检测与配置</h3>
+            <div class="test-grid">
+                <div class="test-item">
+                    <h4>🌐 设备地址</h4>
+                    <input type="text" id="device-url" placeholder="http://192.168.1.100:5005" value="http://192.168.1.100:5005">
+                    <div style="font-size: 12px; color: #666; margin-top: 5px;">
+                        💡 如果不确定IP，点击"自动发现设备"
+                    </div>
+                </div>
+                
+                <div class="test-item">
+                    <h4>👤 认证信息</h4>
+                    <input type="text" id="device-username" placeholder="用户名" value="planSync">
+                    <input type="password" id="device-password" placeholder="密码">
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 15px;">
+                <button onclick="saveDeviceConfig()" class="success-btn">💾 保存配置</button>
+                <button onclick="quickSetup()" class="warning-btn">⚡ 快速配置</button>
+            </div>
+        </div>
+        
+        <!-- 快速数据测试 -->
+        <div class="test-section">
+            <h3>⚡ 数据同步测试</h3>
+            <p>测试数据保存和自动同步到联想个人云（3秒内自动同步）</p>
+            
+            <div class="test-grid">
+                <div class="test-item">
+                    <h4>📅 日计划测试</h4>
+                    <input type="date" id="test-date" value="">
+                    <textarea id="test-goals" placeholder="输入今日目标..."></textarea>
+                    <button onclick="saveTestPlan()" class="success-btn">💾 保存计划</button>
+                </div>
+                
+                <div class="test-item">
+                    <h4>🎯 习惯测试</h4>
+                    <input type="text" id="habit-name" placeholder="习惯名称" value="测试习惯">
+                    <label style="display: block; margin: 10px 0; cursor: pointer;">
+                        <input type="checkbox" id="habit-completed"> 今日完成
+                    </label>
+                    <button onclick="saveTestHabit()" class="success-btn">💾 保存习惯</button>
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 20px;">
+                <button onclick="triggerManualSync()" class="warning-btn">🔄 手动触发同步</button>
+                <button onclick="clearTestData()" class="danger-btn">🗑️ 清空测试数据</button>
+            </div>
+        </div>
+        
+        <!-- 数据恢复测试 -->
+        <div class="test-section">
+            <h3>📥 数据恢复测试</h3>
+            <p>测试从联想个人云自动恢复数据功能</p>
+            
+            <div style="text-align: center;">
+                <button onclick="checkCloudBackup()" class="warning-btn">🔍 检查云端备份</button>
+                <button onclick="restoreFromCloud()" class="success-btn">📥 从联想云恢复</button>
+                <button onclick="simulateDataLoss()" class="danger-btn">⚠️ 模拟数据丢失</button>
+            </div>
+        </div>
+        
+        <!-- 实时日志 -->
+        <div class="test-section">
+            <h3>📋 实时同步日志</h3>
+            <div id="sync-log" class="log">等待日志信息...</div>
+            <div style="text-align: center;">
+                <button onclick="clearLog()">🧹 清空日志</button>
+                <button onclick="exportLog()">📤 导出日志</button>
+            </div>
+        </div>
+        
+        <!-- 统计信息 -->
+        <div class="test-section">
+            <h3>📈 同步统计</h3>
+            <div class="test-grid">
+                <div class="test-item">
+                    <h4>📊 本次会话</h4>
+                    <div id="session-stats">
+                        <div>数据变化: <span id="changes-count">0</span> 次</div>
+                        <div>同步次数: <span id="sync-count">0</span> 次</div>
+                        <div>最后同步: <span id="last-sync">从未</span></div>
+                    </div>
+                </div>
+                <div class="test-item">
+                    <h4>💾 本地数据</h4>
+                    <div id="local-stats">
+                        <div>数据项: <span id="data-items">0</span> 个</div>
+                        <div>数据大小: <span id="data-size">0</span> KB</div>
+                        <div>待同步: <span id="pending-changes">0</span> 个</div>
+                    </div>
+                </div>
+            </div>
+            <div style="text-align: center;">
+                <button onclick="updateStats()">🔄 更新统计</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载联想云同步服务 -->
+    <script src="lenovo-cloud-sync.js"></script>
+    
+    <script>
+        // 测试页面脚本
+        let logContainer;
+        let changesCount = 0;
+        let syncCount = 0;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            logContainer = document.getElementById('sync-log');
+            
+            // 设置默认日期
+            document.getElementById('test-date').value = new Date().toISOString().split('T')[0];
+            
+            // 拦截并显示控制台日志
+            const originalLog = console.log;
+            console.log = function(...args) {
+                originalLog.apply(console, args);
+                addLogEntry(args.join(' '), 'info');
+            };
+            
+            const originalError = console.error;
+            console.error = function(...args) {
+                originalError.apply(console, args);
+                addLogEntry(args.join(' '), 'error');
+            };
+            
+            // 初始化检测
+            setTimeout(() => {
+                checkServiceStatus();
+                updateStats();
+            }, 1000);
+            
+            // 定期更新统计
+            setInterval(updateStats, 5000);
+        });
+        
+        function addLogEntry(message, type = 'info') {
+            if (!logContainer) return;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            const typeIcon = {
+                'info': 'ℹ️',
+                'success': '✅',
+                'warning': '⚠️',
+                'error': '❌'
+            };
+            
+            const entry = `[${timestamp}] ${typeIcon[type] || 'ℹ️'} ${message}\n`;
+            logContainer.textContent += entry;
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            // 统计同步次数
+            if (message.includes('联想云同步完成')) {
+                syncCount++;
+                document.getElementById('sync-count').textContent = syncCount;
+                document.getElementById('last-sync').textContent = new Date().toLocaleTimeString();
+            }
+        }
+        
+        function checkServiceStatus() {
+            const statusDiv = document.getElementById('service-status');
+            
+            if (window.lenovoCloudSync) {
+                const status = window.lenovoCloudSync.getStatus();
+                
+                if (status.enabled && status.configured) {
+                    statusDiv.className = 'status-card success';
+                    statusDiv.innerHTML = `
+                        <strong>✅ 联想云同步已启用</strong><br>
+                        设备地址: ${status.device}<br>
+                        用户名: ${status.username}<br>
+                        最后同步: ${status.lastSync || '从未'}<br>
+                        待同步变化: ${status.pendingChanges}个<br>
+                        同步状态: ${status.inProgress ? '进行中' : '空闲'}
+                    `;
+                    addLogEntry('服务状态检查: 联想云同步已启用且配置正确', 'success');
+                } else if (status.enabled && !status.configured) {
+                    statusDiv.className = 'status-card warning';
+                    statusDiv.innerHTML = `
+                        <strong>⚠️ 联想云同步服务已启动但配置不完整</strong><br>
+                        请配置设备地址、用户名和密码
+                    `;
+                    addLogEntry('服务状态检查: 配置不完整', 'warning');
+                } else {
+                    statusDiv.className = 'status-card error';
+                    statusDiv.innerHTML = `
+                        <strong>❌ 联想云同步服务未启用</strong><br>
+                        请配置联想个人云信息
+                    `;
+                    addLogEntry('服务状态检查: 服务未启用', 'error');
+                }
+            } else {
+                statusDiv.className = 'status-card error';
+                statusDiv.innerHTML = `
+                    <strong>❌ 联想云同步服务未加载</strong><br>
+                    请检查 lenovo-cloud-sync.js 文件
+                `;
+                addLogEntry('服务状态检查: 服务未加载', 'error');
+            }
+        }
+        
+        function showCurrentConfig() {
+            const configDiv = document.getElementById('config-display');
+            
+            if (window.lenovoCloudSync && window.lenovoCloudSync.defaultConfig) {
+                const config = window.lenovoCloudSync.defaultConfig;
+                const configText = `当前联想云配置:
+enabled: ${config.enabled}
+url: ${config.url}
+username: ${config.username}
+password: ${'*'.repeat(config.password.length)}（已隐藏）
+timeout: ${config.timeout}ms
+autoDetect: ${config.autoDetect}`;
+                
+                configDiv.textContent = configText;
+                configDiv.style.display = 'block';
+                
+                // 同时显示设备信息
+                showDeviceInfo(config);
+            } else {
+                configDiv.textContent = '无法获取配置信息';
+                configDiv.style.display = 'block';
+            }
+        }
+        
+        function showDeviceInfo(config) {
+            const deviceDiv = document.getElementById('device-info');
+            const deviceInfo = `
+                <strong>🏠 设备信息</strong><br>
+                地址: ${config.url}<br>
+                协议: WebDAV over HTTP<br>
+                端口: 5005<br>
+                用户: ${config.username}<br>
+                自动检测: ${config.autoDetect ? '已启用' : '已禁用'}
+            `;
+            deviceDiv.innerHTML = deviceInfo;
+            deviceDiv.style.display = 'block';
+        }
+        
+        async function autoDetectDevice() {
+            if (!window.lenovoCloudSync) {
+                addLogEntry('联想云同步服务未加载', 'error');
+                return;
+            }
+            
+            addLogEntry('开始自动检测联想个人云设备...', 'info');
+            
+            try {
+                const detectedUrl = await window.lenovoCloudSync.autoDetectLenovoCloud();
+                if (detectedUrl) {
+                    document.getElementById('device-url').value = detectedUrl;
+                    addLogEntry(`自动发现设备: ${detectedUrl}`, 'success');
+                } else {
+                    addLogEntry('未发现联想个人云设备，请手动输入IP地址', 'warning');
+                }
+            } catch (error) {
+                addLogEntry(`设备检测失败: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testConnection() {
+            if (!window.lenovoCloudSync) {
+                addLogEntry('联想云同步服务未加载', 'error');
+                return;
+            }
+            
+            addLogEntry('正在测试联想个人云连接...', 'info');
+            
+            try {
+                await window.lenovoCloudSync.testConnection();
+                addLogEntry('连接测试成功！', 'success');
+            } catch (error) {
+                addLogEntry(`连接测试失败: ${error.message}`, 'error');
+            }
+        }
+        
+        function saveDeviceConfig() {
+            const url = document.getElementById('device-url').value.trim();
+            const username = document.getElementById('device-username').value.trim();
+            const password = document.getElementById('device-password').value.trim();
+            
+            if (!url || !username || !password) {
+                addLogEntry('请填写完整的设备配置信息', 'warning');
+                return;
+            }
+            
+            if (window.lenovoCloudSync) {
+                // 更新配置
+                window.lenovoCloudSync.defaultConfig = {
+                    enabled: true,
+                    url: url,
+                    username: username,
+                    password: password,
+                    timeout: 30000,
+                    autoDetect: true
+                };
+                
+                window.lenovoCloudSync.isEnabled = true;
+                addLogEntry('联想云配置已保存并启用', 'success');
+                
+                // 重新检查状态
+                setTimeout(checkServiceStatus, 500);
+            } else {
+                addLogEntry('联想云同步服务未加载', 'error');
+            }
+        }
+        
+        function quickSetup() {
+            // 快速设置推荐配置
+            document.getElementById('device-url').value = 'http://192.168.1.100:5005';
+            document.getElementById('device-username').value = 'planSync';
+            
+            addLogEntry('已填入推荐配置，请输入密码并保存', 'info');
+            document.getElementById('device-password').focus();
+        }
+        
+        function saveTestPlan() {
+            const date = document.getElementById('test-date').value;
+            const goals = document.getElementById('test-goals').value;
+            
+            if (!date || !goals) {
+                addLogEntry('请填写日期和目标内容', 'warning');
+                return;
+            }
+            
+            // 保存到localStorage
+            const planData = JSON.parse(localStorage.getItem('planData_day') || '{}');
+            planData[date] = {
+                goals: goals,
+                todos: [`测试任务 ${new Date().toLocaleTimeString()}`],
+                reflection: '这是一个测试反思',
+                lastModified: new Date().toISOString()
+            };
+            
+            localStorage.setItem('planData_day', JSON.stringify(planData));
+            addLogEntry(`已保存日计划测试数据: ${date}`, 'success');
+            
+            changesCount++;
+            document.getElementById('changes-count').textContent = changesCount;
+        }
+        
+        function saveTestHabit() {
+            const habitName = document.getElementById('habit-name').value;
+            const completed = document.getElementById('habit-completed').checked;
+            
+            if (!habitName) {
+                addLogEntry('请填写习惯名称', 'warning');
+                return;
+            }
+            
+            const today = new Date().toISOString().split('T')[0];
+            const habitData = JSON.parse(localStorage.getItem('habitTrackerData') || '{}');
+            
+            if (!habitData[habitName]) {
+                habitData[habitName] = {};
+            }
+            
+            habitData[habitName][today] = completed;
+            localStorage.setItem('habitTrackerData', JSON.stringify(habitData));
+            addLogEntry(`已保存习惯测试数据: ${habitName} - ${completed ? '完成' : '未完成'}`, 'success');
+            
+            changesCount++;
+            document.getElementById('changes-count').textContent = changesCount;
+        }
+        
+        async function triggerManualSync() {
+            if (!window.lenovoCloudSync) {
+                addLogEntry('联想云同步服务未加载', 'error');
+                return;
+            }
+            
+            addLogEntry('手动触发联想云同步...', 'info');
+            
+            try {
+                await window.lenovoCloudSync.manualSync();
+                addLogEntry('手动同步完成', 'success');
+            } catch (error) {
+                addLogEntry(`手动同步失败: ${error.message}`, 'error');
+            }
+        }
+        
+        function clearTestData() {
+            if (confirm('确定要清空所有测试数据吗？')) {
+                // 清空测试相关的数据
+                const keysToRemove = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key.startsWith('planData_') || 
+                        key.startsWith('habit') || 
+                        key.includes('test')) {
+                        keysToRemove.push(key);
+                    }
+                }
+                
+                keysToRemove.forEach(key => localStorage.removeItem(key));
+                addLogEntry(`已清空 ${keysToRemove.length} 项测试数据`, 'warning');
+                
+                // 重置统计
+                changesCount = 0;
+                syncCount = 0;
+                updateStats();
+            }
+        }
+        
+        async function checkCloudBackup() {
+            if (!window.lenovoCloudSync || !window.lenovoCloudSync.isEnabled) {
+                addLogEntry('联想云同步未启用，无法检查备份', 'warning');
+                return;
+            }
+            
+            addLogEntry('正在检查联想个人云备份...', 'info');
+            
+            try {
+                const { url, username, password } = window.lenovoCloudSync.defaultConfig;
+                const auth = btoa(`${username}:${password}`);
+                const fileName = 'plan-data-backup.json';
+                
+                const response = await fetch(`${url}/${fileName}`, {
+                    method: 'HEAD',
+                    headers: {
+                        'Authorization': `Basic ${auth}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const contentLength = response.headers.get('content-length');
+                    const lastModified = response.headers.get('last-modified');
+                    const sizeKB = contentLength ? Math.round(contentLength / 1024 * 100) / 100 : '未知';
+                    addLogEntry(`✅ 联想云备份存在: ${sizeKB}KB, 最后修改: ${lastModified || '未知'}`, 'success');
+                } else if (response.status === 404) {
+                    addLogEntry('❌ 联想个人云上没有备份文件', 'warning');
+                } else {
+                    addLogEntry(`❌ 检查备份失败: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                addLogEntry(`❌ 检查备份出错: ${error.message}`, 'error');
+            }
+        }
+        
+        async function restoreFromCloud() {
+            if (!window.lenovoCloudSync) {
+                addLogEntry('联想云同步服务未加载', 'error');
+                return;
+            }
+            
+            addLogEntry('正在从联想个人云恢复数据...', 'info');
+            
+            try {
+                const restored = await window.lenovoCloudSync.restoreFromLenovoCloud();
+                if (restored) {
+                    addLogEntry('数据恢复成功，3秒后刷新页面', 'success');
+                } else {
+                    addLogEntry('没有可恢复的数据', 'warning');
+                }
+            } catch (error) {
+                addLogEntry(`数据恢复失败: ${error.message}`, 'error');
+            }
+        }
+        
+        function simulateDataLoss() {
+            if (confirm('这将清空所有本地数据，确定要模拟数据丢失吗？\n\n注意：这将测试自动恢复功能')) {
+                // 清空所有数据
+                const allKeys = Object.keys(localStorage);
+                allKeys.forEach(key => {
+                    if (!key.includes('Config') && !key.includes('sync')) {
+                        localStorage.removeItem(key);
+                    }
+                });
+                
+                addLogEntry('已模拟数据丢失，正在触发自动恢复...', 'warning');
+                
+                // 触发自动恢复检查
+                if (window.lenovoCloudSync) {
+                    setTimeout(() => {
+                        window.lenovoCloudSync.checkAndAutoRestore();
+                    }, 2000);
+                }
+            }
+        }
+        
+        function updateStats() {
+            // 更新本地数据统计
+            const allKeys = Object.keys(localStorage);
+            const dataKeys = allKeys.filter(key => 
+                key.startsWith('planData_') || 
+                key.startsWith('habit') || 
+                key.startsWith('gratitude') || 
+                key.startsWith('mood')
+            );
+            
+            let totalSize = 0;
+            dataKeys.forEach(key => {
+                const data = localStorage.getItem(key);
+                if (data) totalSize += data.length;
+            });
+            
+            document.getElementById('data-items').textContent = dataKeys.length;
+            document.getElementById('data-size').textContent = Math.round(totalSize / 1024 * 100) / 100;
+            
+            // 更新待同步变化
+            if (window.lenovoCloudSync) {
+                const status = window.lenovoCloudSync.getStatus();
+                document.getElementById('pending-changes').textContent = status.pendingChanges || 0;
+            }
+        }
+        
+        function clearLog() {
+            logContainer.textContent = '';
+            addLogEntry('日志已清空', 'info');
+        }
+        
+        function exportLog() {
+            const logContent = logContainer.textContent;
+            const blob = new Blob([logContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `lenovo-cloud-sync-log-${new Date().toISOString().split('T')[0]}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+            addLogEntry('日志已导出', 'success');
+        }
+    </script>
+</body>
+</html>
