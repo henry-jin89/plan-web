@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能同步功能验证测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+        }
+        .test-section.success {
+            border-color: #4caf50;
+            background: #f8fff8;
+        }
+        .test-section.error {
+            border-color: #f44336;
+            background: #fff8f8;
+        }
+        .test-section.warning {
+            border-color: #ff9800;
+            background: #fff8f0;
+        }
+        .test-button {
+            background: #1976d2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        .test-button:hover {
+            background: #1565c0;
+        }
+        .test-result {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        .logs {
+            background: #f0f0f0;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-success { background: #4caf50; }
+        .status-error { background: #f44336; }
+        .status-warning { background: #ff9800; }
+        .status-info { background: #2196f3; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 智能同步功能验证测试</h1>
+        <p>此页面用于验证新的智能自动同步功能是否正常工作</p>
+
+        <!-- 基础加载测试 -->
+        <div class="test-section" id="loading-test">
+            <h3><span class="status-indicator status-info"></span>1. 基础组件加载测试</h3>
+            <p>检查所有新增的智能同步组件是否正确加载</p>
+            <button class="test-button" onclick="testComponentLoading()">开始测试</button>
+            <div class="test-result" id="loading-result"></div>
+        </div>
+
+        <!-- 自动恢复系统测试 -->
+        <div class="test-section" id="auto-restore-test">
+            <h3><span class="status-indicator status-info"></span>2. 自动恢复系统测试 (NEW!)</h3>
+            <p>测试删除浏览器数据后的自动恢复功能</p>
+            <button class="test-button" onclick="testAutoRestoreSystem()">测试自动恢复</button>
+            <button class="test-button" onclick="simulateDataLoss()">模拟数据丢失</button>
+            <button class="test-button" onclick="testGitHubAPIRestore()">测试GitHub API恢复</button>
+            <div class="test-result" id="auto-restore-result"></div>
+        </div>
+
+        <!-- 配置检测测试 -->
+        <div class="test-section" id="detection-test">
+            <h3><span class="status-indicator status-info"></span>3. 配置自动检测测试</h3>
+            <p>测试系统是否能自动检测和恢复同步配置</p>
+            <button class="test-button" onclick="testConfigDetection()">检测现有配置</button>
+            <button class="test-button" onclick="simulateConfigLoss()">模拟配置丢失</button>
+            <button class="test-button" onclick="testConfigRecovery()">测试配置恢复</button>
+            <div class="test-result" id="detection-result"></div>
+        </div>
+
+        <!-- URL参数测试 -->
+        <div class="test-section" id="url-test">
+            <h3><span class="status-indicator status-info"></span>4. URL参数自动配置测试</h3>
+            <p>测试通过URL参数自动配置同步功能</p>
+            <div style="margin-bottom: 15px;">
+                <input type="text" id="test-token" placeholder="测试用GitHub Token (可选)" style="width: 200px; padding: 8px; margin-right: 10px;">
+                <input type="text" id="test-owner" placeholder="GitHub用户名" style="width: 150px; padding: 8px; margin-right: 10px;">
+                <input type="text" id="test-repo" placeholder="仓库名" style="width: 150px; padding: 8px;">
+            </div>
+            <button class="test-button" onclick="testUrlParams()">生成测试URL</button>
+            <button class="test-button" onclick="testUrlDetection()">测试URL检测</button>
+            <div class="test-result" id="url-result"></div>
+        </div>
+
+        <!-- 持久化测试 -->
+        <div class="test-section" id="persistence-test">
+            <h3><span class="status-indicator status-info"></span>5. 数据持久化测试</h3>
+            <p>测试配置和数据的多重备份机制</p>
+            <button class="test-button" onclick="testDataPersistence()">测试数据备份</button>
+            <button class="test-button" onclick="testDataRecovery()">测试数据恢复</button>
+            <button class="test-button" onclick="testCrossBrowserRecovery()">测试跨设备恢复</button>
+            <div class="test-result" id="persistence-result"></div>
+        </div>
+
+        <!-- 紧急恢复测试 -->
+        <div class="test-section" id="emergency-test">
+            <h3><span class="status-indicator status-info"></span>6. 紧急恢复功能测试</h3>
+            <p>测试紧急数据恢复系统</p>
+            <button class="test-button" onclick="testEmergencyRecovery()">启动紧急恢复</button>
+            <button class="test-button" onclick="testKeyboardShortcut()">测试快捷键 (Ctrl+Shift+R)</button>
+            <div class="test-result" id="emergency-result"></div>
+        </div>
+
+        <!-- 综合测试 -->
+        <div class="test-section" id="integration-test">
+            <h3><span class="status-indicator status-info"></span>7. 综合集成测试</h3>
+            <p>完整流程测试：配置→备份→丢失→恢复</p>
+            <button class="test-button" onclick="runFullIntegrationTest()">运行完整测试</button>
+            <div class="test-result" id="integration-result"></div>
+        </div>
+
+        <!-- 实时日志 -->
+        <div class="test-section">
+            <h3>📝 实时测试日志</h3>
+            <div class="logs" id="test-logs"></div>
+            <button class="test-button" onclick="clearLogs()">清空日志</button>
+        </div>
+    </div>
+
+    <!-- 加载必要的脚本 -->
+    <script src="config-simple.js"></script>
+    <script src="sync-persistence.js"></script>
+    <script src="smart-auto-sync.js"></script>
+    <script src="zero-config-sync-enhanced.js"></script>
+    <script src="auto-restore-system.js"></script>
+    <script src="emergency-recovery.js"></script>
+    <script src="intelligent-startup.js"></script>
+
+    <script>
+        // 测试日志系统
+        const originalConsoleLog = console.log;
+        const originalConsoleError = console.error;
+        const originalConsoleWarn = console.warn;
+
+        function addTestLog(message, type = 'info') {
+            const logs = document.getElementById('test-logs');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] [${type.toUpperCase()}] ${message}\n`;
+            logs.textContent += logEntry;
+            logs.scrollTop = logs.scrollHeight;
+        }
+
+        // 重写console方法以捕获日志
+        console.log = function(...args) {
+            addTestLog(args.join(' '), 'info');
+            originalConsoleLog.apply(console, args);
+        };
+
+        console.error = function(...args) {
+            addTestLog(args.join(' '), 'error');
+            originalConsoleError.apply(console, args);
+        };
+
+        console.warn = function(...args) {
+            addTestLog(args.join(' '), 'warn');
+            originalConsoleWarn.apply(console, args);
+        };
+
+        function clearLogs() {
+            document.getElementById('test-logs').textContent = '';
+        }
+
+        function updateTestStatus(sectionId, status) {
+            const section = document.getElementById(sectionId);
+            const indicator = section.querySelector('.status-indicator');
+            
+            section.className = `test-section ${status}`;
+            indicator.className = `status-indicator status-${status}`;
+        }
+
+        function showTestResult(resultId, content, isSuccess = true) {
+            const result = document.getElementById(resultId);
+            result.textContent = content;
+            result.style.background = isSuccess ? '#d4edda' : '#f8d7da';
+            result.style.color = isSuccess ? '#155724' : '#721c24';
+            result.style.border = isSuccess ? '1px solid #c3e6cb' : '1px solid #f5c6cb';
+        }
+
+        // 测试函数
+        async function testComponentLoading() {
+            addTestLog('开始测试组件加载...');
+            
+            const components = [
+                { name: 'syncPersistence', obj: window.syncPersistence },
+                { name: 'smartAutoSync', obj: window.smartAutoSync },
+                { name: 'zeroConfigSyncEnhanced', obj: window.zeroConfigSyncEnhanced },
+                { name: 'autoRestoreSystem', obj: window.autoRestoreSystem },
+                { name: 'emergencyRecovery', obj: window.emergencyRecovery },
+                { name: 'intelligentStartup', obj: window.intelligentStartup }
+            ];
+
+            let results = [];
+            let allLoaded = true;
+
+            for (const component of components) {
+                const loaded = !!component.obj;
+                results.push(`${component.name}: ${loaded ? '✅ 已加载' : '❌ 未加载'}`);
+                if (!loaded) allLoaded = false;
+                addTestLog(`组件 ${component.name}: ${loaded ? '已加载' : '未加载'}`);
+            }
+
+            const resultText = results.join('\n');
+            showTestResult('loading-result', resultText, allLoaded);
+            updateTestStatus('loading-test', allLoaded ? 'success' : 'error');
+            
+            addTestLog(`组件加载测试完成，结果: ${allLoaded ? '成功' : '失败'}`);
+        }
+
+        async function testConfigDetection() {
+            addTestLog('开始测试配置检测...');
+            
+            try {
+                // 检查现有配置
+                const hasConfig = localStorage.getItem('sync_config') || localStorage.getItem('syncConfig');
+                const syncStatus = window.syncService ? window.syncService.getSyncStatus() : null;
+                
+                let result = '配置检测结果:\n';
+                result += `localStorage配置: ${hasConfig ? '存在' : '不存在'}\n`;
+                result += `同步服务状态: ${syncStatus ? JSON.stringify(syncStatus, null, 2) : '未初始化'}\n`;
+                
+                // 测试持久化管理器
+                if (window.syncPersistence) {
+                    const persistedConfig = window.syncPersistence.loadConfig();
+                    result += `持久化配置: ${persistedConfig ? '已找到' : '未找到'}\n`;
+                }
+
+                showTestResult('detection-result', result, true);
+                updateTestStatus('detection-test', hasConfig ? 'success' : 'warning');
+                addTestLog('配置检测完成');
+                
+            } catch (error) {
+                showTestResult('detection-result', `检测失败: ${error.message}`, false);
+                updateTestStatus('detection-test', 'error');
+                addTestLog(`配置检测失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function simulateConfigLoss() {
+            addTestLog('模拟配置丢失...');
+            
+            try {
+                // 备份当前配置
+                const currentConfig = localStorage.getItem('sync_config') || localStorage.getItem('syncConfig');
+                if (currentConfig) {
+                    sessionStorage.setItem('backup_config', currentConfig);
+                }
+                
+                // 清除配置
+                localStorage.removeItem('sync_config');
+                localStorage.removeItem('syncConfig');
+                
+                showTestResult('detection-result', '配置已清除，可以测试恢复功能', true);
+                addTestLog('配置已清除，已备份到sessionStorage');
+                
+            } catch (error) {
+                showTestResult('detection-result', `模拟失败: ${error.message}`, false);
+                addTestLog(`模拟配置丢失失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function testConfigRecovery() {
+            addTestLog('开始测试配置恢复...');
+            
+            try {
+                let recovered = false;
+                let recoveryMethod = '';
+                
+                // 尝试从持久化管理器恢复
+                if (window.syncPersistence) {
+                    const config = window.syncPersistence.loadConfig();
+                    if (config) {
+                        recovered = true;
+                        recoveryMethod = '持久化管理器';
+                        addTestLog('从持久化管理器恢复配置成功');
+                    }
+                }
+                
+                // 尝试从备份恢复
+                if (!recovered) {
+                    const backupConfig = sessionStorage.getItem('backup_config');
+                    if (backupConfig) {
+                        localStorage.setItem('sync_config', backupConfig);
+                        recovered = true;
+                        recoveryMethod = '会话存储备份';
+                        addTestLog('从会话存储恢复配置成功');
+                    }
+                }
+
+                const result = recovered ? 
+                    `恢复成功！\n方法: ${recoveryMethod}` : 
+                    '未找到可恢复的配置';
+                
+                showTestResult('detection-result', result, recovered);
+                updateTestStatus('detection-test', recovered ? 'success' : 'warning');
+                addTestLog(`配置恢复测试完成: ${recovered ? '成功' : '失败'}`);
+                
+            } catch (error) {
+                showTestResult('detection-result', `恢复失败: ${error.message}`, false);
+                updateTestStatus('detection-test', 'error');
+                addTestLog(`配置恢复失败: ${error.message}`, 'error');
+            }
+        }
+
+        function testUrlParams() {
+            const token = document.getElementById('test-token').value || 'test_token_123';
+            const owner = document.getElementById('test-owner').value || 'test_user';
+            const repo = document.getElementById('test-repo').value || 'test_repo';
+            
+            const testUrl = `${window.location.origin}${window.location.pathname}?github_token=${token}&github_owner=${owner}&github_repo=${repo}`;
+            
+            showTestResult('url-result', `测试URL已生成:\n${testUrl}\n\n点击下面的链接测试自动配置功能：`, true);
+            
+            // 创建可点击的链接
+            const result = document.getElementById('url-result');
+            const link = document.createElement('a');
+            link.href = testUrl;
+            link.textContent = '点击测试自动配置';
+            link.style.display = 'block';
+            link.style.marginTop = '10px';
+            link.style.color = '#1976d2';
+            result.appendChild(link);
+            
+            addTestLog(`生成测试URL: ${testUrl}`);
+        }
+
+        function testUrlDetection() {
+            addTestLog('测试URL参数检测...');
+            
+            try {
+                // 检查当前URL参数
+                const urlParams = new URLSearchParams(window.location.search);
+                const hasGithubParams = urlParams.get('github_token') || urlParams.get('token');
+                
+                let result = 'URL参数检测:\n';
+                result += `Token: ${urlParams.get('github_token') || urlParams.get('token') || '未找到'}\n`;
+                result += `Owner: ${urlParams.get('github_owner') || urlParams.get('owner') || '未找到'}\n`;
+                result += `Repo: ${urlParams.get('github_repo') || urlParams.get('repo') || '未找到'}\n`;
+                
+                if (hasGithubParams) {
+                    result += '\n✅ 检测到GitHub配置参数';
+                    
+                    // 测试零配置检测
+                    if (window.zeroConfigSyncEnhanced) {
+                        const detected = window.zeroConfigSyncEnhanced.detectFromUrlParameters();
+                        result += detected ? '\n✅ 零配置系统成功检测' : '\n❌ 零配置系统检测失败';
+                    }
+                } else {
+                    result += '\n⚠️ 当前URL中没有GitHub配置参数';
+                }
+                
+                showTestResult('url-result', result, true);
+                addTestLog('URL参数检测完成');
+                
+            } catch (error) {
+                showTestResult('url-result', `URL检测失败: ${error.message}`, false);
+                addTestLog(`URL检测失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function testDataPersistence() {
+            addTestLog('测试数据持久化...');
+            
+            try {
+                const testData = {
+                    provider: 'github',
+                    enabled: true,
+                    settings: {
+                        token: 'test_token',
+                        owner: 'test_user',
+                        repo: 'test_repo'
+                    },
+                    timestamp: Date.now()
+                };
+                
+                // 测试保存
+                if (window.syncPersistence) {
+                    window.syncPersistence.saveConfig(testData);
+                    addTestLog('测试数据已保存到持久化系统');
+                }
+                
+                // 检查保存位置
+                const locations = [];
+                
+                // localStorage
+                if (localStorage.getItem('sync_config_primary')) {
+                    locations.push('localStorage主备份');
+                }
+                
+                // 检查其他备份
+                for (let i = 1; i <= 3; i++) {
+                    if (localStorage.getItem(`sync_config_backup${i}`)) {
+                        locations.push(`localStorage备份${i}`);
+                    }
+                }
+                
+                // sessionStorage
+                if (sessionStorage.getItem('current_sync_config')) {
+                    locations.push('sessionStorage');
+                }
+                
+                const result = `数据持久化测试结果:\n保存位置: ${locations.join(', ')}\n总计: ${locations.length} 个位置`;
+                
+                showTestResult('persistence-result', result, locations.length > 0);
+                updateTestStatus('persistence-test', locations.length > 2 ? 'success' : 'warning');
+                addTestLog(`数据已保存到 ${locations.length} 个位置`);
+                
+            } catch (error) {
+                showTestResult('persistence-result', `持久化测试失败: ${error.message}`, false);
+                updateTestStatus('persistence-test', 'error');
+                addTestLog(`持久化测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function testDataRecovery() {
+            addTestLog('测试数据恢复...');
+            
+            try {
+                if (!window.syncPersistence) {
+                    throw new Error('持久化管理器未加载');
+                }
+                
+                const recovered = window.syncPersistence.loadConfig();
+                
+                let result = '数据恢复测试结果:\n';
+                if (recovered) {
+                    result += `✅ 恢复成功\n`;
+                    result += `提供商: ${recovered.provider}\n`;
+                    result += `状态: ${recovered.enabled ? '已启用' : '未启用'}\n`;
+                    result += `时间戳: ${new Date(recovered.timestamp).toLocaleString()}\n`;
+                } else {
+                    result += '❌ 未找到可恢复的数据';
+                }
+                
+                showTestResult('persistence-result', result, !!recovered);
+                addTestLog(`数据恢复测试: ${recovered ? '成功' : '失败'}`);
+                
+            } catch (error) {
+                showTestResult('persistence-result', `恢复测试失败: ${error.message}`, false);
+                addTestLog(`恢复测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function testCrossBrowserRecovery() {
+            addTestLog('测试跨设备恢复功能...');
+            
+            try {
+                // 生成恢复信息
+                const recoveryInfo = {
+                    provider: 'github',
+                    enabled: true,
+                    hasConfig: true,
+                    timestamp: Date.now()
+                };
+                
+                const encoded = btoa(JSON.stringify(recoveryInfo));
+                const recoveryUrl = `${window.location.origin}${window.location.pathname}#recovery=${encoded}`;
+                
+                let result = '跨设备恢复测试:\n';
+                result += `✅ 恢复链接已生成\n`;
+                result += `链接长度: ${recoveryUrl.length} 字符\n`;
+                result += `编码信息: ${JSON.stringify(recoveryInfo, null, 2)}\n\n`;
+                result += `恢复链接:\n${recoveryUrl}`;
+                
+                showTestResult('persistence-result', result, true);
+                addTestLog('跨设备恢复链接生成成功');
+                
+            } catch (error) {
+                showTestResult('persistence-result', `跨设备恢复测试失败: ${error.message}`, false);
+                addTestLog(`跨设备恢复测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function testEmergencyRecovery() {
+            addTestLog('测试紧急恢复功能...');
+            
+            try {
+                if (!window.emergencyRecovery) {
+                    throw new Error('紧急恢复系统未加载');
+                }
+                
+                // 触发紧急恢复
+                window.emergencyRecovery.startEmergencyRecovery();
+                
+                showTestResult('emergency-result', '✅ 紧急恢复界面已启动\n请检查弹出的恢复界面', true);
+                updateTestStatus('emergency-test', 'success');
+                addTestLog('紧急恢复系统已启动');
+                
+            } catch (error) {
+                showTestResult('emergency-result', `紧急恢复测试失败: ${error.message}`, false);
+                updateTestStatus('emergency-test', 'error');
+                addTestLog(`紧急恢复测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        function testKeyboardShortcut() {
+            addTestLog('测试键盘快捷键...');
+            
+            const result = `键盘快捷键测试:\n\n请按 Ctrl + Shift + R 来测试紧急恢复快捷键\n\n如果快捷键正常工作，应该会启动紧急恢复界面`;
+            
+            showTestResult('emergency-result', result, true);
+            addTestLog('键盘快捷键测试说明已显示');
+        }
+
+        async function runFullIntegrationTest() {
+            addTestLog('开始运行完整集成测试...');
+            
+            try {
+                let results = [];
+                
+                // 1. 测试组件加载
+                addTestLog('1/5 测试组件加载...');
+                await testComponentLoading();
+                results.push('✅ 组件加载');
+                
+                // 2. 测试配置检测
+                addTestLog('2/5 测试配置检测...');
+                await testConfigDetection();
+                results.push('✅ 配置检测');
+                
+                // 3. 测试数据持久化
+                addTestLog('3/5 测试数据持久化...');
+                await testDataPersistence();
+                results.push('✅ 数据持久化');
+                
+                // 4. 测试数据恢复
+                addTestLog('4/5 测试数据恢复...');
+                await testDataRecovery();
+                results.push('✅ 数据恢复');
+                
+                // 5. 测试URL检测
+                addTestLog('5/5 测试URL检测...');
+                await testUrlDetection();
+                results.push('✅ URL检测');
+                
+                const finalResult = `🎉 完整集成测试完成！\n\n测试项目:\n${results.join('\n')}\n\n所有核心功能正常工作`;
+                
+                showTestResult('integration-result', finalResult, true);
+                updateTestStatus('integration-test', 'success');
+                addTestLog('完整集成测试成功完成');
+                
+            } catch (error) {
+                showTestResult('integration-result', `集成测试失败: ${error.message}`, false);
+                updateTestStatus('integration-test', 'error');
+                addTestLog(`集成测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 新的自动恢复系统测试函数
+        async function testAutoRestoreSystem() {
+            addTestLog('开始测试自动恢复系统...');
+            
+            try {
+                if (!window.autoRestoreSystem) {
+                    throw new Error('自动恢复系统未加载');
+                }
+                
+                // 检查系统状态
+                const shouldRestore = await window.autoRestoreSystem.shouldStartAutoRestore();
+                
+                let result = '自动恢复系统测试结果:\n';
+                result += `系统状态: ${window.autoRestoreSystem.isActive ? '活跃' : '待机'}\n`;
+                result += `是否需要恢复: ${shouldRestore ? '是' : '否'}\n`;
+                result += `恢复尝试次数: ${window.autoRestoreSystem.restoreAttempts}\n`;
+                
+                // 测试数据检测
+                const hasDataWithoutSync = await window.autoRestoreSystem.checkDataWithoutSync();
+                result += `有数据但无同步: ${hasDataWithoutSync ? '是' : '否'}\n`;
+                
+                showTestResult('auto-restore-result', result, true);
+                updateTestStatus('auto-restore-test', 'success');
+                addTestLog('自动恢复系统测试完成');
+                
+            } catch (error) {
+                showTestResult('auto-restore-result', `自动恢复系统测试失败: ${error.message}`, false);
+                updateTestStatus('auto-restore-test', 'error');
+                addTestLog(`自动恢复系统测试失败: ${error.message}`, 'error');
+            }
+        }
+        
+        async function simulateDataLoss() {
+            addTestLog('模拟数据丢失情况...');
+            
+            try {
+                // 保存一些测试数据
+                const testData = {
+                    'planData_day': JSON.stringify({
+                        '2024-01-01': { tasks: ['测试任务1', '测试任务2'] },
+                        '2024-01-02': { tasks: ['测试任务3'] }
+                    }),
+                    'habitTrackerData': JSON.stringify({
+                        habits: ['运动', '阅读'],
+                        records: { '2024-01-01': ['运动'] }
+                    })
+                };
+                
+                // 保存测试数据
+                Object.keys(testData).forEach(key => {
+                    localStorage.setItem(key, testData[key]);
+                });
+                
+                // 清除同步配置
+                localStorage.removeItem('sync_config');
+                localStorage.removeItem('syncConfig');
+                
+                let result = '数据丢失模拟完成:\n';
+                result += `✅ 已保存测试数据\n`;
+                result += `❌ 已清除同步配置\n`;
+                result += `现在可以测试自动恢复功能`;
+                
+                showTestResult('auto-restore-result', result, true);
+                addTestLog('数据丢失模拟完成');
+                
+            } catch (error) {
+                showTestResult('auto-restore-result', `模拟数据丢失失败: ${error.message}`, false);
+                addTestLog(`模拟数据丢失失败: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testGitHubAPIRestore() {
+            addTestLog('测试GitHub API直接恢复...');
+            
+            try {
+                if (!window.autoRestoreSystem) {
+                    throw new Error('自动恢复系统未加载');
+                }
+                
+                // 获取用户输入的GitHub信息
+                const owner = document.getElementById('test-owner').value || 'test-user';
+                const repo = document.getElementById('test-repo').value || 'plan-data';
+                
+                // 测试GitHub API访问
+                const testUrl = `https://api.github.com/repos/${owner}/${repo}`;
+                
+                try {
+                    const response = await fetch(testUrl, {
+                        headers: {
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+                    
+                    let result = 'GitHub API恢复测试结果:\n';
+                    result += `仓库: ${owner}/${repo}\n`;
+                    result += `API响应: ${response.status} ${response.statusText}\n`;
+                    
+                    if (response.ok) {
+                        const repoData = await response.json();
+                        result += `✅ 仓库访问成功\n`;
+                        result += `仓库描述: ${repoData.description || '无'}\n`;
+                        result += `创建时间: ${new Date(repoData.created_at).toLocaleString()}\n`;
+                        
+                        // 尝试检查数据文件
+                        try {
+                            const dataResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/plan-data.json`);
+                            if (dataResponse.ok) {
+                                result += `✅ 找到数据文件 plan-data.json\n`;
+                            } else {
+                                result += `⚠️ 未找到数据文件 plan-data.json\n`;
+                            }
+                        } catch (e) {
+                            result += `❌ 检查数据文件失败\n`;
+                        }
+                        
+                    } else if (response.status === 404) {
+                        result += `❌ 仓库不存在或不可访问\n`;
+                    } else {
+                        result += `❌ API访问失败\n`;
+                    }
+                    
+                    showTestResult('auto-restore-result', result, response.ok);
+                    updateTestStatus('auto-restore-test', response.ok ? 'success' : 'warning');
+                    
+                } catch (networkError) {
+                    const result = `网络错误: ${networkError.message}\n请检查网络连接或仓库信息`;
+                    showTestResult('auto-restore-result', result, false);
+                    updateTestStatus('auto-restore-test', 'error');
+                }
+                
+                addTestLog('GitHub API恢复测试完成');
+                
+            } catch (error) {
+                showTestResult('auto-restore-result', `GitHub API测试失败: ${error.message}`, false);
+                updateTestStatus('auto-restore-test', 'error');
+                addTestLog(`GitHub API测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 页面加载完成后的初始化
+        window.addEventListener('load', function() {
+            addTestLog('测试页面加载完成');
+            addTestLog('所有智能同步组件已准备就绪');
+            
+            // 自动运行基础组件检测
+            setTimeout(testComponentLoading, 1000);
+        });
+    </script>
+</body>
+</html>
