@@ -100,6 +100,10 @@
         <div class="test-section" id="auto-restore-test">
             <h3><span class="status-indicator status-info"></span>2. 自动恢复系统测试 (NEW!)</h3>
             <p>测试删除浏览器数据后的自动恢复功能</p>
+            <div style="background: #e7f3ff; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 12px;">
+                💡 <strong>提示</strong>：GitHub API测试默认使用 henry-jin89/plan-web 仓库（已存在）。<br>
+                如需测试其他仓库，请在上方输入框中修改用户名和仓库名。
+            </div>
             <button class="test-button" onclick="testAutoRestoreSystem()">测试自动恢复</button>
             <button class="test-button" onclick="simulateDataLoss()">模拟数据丢失</button>
             <button class="test-button" onclick="testGitHubAPIRestore()">测试GitHub API恢复</button>
@@ -121,9 +125,9 @@
             <h3><span class="status-indicator status-info"></span>4. URL参数自动配置测试</h3>
             <p>测试通过URL参数自动配置同步功能</p>
             <div style="margin-bottom: 15px;">
-                <input type="text" id="test-token" placeholder="测试用GitHub Token (可选)" style="width: 200px; padding: 8px; margin-right: 10px;">
-                <input type="text" id="test-owner" placeholder="GitHub用户名" style="width: 150px; padding: 8px; margin-right: 10px;">
-                <input type="text" id="test-repo" placeholder="仓库名" style="width: 150px; padding: 8px;">
+                <input type="text" id="test-token" placeholder="测试用GitHub Token (可选)" value="" style="width: 200px; padding: 8px; margin-right: 10px;">
+                <input type="text" id="test-owner" placeholder="GitHub用户名" value="henry-jin89" style="width: 150px; padding: 8px; margin-right: 10px;">
+                <input type="text" id="test-repo" placeholder="仓库名" value="plan-web" style="width: 150px; padding: 8px;">
             </div>
             <button class="test-button" onclick="testUrlParams()">生成测试URL</button>
             <button class="test-button" onclick="testUrlDetection()">测试URL检测</button>
@@ -385,8 +389,8 @@
 
         function testUrlParams() {
             const token = document.getElementById('test-token').value || 'test_token_123';
-            const owner = document.getElementById('test-owner').value || 'test_user';
-            const repo = document.getElementById('test-repo').value || 'test_repo';
+            const owner = document.getElementById('test-owner').value || 'henry-jin89';
+            const repo = document.getElementById('test-repo').value || 'plan-web';
             
             const testUrl = `${window.location.origin}${window.location.pathname}?github_token=${token}&github_owner=${owner}&github_repo=${repo}`;
             
@@ -707,8 +711,8 @@
                 }
                 
                 // 获取用户输入的GitHub信息
-                const owner = document.getElementById('test-owner').value || 'test-user';
-                const repo = document.getElementById('test-repo').value || 'plan-data';
+                const owner = document.getElementById('test-owner').value || 'henry-jin89';
+                const repo = document.getElementById('test-repo').value || 'plan-web';
                 
                 // 测试GitHub API访问
                 const testUrl = `https://api.github.com/repos/${owner}/${repo}`;
@@ -744,8 +748,13 @@
                         
                     } else if (response.status === 404) {
                         result += `❌ 仓库不存在或不可访问\n`;
+                        result += `💡 建议：\n`;
+                        result += `  1. 检查用户名和仓库名是否正确\n`;
+                        result += `  2. 确保仓库是公开的\n`;
+                        result += `  3. 尝试使用现有的仓库如 henry-jin89/plan-web\n`;
                     } else {
                         result += `❌ API访问失败\n`;
+                        result += `💡 可能原因：网络问题或API限制\n`;
                     }
                     
                     showTestResult('auto-restore-result', result, response.ok);
