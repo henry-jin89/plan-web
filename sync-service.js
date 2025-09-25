@@ -62,6 +62,18 @@ class SyncService {
                     }
                 }
             }
+            
+            // 如果本地没有找到，尝试从持久化管理器恢复
+            if (window.syncPersistence) {
+                const recoveredConfig = window.syncPersistence.loadConfig();
+                if (recoveredConfig) {
+                    console.log(`✅ 通过持久化管理器恢复配置`);
+                    // 恢复到本地存储
+                    this.setSyncConfig(recoveredConfig);
+                    return recoveredConfig;
+                }
+            }
+            
             return null;
         } catch (error) {
             console.error('获取同步配置失败:', error);
@@ -84,6 +96,11 @@ class SyncService {
             });
             
             console.log('✅ 同步配置已保存到所有键名:', keys);
+            
+            // 使用持久化管理器进行多重备份
+            if (window.syncPersistence) {
+                window.syncPersistence.saveConfig(config);
+            }
         } catch (error) {
             console.error('❌ 保存同步配置失败:', error);
         }
