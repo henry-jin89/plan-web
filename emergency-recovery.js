@@ -841,6 +841,14 @@ function initEmergencyRecovery() {
 // 将初始化函数暴露到全局作用域
 window.initEmergencyRecovery = initEmergencyRecovery;
 
+// 立即初始化 - 简化方式
+try {
+    window.emergencyRecovery = new EmergencyRecovery();
+    console.log('✅ 紧急恢复系统已初始化 (立即)');
+} catch (error) {
+    console.error('❌ 立即初始化失败:', error);
+}
+
 // 多种初始化时机，确保能成功创建实例
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initEmergencyRecovery);
@@ -852,4 +860,6 @@ if (document.readyState === 'loading') {
 
 // 额外的延迟初始化，作为后备方案
 setTimeout(initEmergencyRecovery, 500);
+setTimeout(initEmergencyRecovery, 1000);
 setTimeout(initEmergencyRecovery, 2000);
+setTimeout(initEmergencyRecovery, 5000);
