@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自动同步测试页面</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #1976d2;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-weight: 500;
+        }
+        .status.success {
+            background: #e8f5e8;
+            color: #2e7d32;
+            border: 1px solid #4caf50;
+        }
+        .status.warning {
+            background: #fff3e0;
+            color: #ef6c00;
+            border: 1px solid #ff9800;
+        }
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #f44336;
+        }
+        .status.info {
+            background: #e3f2fd;
+            color: #1976d2;
+            border: 1px solid #2196f3;
+        }
+        button {
+            background: #1976d2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #1565c0;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 15px;
+            font-family: monospace;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .test-data {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .data-item {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+        }
+        .data-item h4 {
+            margin: 0 0 10px 0;
+            color: #1976d2;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 80px;
+            resize: vertical;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 自动同步测试页面</h1>
+        
+        <!-- 同步状态检测 -->
+        <div class="test-section">
+            <h3>📊 同步状态检测</h3>
+            <div id="sync-status" class="status info">正在检测同步状态...</div>
+            <button onclick="checkSyncStatus()">🔍 重新检测</button>
+            <button onclick="showSyncConfig()">⚙️ 查看配置</button>
+        </div>
+        
+        <!-- 配置设置 -->
+        <div class="test-section">
+            <h3>⚙️ 快速配置</h3>
+            <div style="margin-bottom: 15px;">
+                <label>GitHub Token:</label>
+                <input type="password" id="github-token" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+            </div>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <div style="flex: 1;">
+                    <label>用户名:</label>
+                    <input type="text" id="github-owner" placeholder="your-username">
+                </div>
+                <div style="flex: 1;">
+                    <label>仓库名:</label>
+                    <input type="text" id="github-repo" placeholder="plan-data">
+                </div>
+            </div>
+            <button onclick="saveConfig()">💾 保存配置</button>
+            <button onclick="testConnection()">🔗 测试连接</button>
+        </div>
+        
+        <!-- 数据测试 -->
+        <div class="test-section">
+            <h3>📝 数据同步测试</h3>
+            <div class="test-data">
+                <div class="data-item">
+                    <h4>模拟日计划</h4>
+                    <input type="date" id="test-date" value="">
+                    <textarea id="test-content" placeholder="输入一些测试内容..."></textarea>
+                    <button onclick="saveTestData()">💾 保存数据</button>
+                </div>
+                <div class="data-item">
+                    <h4>模拟习惯跟踪</h4>
+                    <input type="text" id="habit-name" placeholder="习惯名称" value="测试习惯">
+                    <label><input type="checkbox" id="habit-done"> 今日完成</label>
+                    <button onclick="saveHabitData()">💾 保存习惯</button>
+                </div>
+            </div>
+            <button onclick="triggerManualSync()">🔄 手动触发同步</button>
+            <button onclick="clearAllData()">🗑️ 清空本地数据</button>
+            <button onclick="restoreFromGitHub()">📥 从GitHub恢复</button>
+        </div>
+        
+        <!-- 日志显示 -->
+        <div class="test-section">
+            <h3>📋 同步日志</h3>
+            <div id="sync-log" class="log">等待日志信息...</div>
+            <button onclick="clearLog()">🧹 清空日志</button>
+            <button onclick="exportLog()">📤 导出日志</button>
+        </div>
+    </div>
+
+    <!-- 加载自动同步服务 -->
+    <script src="config.js"></script>
+    <script src="auto-background-sync.js"></script>
+    
+    <script>
+        // 测试页面脚本
+        let logContainer;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            logContainer = document.getElementById('sync-log');
+            
+            // 设置默认日期
+            document.getElementById('test-date').value = new Date().toISOString().split('T')[0];
+            
+            // 重写console.log以显示在页面上
+            const originalLog = console.log;
+            console.log = function(...args) {
+                originalLog.apply(console, args);
+                addLogEntry(args.join(' '), 'info');
+            };
+            
+            const originalError = console.error;
+            console.error = function(...args) {
+                originalError.apply(console, args);
+                addLogEntry(args.join(' '), 'error');
+            };
+            
+            // 开始状态检测
+            setTimeout(checkSyncStatus, 1000);
+        });
+        
+        function addLogEntry(message, type = 'info') {
+            if (!logContainer) return;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = `[${timestamp}] ${message}\n`;
+            logContainer.textContent += entry;
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        function checkSyncStatus() {
+            addLogEntry('🔍 检查同步状态...', 'info');
+            
+            const statusDiv = document.getElementById('sync-status');
+            
+            if (window.autoBackgroundSync) {
+                const status = window.autoBackgroundSync.getStatus();
+                
+                if (status.enabled) {
+                    statusDiv.className = 'status success';
+                    statusDiv.textContent = `✅ 同步已启用 | 配置: ${status.config} | 最后同步: ${status.lastSync || '从未'} | 待同步: ${status.pendingChanges}个`;
+                    addLogEntry('✅ 自动同步已启用', 'success');
+                } else {
+                    statusDiv.className = 'status warning';
+                    statusDiv.textContent = '⚠️ 同步未启用 - 请配置GitHub信息';
+                    addLogEntry('⚠️ 自动同步未启用', 'warning');
+                }
+            } else {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ 同步服务未加载';
+                addLogEntry('❌ 同步服务未加载', 'error');
+            }
+        }
+        
+        function showSyncConfig() {
+            if (window.autoBackgroundSync && window.autoBackgroundSync.detectedConfig) {
+                const config = window.autoBackgroundSync.detectedConfig;
+                addLogEntry(`📋 当前配置: ${config.owner}/${config.repo} (Token: ${config.token.substring(0, 10)}...)`, 'info');
+                
+                // 填充配置表单
+                document.getElementById('github-token').value = config.token;
+                document.getElementById('github-owner').value = config.owner;
+                document.getElementById('github-repo').value = config.repo;
+            } else {
+                addLogEntry('❌ 未找到同步配置', 'warning');
+            }
+        }
+        
+        function saveConfig() {
+            const token = document.getElementById('github-token').value.trim();
+            const owner = document.getElementById('github-owner').value.trim();
+            const repo = document.getElementById('github-repo').value.trim();
+            
+            if (!token || !owner || !repo) {
+                addLogEntry('❌ 请填写完整的配置信息', 'error');
+                return;
+            }
+            
+            // 保存到localStorage
+            const config = {
+                enabled: true,
+                provider: 'github',
+                settings: { token, owner, repo, branch: 'main' },
+                lastSync: null
+            };
+            
+            localStorage.setItem('sync_config', JSON.stringify(config));
+            addLogEntry('💾 配置已保存，请刷新页面生效', 'success');
+        }
+        
+        async function testConnection() {
+            const token = document.getElementById('github-token').value.trim();
+            const owner = document.getElementById('github-owner').value.trim();
+            const repo = document.getElementById('github-repo').value.trim();
+            
+            if (!token || !owner || !repo) {
+                addLogEntry('❌ 请先填写配置信息', 'error');
+                return;
+            }
+            
+            addLogEntry('🔗 正在测试GitHub连接...', 'info');
+            
+            try {
+                const response = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const repoInfo = await response.json();
+                    addLogEntry(`✅ 连接成功: ${repoInfo.private ? '私有' : '公开'}仓库, ${repoInfo.default_branch}分支`, 'success');
+                } else {
+                    addLogEntry(`❌ 连接失败: ${response.status} ${response.statusText}`, 'error');
+                }
+            } catch (error) {
+                addLogEntry(`❌ 连接错误: ${error.message}`, 'error');
+            }
+        }
+        
+        function saveTestData() {
+            const date = document.getElementById('test-date').value;
+            const content = document.getElementById('test-content').value;
+            
+            if (!date || !content) {
+                addLogEntry('❌ 请填写日期和内容', 'error');
+                return;
+            }
+            
+            // 保存到localStorage
+            const planData = JSON.parse(localStorage.getItem('planData_day') || '{}');
+            planData[date] = {
+                goals: content,
+                todos: [],
+                reflection: '测试反思内容',
+                lastModified: new Date().toISOString()
+            };
+            
+            localStorage.setItem('planData_day', JSON.stringify(planData));
+            addLogEntry(`📝 已保存日计划数据: ${date}`, 'success');
+            
+            // 触发数据变化事件
+            window.dispatchEvent(new CustomEvent('planDataChanged', {
+                detail: { type: 'day', date: date }
+            }));
+        }
+        
+        function saveHabitData() {
+            const habitName = document.getElementById('habit-name').value;
+            const habitDone = document.getElementById('habit-done').checked;
+            
+            if (!habitName) {
+                addLogEntry('❌ 请填写习惯名称', 'error');
+                return;
+            }
+            
+            const today = new Date().toISOString().split('T')[0];
+            const habitData = JSON.parse(localStorage.getItem('habitTrackerData') || '{}');
+            
+            if (!habitData[habitName]) {
+                habitData[habitName] = {};
+            }
+            
+            habitData[habitName][today] = habitDone;
+            localStorage.setItem('habitTrackerData', JSON.stringify(habitData));
+            addLogEntry(`✅ 已保存习惯数据: ${habitName} - ${habitDone ? '完成' : '未完成'}`, 'success');
+        }
+        
+        async function triggerManualSync() {
+            if (!window.autoBackgroundSync) {
+                addLogEntry('❌ 同步服务未加载', 'error');
+                return;
+            }
+            
+            addLogEntry('🔄 手动触发同步...', 'info');
+            
+            try {
+                await window.autoBackgroundSync.manualSync();
+                addLogEntry('✅ 手动同步完成', 'success');
+            } catch (error) {
+                addLogEntry(`❌ 手动同步失败: ${error.message}`, 'error');
+            }
+        }
+        
+        function clearAllData() {
+            if (confirm('确定要清空所有本地数据吗？这将删除所有计划、习惯等数据。')) {
+                // 清空所有相关数据
+                const keysToRemove = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key.startsWith('planData_') || 
+                        key.startsWith('habit') || 
+                        key.startsWith('gratitude') || 
+                        key.startsWith('mood')) {
+                        keysToRemove.push(key);
+                    }
+                }
+                
+                keysToRemove.forEach(key => localStorage.removeItem(key));
+                addLogEntry(`🗑️ 已清空 ${keysToRemove.length} 项数据`, 'warning');
+            }
+        }
+        
+        async function restoreFromGitHub() {
+            if (!window.autoBackgroundSync) {
+                addLogEntry('❌ 同步服务未加载', 'error');
+                return;
+            }
+            
+            addLogEntry('📥 正在从GitHub恢复数据...', 'info');
+            
+            try {
+                await window.autoBackgroundSync.restoreFromGitHub();
+                addLogEntry('✅ 数据恢复完成', 'success');
+            } catch (error) {
+                addLogEntry(`❌ 数据恢复失败: ${error.message}`, 'error');
+            }
+        }
+        
+        function clearLog() {
+            logContainer.textContent = '';
+            addLogEntry('🧹 日志已清空', 'info');
+        }
+        
+        function exportLog() {
+            const logContent = logContainer.textContent;
+            const blob = new Blob([logContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `sync-log-${new Date().toISOString().split('T')[0]}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+            addLogEntry('📤 日志已导出', 'success');
+        }
+    </script>
+</body>
+</html>
