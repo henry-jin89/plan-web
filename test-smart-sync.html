@@ -90,6 +90,8 @@
             <h3><span class="status-indicator status-info"></span>1. 基础组件加载测试</h3>
             <p>检查所有新增的智能同步组件是否正确加载</p>
             <button class="test-button" onclick="testComponentLoading()">开始测试</button>
+            <button class="test-button" onclick="manualRepairEmergencyRecovery()">修复 emergencyRecovery</button>
+            <button class="test-button" onclick="showComponentStatus()">显示组件状态</button>
             <div class="test-result" id="loading-result"></div>
         </div>
 
@@ -173,6 +175,7 @@
     </div>
 
     <!-- 加载必要的脚本 -->
+    <script src="component-initializer.js"></script>
     <script src="script-loader-diagnostics.js"></script>
     <script src="config-simple.js"></script>
     <script src="sync-persistence.js"></script>
@@ -758,6 +761,67 @@
                 showTestResult('auto-restore-result', `GitHub API测试失败: ${error.message}`, false);
                 updateTestStatus('auto-restore-test', 'error');
                 addTestLog(`GitHub API测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 新的组件修复函数
+        async function manualRepairEmergencyRecovery() {
+            addTestLog('开始手动修复 emergencyRecovery 组件...');
+            
+            try {
+                if (window.componentInitializer) {
+                    const result = window.componentInitializer.manualRepairComponent('emergencyRecovery');
+                    
+                    if (result) {
+                        showTestResult('loading-result', '🔧 正在尝试修复 emergencyRecovery 组件...\n请等待3秒后重新测试', true);
+                        
+                        // 等待3秒后重新检测
+                        setTimeout(async () => {
+                            await testComponentLoading();
+                        }, 3000);
+                        
+                        addTestLog('emergencyRecovery 修复流程已启动');
+                    } else {
+                        showTestResult('loading-result', '❌ 修复失败：未知组件', false);
+                    }
+                } else {
+                    showTestResult('loading-result', '❌ 组件初始化管理器未加载', false);
+                }
+                
+            } catch (error) {
+                showTestResult('loading-result', `❌ 修复失败: ${error.message}`, false);
+                addTestLog(`修复失败: ${error.message}`, 'error');
+            }
+        }
+        
+        function showComponentStatus() {
+            addTestLog('显示组件状态...');
+            
+            try {
+                if (window.componentInitializer) {
+                    const status = window.componentInitializer.getComponentStatus();
+                    
+                    let result = '📊 详细组件状态:\n\n';
+                    Object.keys(status).forEach(name => {
+                        const comp = status[name];
+                        result += `${comp.loaded ? '✅' : '❌'} ${name}:\n`;
+                        result += `  状态: ${comp.loaded ? '已加载' : '未加载'}\n`;
+                        result += `  尝试次数: ${comp.attempts}\n`;
+                        if (comp.info) {
+                            result += `  详细信息: ${comp.info.status}\n`;
+                        }
+                        result += '\n';
+                    });
+                    
+                    showTestResult('loading-result', result, true);
+                    addTestLog('组件状态已显示');
+                } else {
+                    showTestResult('loading-result', '❌ 组件初始化管理器未加载', false);
+                }
+                
+            } catch (error) {
+                showTestResult('loading-result', `❌ 显示状态失败: ${error.message}`, false);
+                addTestLog(`显示状态失败: ${error.message}`, 'error');
             }
         }
 
