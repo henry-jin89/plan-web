@@ -16,6 +16,9 @@ document.addEventListener('DOMContentLoaded', function() {
     loadTodayPlan();
     updateProgress();
     
+    // 为现有复选框添加保存功能
+    updateExistingCheckboxes();
+    
     console.log('✅ 日计划页面初始化完成');
     
     // 测试依赖关系功能是否可用
@@ -47,6 +50,83 @@ document.addEventListener('DOMContentLoaded', function() {
     
     console.log('🔧 测试功能已准备就绪，可在控制台手动调用测试函数');
 });
+
+// 为现有复选框添加保存功能
+function updateExistingCheckboxes() {
+    console.log('🔄 为现有复选框添加保存功能...');
+    
+    // 查找所有现有的复选框
+    const existingCheckboxes = document.querySelectorAll('.custom-checkbox');
+    let updatedCount = 0;
+    
+    existingCheckboxes.forEach(checkbox => {
+        // 检查是否已经有保存功能（通过检查是否有自定义属性）
+        if (checkbox.hasAttribute('data-save-enabled')) {
+            return; // 已经处理过，跳过
+        }
+        
+        // 移除旧的事件监听器（如果有）
+        const newCheckbox = checkbox.cloneNode(true);
+        checkbox.parentNode.replaceChild(newCheckbox, checkbox);
+        
+        // 添加新的事件监听器（包含保存功能）
+        newCheckbox.addEventListener('click', function() {
+            this.classList.toggle('checked');
+            const textElement = this.parentNode.querySelector('.task-text');
+            if (this.classList.contains('checked')) {
+                textElement.style.textDecoration = 'line-through';
+                textElement.style.opacity = '0.6';
+            } else {
+                textElement.style.textDecoration = 'none';
+                textElement.style.opacity = '1';
+            }
+            
+            // 立即保存勾选状态
+            console.log('✅ 现有复选框状态更改，触发自动保存');
+            setTimeout(() => {
+                if (typeof savePlanData === 'function') {
+                    savePlanData('day');
+                    console.log('📝 已保存日计划数据 (现有复选框)');
+                } else if (typeof saveDayPlan === 'function') {
+                    saveDayPlan();
+                    console.log('📝 已保存日计划数据 (备用方法)');
+                } else {
+                    console.warn('⚠️ 未找到保存函数，手动保存localStorage');
+                    // 手动保存到localStorage
+                    const allData = {};
+                    document.querySelectorAll('.day-section').forEach(section => {
+                        const containerId = section.id;
+                        const tasks = [];
+                        section.querySelectorAll('.task-item').forEach(task => {
+                            const checkbox = task.querySelector('.custom-checkbox');
+                            const textElement = task.querySelector('.task-text');
+                            if (textElement) {
+                                const text = textElement.textContent.trim();
+                                if (text) {
+                                    const isChecked = checkbox && checkbox.classList.contains('checked');
+                                    tasks.push(`[${isChecked ? 'x' : ' '}] ${text}`);
+                                }
+                            }
+                        });
+                        if (tasks.length > 0) {
+                            allData[containerId] = tasks.join('\n');
+                        }
+                    });
+                    
+                    const key = `planData_day_${currentDate}`;
+                    localStorage.setItem(key, JSON.stringify(allData));
+                    console.log('📝 手动保存到localStorage:', key);
+                }
+            }, 100);
+        });
+        
+        // 标记为已处理
+        newCheckbox.setAttribute('data-save-enabled', 'true');
+        updatedCount++;
+    });
+    
+    console.log(`✅ 已为 ${updatedCount} 个现有复选框添加保存功能`);
+}
 
 // 测试按钮功能
 function testButtonFunctionality() {
@@ -4809,6 +4889,44 @@ function createTaskElement(taskText, isTimeblock = false) {
             textElement.style.textDecoration = 'none';
             textElement.style.opacity = '1';
         }
+        
+        // 立即保存勾选状态
+        console.log('✅ 任务勾选状态已更改，触发自动保存');
+        setTimeout(() => {
+            if (typeof savePlanData === 'function') {
+                savePlanData('day');
+                console.log('📝 已保存日计划数据 (勾选状态)');
+            } else if (typeof saveDayPlan === 'function') {
+                saveDayPlan();
+                console.log('📝 已保存日计划数据 (备用方法)');
+            } else {
+                console.warn('⚠️ 未找到保存函数，手动保存localStorage');
+                // 手动保存到localStorage
+                const allData = {};
+                document.querySelectorAll('.day-section').forEach(section => {
+                    const containerId = section.id;
+                    const tasks = [];
+                    section.querySelectorAll('.task-item').forEach(task => {
+                        const checkbox = task.querySelector('.custom-checkbox');
+                        const textElement = task.querySelector('.task-text');
+                        if (textElement) {
+                            const text = textElement.textContent.trim();
+                            if (text) {
+                                const isChecked = checkbox && checkbox.classList.contains('checked');
+                                tasks.push(`[${isChecked ? 'x' : ' '}] ${text}`);
+                            }
+                        }
+                    });
+                    if (tasks.length > 0) {
+                        allData[containerId] = tasks.join('\n');
+                    }
+                });
+                
+                const key = `planData_day_${currentDate}`;
+                localStorage.setItem(key, JSON.stringify(allData));
+                console.log('📝 手动保存到localStorage:', key);
+            }
+        }, 100);
     });
     
     // 创建任务文本
