@@ -822,13 +822,34 @@ class EmergencyRecovery {
     }
 }
 
-// 创建全局实例 - 确保在DOM准备好后初始化
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        window.emergencyRecovery = new EmergencyRecovery();
-        console.log('✅ 紧急恢复系统已初始化');
-    });
-} else {
-    window.emergencyRecovery = new EmergencyRecovery();
-    console.log('✅ 紧急恢复系统已初始化');
+// 创建全局实例 - 延迟初始化以确保正确加载
+function initEmergencyRecovery() {
+    try {
+        if (!window.emergencyRecovery) {
+            window.emergencyRecovery = new EmergencyRecovery();
+            console.log('✅ 紧急恢复系统已初始化');
+        }
+        return true;
+    } catch (error) {
+        console.error('❌ 紧急恢复系统初始化失败:', error);
+        // 重试初始化
+        setTimeout(initEmergencyRecovery, 1000);
+        return false;
+    }
 }
+
+// 将初始化函数暴露到全局作用域
+window.initEmergencyRecovery = initEmergencyRecovery;
+
+// 多种初始化时机，确保能成功创建实例
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initEmergencyRecovery);
+} else if (document.readyState === 'interactive') {
+    setTimeout(initEmergencyRecovery, 100);
+} else {
+    initEmergencyRecovery();
+}
+
+// 额外的延迟初始化，作为后备方案
+setTimeout(initEmergencyRecovery, 500);
+setTimeout(initEmergencyRecovery, 2000);
