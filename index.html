@@ -543,7 +543,10 @@
         // 只加载必要的脚本，避免弹窗
         const scriptsToLoad = [
             'config-simple.js',
-            'auto-background-sync.js',  // 新的全自动后台同步
+            'github-config.js',  // 外部GitHub配置文件（可选）
+            'lenovo-config.js',  // 外部联想云配置文件（可选）
+            'zero-config-direct-sync.js',  // 零配置GitHub同步服务
+            'lenovo-cloud-sync.js',  // 零配置联想云同步服务
             'sync-persistence.js',
             'smart-auto-sync.js',
             'zero-config-sync-enhanced.js',
