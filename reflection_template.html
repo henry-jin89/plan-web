@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <script src="config.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能反思模板 - 个人成长管理系统</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .reflection-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .reflection-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--theme-color);
+            transition: all 0.3s ease;
+        }
+
+        .reflection-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+
+        .reflection-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .reflection-icon {
+            font-size: 2em;
+            background: linear-gradient(135deg, var(--theme-color), #42a5f5);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .reflection-title {
+            font-size: 1.4em;
+            font-weight: 600;
+            color: var(--theme-color);
+            margin: 0;
+        }
+
+        .reflection-subtitle {
+            font-size: 0.9em;
+            color: #666;
+            margin: 4px 0 0 0;
+        }
+
+        .reflection-textarea {
+            width: 100%;
+            min-height: 120px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: vertical;
+            transition: border-color 0.3s ease;
+            font-family: inherit;
+        }
+
+        .reflection-textarea:focus {
+            outline: none;
+            border-color: var(--theme-color);
+            box-shadow: 0 0 0 3px rgba(25,118,210,0.1);
+        }
+
+        .reflection-textarea::placeholder {
+            color: #999;
+            line-height: 1.6;
+        }
+
+        .template-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .template-btn {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border: 1px solid #dee2e6;
+            border-radius: 20px;
+            padding: 6px 12px;
+            font-size: 0.85em;
+            color: #495057;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .template-btn:hover {
+            background: linear-gradient(135deg, var(--theme-color-light), #bbdefb);
+            color: var(--theme-color);
+            transform: translateY(-1px);
+        }
+
+        .template-btn.active {
+            background: linear-gradient(135deg, var(--theme-color), #1565c0);
+            color: white;
+            border-color: var(--theme-color);
+        }
+
+        .smart-suggestions {
+            background: linear-gradient(135deg, #f3e5f5, #e8eaf6);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            border: 1px solid #e1bee7;
+        }
+
+        .suggestion-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 0;
+            color: #5e35b1;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .suggestion-item:hover {
+            background: rgba(255,255,255,0.5);
+            border-radius: 4px;
+            padding-left: 4px;
+        }
+
+        .progress-indicators {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin: 20px 0;
+        }
+
+        .progress-card {
+            background: linear-gradient(135deg, #fff, #f8f9fa);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+        }
+
+        .progress-number {
+            font-size: 2em;
+            font-weight: 700;
+            color: var(--theme-color);
+            margin-bottom: 4px;
+        }
+
+        .progress-label {
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .action-btn {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            color: var(--theme-color);
+            border: none;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .action-btn:hover {
+            background: linear-gradient(135deg, var(--theme-color), #1565c0);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .mood-tracker {
+            display: flex;
+            justify-content: space-between;
+            margin: 16px 0;
+        }
+
+        .mood-item {
+            text-align: center;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            flex: 1;
+            margin: 0 2px;
+        }
+
+        .mood-item:hover {
+            background: rgba(25,118,210,0.1);
+        }
+
+        .mood-item.selected {
+            background: linear-gradient(135deg, var(--theme-color), #1565c0);
+            color: white;
+        }
+
+        .mood-emoji {
+            font-size: 2em;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .mood-label {
+            font-size: 0.8em;
+        }
+
+        .insights-panel {
+            background: linear-gradient(135deg, #e8f5e9, #f1f8e9);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 20px;
+            border-left: 4px solid #4caf50;
+        }
+
+        .insights-title {
+            color: #2e7d32;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .insight-item {
+            background: rgba(255,255,255,0.7);
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            color: #2e7d32;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- 页面头部 -->
+        <div class="page-header">
+            <a href="day_plan.html" class="back-to-home">← 返回日计划</a>
+            <h1 class="page-title">🧠 智能反思模板</h1>
+            <div style="display: flex; gap: 8px;">
+                <button type="button" id="save-reflection-btn" class="btn-main">💾 保存反思</button>
+                <button type="button" id="export-reflection-btn" class="btn-main">📤 导出</button>
+            </div>
+        </div>
+
+        <div class="reflection-container">
+            <!-- 日期和心情记录 -->
+            <div class="reflection-card">
+                <div class="reflection-header">
+                    <span class="reflection-icon">📅</span>
+                    <div>
+                        <h3 class="reflection-title">今日概览</h3>
+                        <p class="reflection-subtitle">记录日期和整体心情状态</p>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 16px; align-items: center; margin-bottom: 16px;">
+                    <label style="font-weight: 500;">反思日期：</label>
+                    <input type="date" id="reflection-date" style="padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+                    <label style="font-weight: 500;">星期：</label>
+                    <span id="reflection-weekday" style="color: var(--theme-color); font-weight: 600;"></span>
+                </div>
+
+                <div style="margin-bottom: 12px;">
+                    <label style="font-weight: 500; margin-bottom: 8px; display: block;">今日心情：</label>
+                    <div class="mood-tracker">
+                        <div class="mood-item" data-mood="terrible">
+                            <span class="mood-emoji">😢</span>
+                            <span class="mood-label">很糟糕</span>
+                        </div>
+                        <div class="mood-item" data-mood="bad">
+                            <span class="mood-emoji">😕</span>
+                            <span class="mood-label">不太好</span>
+                        </div>
+                        <div class="mood-item" data-mood="neutral">
+                            <span class="mood-emoji">😐</span>
+                            <span class="mood-label">一般</span>
+                        </div>
+                        <div class="mood-item" data-mood="good">
+                            <span class="mood-emoji">😊</span>
+                            <span class="mood-label">不错</span>
+                        </div>
+                        <div class="mood-item" data-mood="excellent">
+                            <span class="mood-emoji">😄</span>
+                            <span class="mood-label">非常棒</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 今日成就 -->
+            <div class="reflection-card">
+                <div class="reflection-header">
+                    <span class="reflection-icon">🏆</span>
+                    <div>
+                        <h3 class="reflection-title">今日成就</h3>
+                        <p class="reflection-subtitle">记录完成的任务和取得的成果</p>
+                    </div>
+                </div>
+
+                <div class="template-selector">
+                    <button class="template-btn" onclick="addReflectionTemplate('achievements', '✅ 完成了重要的工作项目')">工作成就</button>
+                    <button class="template-btn" onclick="addReflectionTemplate('achievements', '📚 学习了新的知识技能')">学习成长</button>
+                    <button class="template-btn" onclick="addReflectionTemplate('achievements', '💪 坚持了健康的生活习惯')">健康习惯</button>
+                    <button class="template-btn" onclick="addReflectionTemplate('achievements', '👥 改善了人际关系')">人际交往</button>
+                    <button class="template-btn" onclick="addReflectionTemplate('achievements', '🎯 达成了设定的目标')">目标达成</button>
+                </div>
+
+                <textarea id="achievements-textarea" class="reflection-textarea" 
+                    placeholder="今天完成了哪些重要的事情？取得了什么成果？
+
+例如：
+✅ 完成了项目的核心功能开发
+✅ 学习了新的编程技能
+✅ 坚持运动30分钟
+✅ 与同事建立了更好的合作关系
+✅ 解决了一个困扰已久的问题"></textarea>
+
+                <div class="action-buttons">
+                    <button class="action-btn" onclick="addReflectionTemplate('achievements', '• ')">添加项目</button>
+                    <button class="action-btn" onclick="formatList('achievements-textarea')">格式化列表</button>
+                    <button class="action-btn" onclick="countAchievements()">统计成就</button>
+                </div>
+            </div>
+
+            <!-- 遇到的挑战 -->
+            <div class="reflection-card">
+                <div class="reflection-header">
+                    <span class="reflection-icon">⚡</span>
+                    <div>
+                        <h3 class="reflection-title">挑战与困难</h3>
+                        <p class="reflection-subtitle">记录遇到的问题和解决方案</p>
+                    </div>
+                </div>
+
+                <div class="template-selector">
+                    <button class="template-btn" onclick="addReflectionTemplate('challenges', '❌ 问题：\n💡 解决方案：\n📝 收获：')">问题解决</button>
+                    <button class="template-btn" onclick="addReflectionTemplate('challenges', '⏰ 时间管理挑战')">时间管理</button>
+                    <button class="template-btn" onclick="addReflectionTemplate('challenges', '🤝 沟通协作困难')">沟通协作</button>
+                    <button class="template-btn" onclick="addReflectionTemplate('challenges', '🧠 技能学习障碍')">技能学习</button>
+                </div>
+
+                <textarea id="challenges-textarea" class="reflection-textarea" 
+                    placeholder="今天遇到了什么挑战？是如何应对的？
+
+例如：
+❌ 问题：项目进度落后于预期
+💡 解决方案：重新评估任务优先级，寻求团队支持
+📝 收获：学会了更好的项目时间估算
+
+❌ 问题：新技术学习困难
+💡 解决方案：分解学习目标，寻找更好的教程
+📝 收获：找到了适合自己的学习方法"></textarea>
+
+                <div class="action-buttons">
+                    <button class="action-btn" onclick="addProblemTemplate()">添加问题模板</button>
+                    <button class="action-btn" onclick="analyzeChallenges()">分析模式</button>
+                </div>
+            </div>
+
+            <!-- 学习与成长 -->
+            <div class="reflection-card">
+                <div class="reflection-header">
+                    <span class="reflection-icon">🌱</span>
+                    <div>
+                        <h3 class="reflection-title">学习与成长</h3>
+                        <p class="reflection-subtitle">记录新的知识、技能和心得体会</p>
+                    </div>
+                </div>
+
+                <div class="template-selector">
+                    <button class="template-btn" onclick="addReflectionTemplate('learning', '📖 新知识：')">新知识</button>
+                    <button class="template-btn" onclick="addReflectionTemplate('learning', '🛠️ 新技能：')">新技能</button>
+                    <button class="template-btn" onclick="addReflectionTemplate('learning', '💭 新思考：')">新思考</button>
+                    <button class="template-btn" onclick="addReflectionTemplate('learning', '🔍 新发现：')">新发现</button>
+                </div>
+
+                <textarea id="learning-textarea" class="reflection-textarea" 
+                    placeholder="今天学到了什么新东西？有什么新的理解和感悟？
+
+例如：
+📖 新知识：了解了React Hooks的工作原理
+🛠️ 新技能：掌握了CSS Grid布局技巧  
+💭 新思考：意识到代码可读性比性能优化更重要
+🔍 新发现：发现了一个很有用的开发工具"></textarea>
+
+                <div class="action-buttons">
+                    <button class="action-btn" onclick="addLearningGoal()">设置学习目标</button>
+                    <button class="action-btn" onclick="reviewLearningProgress()">学习进度</button>
+                </div>
+            </div>
+
+            <!-- 情绪与感受 -->
+            <div class="reflection-card">
+                <div class="reflection-header">
+                    <span class="reflection-icon">💝</span>
+                    <div>
+                        <h3 class="reflection-title">情绪与感受</h3>
+                        <p class="reflection-subtitle">记录内心的感受和情绪变化</p>
+                    </div>
+                </div>
+
+                <div class="template-selector">
+                    <button class="template-btn" onclick="addReflectionTemplate('emotions', '😊 开心的事：')">开心</button>
+                    <button class="template-btn" onclick="addReflectionTemplate('emotions', '😰 焦虑的事：')">焦虑</button>
+                    <button class="template-btn" onclick="addReflectionTemplate('emotions', '😤 愤怒的事：')">愤怒</button>
+                    <button class="template-btn" onclick="addReflectionTemplate('emotions', '😢 难过的事：')">难过</button>
+                    <button class="template-btn" onclick="addReflectionTemplate('emotions', '🙏 感激的事：')">感激</button>
+                </div>
+
+                <textarea id="emotions-textarea" class="reflection-textarea" 
+                    placeholder="今天的情绪如何？什么事情影响了你的心情？
+
+例如：
+😊 开心的事：项目获得了客户的好评
+😰 焦虑的事：担心明天的重要会议  
+🙏 感激的事：同事主动帮助解决了技术问题
+💪 自豪的事：坚持了一周的早起习惯"></textarea>
+
+                <div class="action-buttons">
+                    <button class="action-btn" onclick="emotionAnalysis()">情绪分析</button>
+                    <button class="action-btn" onclick="addGratitudeItem()">添加感激</button>
+                </div>
+            </div>
+
+            <!-- 明日计划 -->
+            <div class="reflection-card">
+                <div class="reflection-header">
+                    <span class="reflection-icon">🎯</span>
+                    <div>
+                        <h3 class="reflection-title">明日计划</h3>
+                        <p class="reflection-subtitle">基于今日反思制定明天的行动计划</p>
+                    </div>
+                </div>
+
+                <div class="template-selector">
+                    <button class="template-btn" onclick="addReflectionTemplate('tomorrow', '🎯 核心目标：')">核心目标</button>
+                    <button class="template-btn" onclick="addReflectionTemplate('tomorrow', '📝 重要任务：')">重要任务</button>
+                    <button class="template-btn" onclick="addReflectionTemplate('tomorrow', '🔄 改进计划：')">改进计划</button>
+                    <button class="template-btn" onclick="addReflectionTemplate('tomorrow', '⏰ 时间安排：')">时间安排</button>
+                </div>
+
+                <textarea id="tomorrow-textarea" class="reflection-textarea" 
+                    placeholder="基于今天的经验，明天要做什么？有什么需要改进的？
+
+例如：
+🎯 核心目标：完成项目第二阶段开发
+📝 重要任务：
+  • 完成用户界面设计
+  • 实现数据库集成
+  • 进行单元测试
+🔄 改进计划：
+  • 更好地估算任务时间
+  • 提前准备会议资料
+⏰ 时间安排：上午专注开发，下午处理沟通"></textarea>
+
+                <div class="action-buttons">
+                    <button class="action-btn" onclick="prioritizeTasks()">优先级排序</button>
+                    <button class="action-btn" onclick="createTimeblocks()">创建时间块</button>
+                    <button class="action-btn" onclick="syncToDayPlan()">同步到日计划</button>
+                </div>
+            </div>
+
+            <!-- 智能洞察面板 -->
+            <div class="insights-panel">
+                <div class="insights-title">
+                    🧠 智能洞察分析
+                </div>
+                <div id="insights-content">
+                    <div class="insight-item">💡 根据反思内容，建议明天重点关注时间管理</div>
+                    <div class="insight-item">📊 本周情绪波动较大，建议增加放松时间</div>
+                    <div class="insight-item">🎯 学习进度良好，可以尝试更有挑战性的目标</div>
+                </div>
+            </div>
+
+            <!-- 进度统计 -->
+            <div class="progress-indicators">
+                <div class="progress-card">
+                    <div class="progress-number" id="reflection-words">0</div>
+                    <div class="progress-label">反思字数</div>
+                </div>
+                <div class="progress-card">
+                    <div class="progress-number" id="achievements-count">0</div>
+                    <div class="progress-label">今日成就</div>
+                </div>
+                <div class="progress-card">
+                    <div class="progress-number" id="challenges-count">0</div>
+                    <div class="progress-label">解决问题</div>
+                </div>
+                <div class="progress-card">
+                    <div class="progress-number" id="reflection-score">0</div>
+                    <div class="progress-label">反思评分</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="common.js"></script>
+    <script>
+        // 初始化反思模板
+        document.addEventListener('DOMContentLoaded', function() {
+            initReflectionTemplate();
+        });
+
+        function initReflectionTemplate() {
+            // 设置当前日期
+            const today = new Date();
+            const dateInput = document.getElementById('reflection-date');
+            dateInput.value = today.toISOString().split('T')[0];
+            updateWeekday();
+
+            // 绑定事件
+            dateInput.addEventListener('change', updateWeekday);
+            
+            // 心情选择器
+            const moodItems = document.querySelectorAll('.mood-item');
+            moodItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    moodItems.forEach(m => m.classList.remove('selected'));
+                    this.classList.add('selected');
+                    updateInsights();
+                });
+            });
+
+            // 文本统计
+            const textareas = document.querySelectorAll('.reflection-textarea');
+            textareas.forEach(textarea => {
+                textarea.addEventListener('input', updateStatistics);
+            });
+
+            // 加载保存的反思
+            loadSavedReflection();
+            
+            // 自动保存
+            setInterval(autoSave, 30000); // 每30秒自动保存
+        }
+
+        function updateWeekday() {
+            const dateInput = document.getElementById('reflection-date');
+            const weekdaySpan = document.getElementById('reflection-weekday');
+            const date = new Date(dateInput.value);
+            const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+            weekdaySpan.textContent = weekdays[date.getDay()];
+        }
+
+        function addReflectionTemplate(targetId, template) {
+            const textarea = document.getElementById(targetId + '-textarea');
+            if (!textarea) return;
+
+            const currentValue = textarea.value;
+            const newValue = currentValue ? currentValue + '\n\n' + template : template;
+            textarea.value = newValue;
+            textarea.focus();
+            
+            // 移动光标到末尾
+            textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+            
+            updateStatistics();
+            MessageUtils.success('模板已添加');
+        }
+
+        function addProblemTemplate() {
+            const template = `❌ 问题：
+💡 解决方案：
+📝 收获：
+⭐ 下次改进：`;
+            addReflectionTemplate('challenges', template);
+        }
+
+        function addLearningGoal() {
+            const goal = prompt('请输入明天的学习目标：');
+            if (goal) {
+                addReflectionTemplate('tomorrow', `📚 学习目标：${goal}`);
+            }
+        }
+
+        function addGratitudeItem() {
+            const gratitude = prompt('今天有什么值得感激的事情？');
+            if (gratitude) {
+                addReflectionTemplate('emotions', `🙏 感激：${gratitude}`);
+            }
+        }
+
+        function formatList(textareaId) {
+            const textarea = document.getElementById(textareaId);
+            if (!textarea) return;
+
+            let content = textarea.value;
+            // 将每行转换为列表项
+            const lines = content.split('\n').filter(line => line.trim());
+            const formattedLines = lines.map(line => {
+                line = line.trim();
+                if (!line.startsWith('•') && !line.startsWith('-') && !line.startsWith('✅')) {
+                    return '• ' + line;
+                }
+                return line;
+            });
+            
+            textarea.value = formattedLines.join('\n');
+            updateStatistics();
+            MessageUtils.success('列表格式化完成');
+        }
+
+        function countAchievements() {
+            const textarea = document.getElementById('achievements-textarea');
+            const content = textarea.value;
+            const lines = content.split('\n').filter(line => 
+                line.trim() && (line.includes('✅') || line.includes('•'))
+            );
+            MessageUtils.info(`今日共记录 ${lines.length} 项成就`);
+        }
+
+        function updateStatistics() {
+            // 计算总字数
+            const textareas = document.querySelectorAll('.reflection-textarea');
+            let totalWords = 0;
+            textareas.forEach(textarea => {
+                totalWords += textarea.value.length;
+            });
+            document.getElementById('reflection-words').textContent = totalWords;
+
+            // 计算成就数量
+            const achievementsContent = document.getElementById('achievements-textarea').value;
+            const achievementsCount = (achievementsContent.match(/[✅•-]/g) || []).length;
+            document.getElementById('achievements-count').textContent = achievementsCount;
+
+            // 计算挑战数量
+            const challengesContent = document.getElementById('challenges-textarea').value;
+            const challengesCount = (challengesContent.match(/[❌⚡💡]/g) || []).length;
+            document.getElementById('challenges-count').textContent = challengesCount;
+
+            // 计算反思评分
+            const score = Math.min(100, Math.floor((totalWords / 500) * 100));
+            document.getElementById('reflection-score').textContent = score;
+        }
+
+        function updateInsights() {
+            const selectedMood = document.querySelector('.mood-item.selected');
+            const insights = document.getElementById('insights-content');
+            
+            if (!selectedMood) return;
+
+            const mood = selectedMood.dataset.mood;
+            let insightText = '';
+            
+            switch(mood) {
+                case 'excellent':
+                    insightText = '🌟 今天状态很好！建议将这种积极状态的秘诀记录下来';
+                    break;
+                case 'good':
+                    insightText = '😊 不错的一天！可以思考如何让明天更上一层楼';
+                    break;
+                case 'neutral':
+                    insightText = '💭 平常的一天，考虑增加一些让自己兴奋的活动';
+                    break;
+                case 'bad':
+                    insightText = '💪 今天有些挑战，重点关注解决方案和学习成长';
+                    break;
+                case 'terrible':
+                    insightText = '🤗 艰难的一天，记得关爱自己，明天会更好';
+                    break;
+            }
+            
+            insights.innerHTML = `<div class="insight-item">💡 ${insightText}</div>`;
+        }
+
+        function prioritizeTasks() {
+            const tomorrow = document.getElementById('tomorrow-textarea');
+            const content = tomorrow.value;
+            
+            if (!content.trim()) {
+                MessageUtils.warning('请先添加明日计划内容');
+                return;
+            }
+            
+            const template = `
+🔥 最重要（必须完成）：
+
+⚠️ 重要（应该完成）：
+
+💡 一般（有时间再做）：`;
+            
+            tomorrow.value = content + '\n\n=== 优先级排序 ===' + template;
+            tomorrow.focus();
+            MessageUtils.success('已添加优先级模板');
+        }
+
+        function createTimeblocks() {
+            const template = `
+⏰ 时间块安排：
+09:00-10:30 🎯 [高优先级任务]
+10:30-10:45 ☕ [休息]
+10:45-12:00 📝 [中优先级任务]
+12:00-13:00 🍽️ [午餐]
+13:00-14:30 💭 [低能量任务]
+14:30-16:00 🔄 [回顾整理]`;
+            
+            addReflectionTemplate('tomorrow', template);
+        }
+
+        function syncToDayPlan() {
+            if (confirm('是否将明日计划同步到日计划系统？')) {
+                const tomorrow = document.getElementById('tomorrow-textarea').value;
+                localStorage.setItem('reflection_to_dayplan', tomorrow);
+                MessageUtils.success('计划已准备同步，请前往日计划页面查看');
+            }
+        }
+
+        function autoSave() {
+            const reflectionData = gatherReflectionData();
+            const date = document.getElementById('reflection-date').value;
+            localStorage.setItem(`reflection_${date}`, JSON.stringify(reflectionData));
+        }
+
+        function loadSavedReflection() {
+            const date = document.getElementById('reflection-date').value;
+            const saved = localStorage.getItem(`reflection_${date}`);
+            
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    document.getElementById('achievements-textarea').value = data.achievements || '';
+                    document.getElementById('challenges-textarea').value = data.challenges || '';
+                    document.getElementById('learning-textarea').value = data.learning || '';
+                    document.getElementById('emotions-textarea').value = data.emotions || '';
+                    document.getElementById('tomorrow-textarea').value = data.tomorrow || '';
+                    
+                    if (data.mood) {
+                        const moodItem = document.querySelector(`[data-mood="${data.mood}"]`);
+                        if (moodItem) {
+                            moodItem.click();
+                        }
+                    }
+                    
+                    updateStatistics();
+                } catch (error) {
+                    console.error('加载反思数据失败:', error);
+                }
+            }
+        }
+
+        function gatherReflectionData() {
+            const selectedMood = document.querySelector('.mood-item.selected');
+            
+            return {
+                date: document.getElementById('reflection-date').value,
+                mood: selectedMood ? selectedMood.dataset.mood : null,
+                achievements: document.getElementById('achievements-textarea').value,
+                challenges: document.getElementById('challenges-textarea').value,
+                learning: document.getElementById('learning-textarea').value,
+                emotions: document.getElementById('emotions-textarea').value,
+                tomorrow: document.getElementById('tomorrow-textarea').value,
+                timestamp: new Date().toISOString()
+            };
+        }
+
+        // 保存按钮
+        document.getElementById('save-reflection-btn')?.addEventListener('click', function() {
+            const reflectionData = gatherReflectionData();
+            const date = reflectionData.date;
+            
+            // 保存到本地存储
+            localStorage.setItem(`reflection_${date}`, JSON.stringify(reflectionData));
+            
+            // 同时保存到历史记录
+            const history = JSON.parse(localStorage.getItem('reflection_history') || '[]');
+            const existingIndex = history.findIndex(item => item.date === date);
+            
+            if (existingIndex >= 0) {
+                history[existingIndex] = reflectionData;
+            } else {
+                history.unshift(reflectionData);
+            }
+            
+            // 只保留最近30天的记录
+            history.splice(30);
+            localStorage.setItem('reflection_history', JSON.stringify(history));
+            
+            MessageUtils.success('反思记录保存成功！');
+        });
+
+        // 导出按钮
+        document.getElementById('export-reflection-btn')?.addEventListener('click', function() {
+            const reflectionData = gatherReflectionData();
+            const content = `# ${reflectionData.date} 反思记录
+
+## 今日成就
+${reflectionData.achievements}
+
+## 挑战与困难  
+${reflectionData.challenges}
+
+## 学习与成长
+${reflectionData.learning}
+
+## 情绪与感受
+${reflectionData.emotions}
+
+## 明日计划
+${reflectionData.tomorrow}
+
+---
+记录时间：${new Date(reflectionData.timestamp).toLocaleString()}`;
+
+            const blob = new Blob([content], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `reflection_${reflectionData.date}.md`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            MessageUtils.success('反思记录已导出！');
+        });
+
+        // 快捷键支持
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case 's':
+                        e.preventDefault();
+                        document.getElementById('save-reflection-btn').click();
+                        break;
+                    case 'e':
+                        e.preventDefault();
+                        document.getElementById('export-reflection-btn').click();
+                        break;
+                }
+            }
+        });
+    </script>
+    <!-- 同步服务 -->
+    <script src="sync-service.js"></script>
+    <script src="sync-providers.js"></script>
+    <!-- 通用自动同步功能 -->
+    <script src="universal-auto-sync.js"></script>
+</body>
+
+</html>
+

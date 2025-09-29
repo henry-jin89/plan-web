@@ -1,0 +1,1273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <!-- 立即阻止弹窗的脚本 -->
+    <script>
+        // 立即禁用所有弹窗和通知
+        window.DISABLE_ALL_NOTIFICATIONS = true;
+        window.DISABLE_SYNC_NOTIFICATIONS = true;
+        window.GITHUB_PAGES_MODE = true;
+        
+        // 重写弹窗函数
+        const originalAlert = window.alert || function(){};
+        const originalConfirm = window.confirm || function(){return true;};
+        
+        window.alert = function(message) {
+            if (typeof message === 'string' && (
+                message.includes('同步') || 
+                message.includes('失败') || 
+                message.includes('错误') ||
+                message.includes('sync') ||
+                message.includes('error')
+            )) {
+                console.log('[日计划页面-弹窗已阻止]:', message);
+                return;
+            }
+            console.log('[日计划页面-Alert]:', message);
+        };
+        
+        window.confirm = function(message) {
+            console.log('[日计划页面-Confirm已阻止]:', message);
+            return true;
+        };
+        
+        console.log('🛡️ 日计划页面弹窗防护已启用');
+    </script>
+    
+    <script src="config.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>日计划 - 智能计划管理系统</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="container">
+        <!-- 页面头部 -->
+        <div class="page-header">
+            <a href="index.html" class="back-to-home">← 返回主页</a>
+            <h1 class="page-title">📋 日计划管理</h1>
+            <div style="display: flex; gap: 8px;">
+                <a href="week_plan.html" class="btn-main" style="font-size: 0.9em;">周计划</a>
+                <a href="month_plan.html" class="btn-main" style="font-size: 0.9em;">月计划</a>
+            </div>
+        </div>
+
+        <!-- 智能控制栏 -->
+        <div class="plan-smartbar">
+            <!-- AI助手按钮 -->
+            <button type="button" id="ai-assistant-btn" class="ai-assistant-btn" title="AI 智能助手 (Ctrl+A)">
+                🤖 AI助手
+            </button>
+            
+            <!-- 进度条 -->
+            <div class="progress-bar" id="day-progress-bar" style="flex: 1;">
+                <div style="background:#eee;border-radius:8px;height:18px;overflow:hidden;box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);">
+                    <div id="day-progress-inner" class="progress-inner" style="width: 0%;">
+                        <div style="position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent); animation: shimmer 2s infinite;"></div>
+                    </div>
+                </div>
+                <div id="day-progress-text" style="font-size:0.9em;color:#666;margin-top:3px;display:flex;justify-content:space-between;">
+                    <span id="progress-main">今日进度 0%</span>
+                    <span id="progress-stats" style="color:#999;font-size:0.85em;"></span>
+                </div>
+            </div>
+            
+            <!-- 日期导航 -->
+            <button type="button" id="day-prev" style="padding: 6px 10px; border-radius: 6px; border: 1px solid #ddd; background: white; cursor: pointer; transition: all 0.2s;">←</button>
+            <input type="date" id="day_date" style="width:130px;border-radius:6px;border:1px solid #ddd;padding:4px;">
+            <span id="day_weekday" style="width: 70px; text-align: center; font-weight: 600; color: var(--theme-color); padding: 4px 8px; background: rgba(25,118,210,0.1); border-radius: 6px;"></span>
+            <button type="button" id="day-next" style="padding: 6px 10px; border-radius: 6px; border: 1px solid #ddd; background: white; cursor: pointer; transition: all 0.2s;">→</button>
+            
+            <!-- 快捷操作 -->
+            <div style="display: flex; gap: 4px;">
+                <button type="button" id="quick-nav-btn" style="background: var(--theme-color-light); color: var(--theme-color); border: none; border-radius: 6px; padding: 6px 8px; cursor: pointer; font-size: 0.9em;" title="快速导航 (Ctrl+N)">📅</button>
+                <button type="button" id="focus-mode-btn" style="background: #fff3e0; color: #ef6c00; border: none; border-radius: 6px; padding: 6px 8px; cursor: pointer; font-size: 0.9em;" title="专注模式 (Ctrl+F)">🎯</button>
+                <button type="button" id="energy-tracker-btn" style="background: #e8f5e9; color: #2e7d32; border: none; border-radius: 6px; padding: 6px 8px; cursor: pointer; font-size: 0.9em;" title="能量跟踪">⚡</button>
+            </div>
+        </div>
+
+        <!-- 智能洞察面板 -->
+        <div id="smart-insights-panel" class="smart-insights-panel">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h4 style="margin: 0; color: var(--theme-color); font-size: 1em; display: flex; align-items: center; gap: 6px;">
+                    🧠 智能洞察
+                </h4>
+                <button type="button" id="close-insights-btn" style="background: none; border: none; color: #999; cursor: pointer; font-size: 1.2em;">✕</button>
+            </div>
+            <div id="insights-content" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; font-size: 0.9em;">
+                <!-- 动态洞察内容 -->
+            </div>
+        </div>
+
+        <!-- 实时建议面板 -->
+        <div id="realtime-suggestions-panel" style="background: linear-gradient(135deg, #e8f5e9, #f1f8e9); border-radius: 10px; padding: 12px; margin-bottom: 12px; border-left: 3px solid #4caf50; display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <h5 style="margin: 0; color: #2e7d32; font-size: 0.9em; display: flex; align-items: center; gap: 4px;">
+                    💡 实时建议
+                </h5>
+                <button type="button" id="close-suggestions-btn" style="background: none; border: none; color: #999; cursor: pointer; font-size: 1em;">✕</button>
+            </div>
+            <div id="suggestions-content" style="font-size: 0.85em; color: #2e7d32;">
+                <!-- 实时建议内容 -->
+            </div>
+        </div>
+
+        <!-- 使用说明 -->
+        <div style="background: linear-gradient(135deg, #e8f5e9, #f1f8e9); border-radius: 12px; padding: 20px; margin-bottom: 20px; border-left: 4px solid #4caf50; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <h4 style="margin: 0 0 12px 0; color: #2e7d32; font-size: 1.1em; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                💡 使用指南
+            </h4>
+            
+            <!-- 键盘操作部分 -->
+            <div style="margin-bottom: 16px;">
+                <h5 style="margin: 0 0 8px 0; color: #2e7d32; font-size: 0.95em; font-weight: 600;">键盘操作：</h5>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; font-size: 0.9em; color: #2e7d32;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="color: #ff9800;">🔸</span>
+                        <kbd style="background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 2px 6px; font-size: 0.8em;">Enter</kbd>
+                        <span>在当前区域添加新任务</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="color: #ff9800;">🔸</span>
+                        <kbd style="background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 2px 6px; font-size: 0.8em;">Tab</kbd>
+                        <span>切换到下一个输入区域</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="color: #ff9800;">🔸</span>
+                        <kbd style="background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 2px 6px; font-size: 0.8em;">Shift + Enter</kbd>
+                        <span>在任务内换行</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="color: #ff9800;">🔸</span>
+                        <span style="font-weight: 500;">点击虚线框开始输入</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 区域颜色说明 -->
+            <div>
+                <h5 style="margin: 0 0 8px 0; color: #2e7d32; font-size: 0.95em; font-weight: 600;">区域说明：</h5>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; font-size: 0.9em;">
+                    <div style="display: flex; align-items: center; gap: 8px; background: rgba(25,118,210,0.1); padding: 8px 12px; border-radius: 8px; border-left: 3px solid var(--theme-color);">
+                        <span style="font-size: 1.2em;">🎯</span>
+                        <span style="color: var(--theme-color); font-weight: 600;">重要任务</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px; background: rgba(76,175,80,0.1); padding: 8px 12px; border-radius: 8px; border-left: 3px solid #4caf50;">
+                        <span style="font-size: 1.2em;">🔄</span>
+                        <span style="color: #4caf50; font-weight: 600;">日常习惯</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px; background: rgba(255,152,0,0.1); padding: 8px 12px; border-radius: 8px; border-left: 3px solid #ff9800;">
+                        <span style="font-size: 1.2em;">📝</span>
+                        <span style="color: #ff9800; font-weight: 600;">一般任务</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px; background: rgba(156,39,176,0.1); padding: 8px 12px; border-radius: 8px; border-left: 3px solid #9c27b0;">
+                        <span style="font-size: 1.2em;">⏰</span>
+                        <span style="color: #9c27b0; font-weight: 600;">时间安排</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 操作栏 -->
+        <div class="save-bar">
+            <button type="button" class="save-btn" data-type="day">💾 保存计划</button>
+            <button type="button" class="save-view-btn" data-type="day">📚 历史记录</button>
+            <button type="button" id="smart-insights-btn" style="background: linear-gradient(135deg, #e3f2fd, #bbdefb); color: #1976d2;">🧠 智能洞察</button>
+            <button type="button" id="productivity-analytics-btn" style="background: linear-gradient(135deg, #e8f5e9, #c8e6c9); color: #2e7d32;">📊 生产力分析</button>
+            <button type="button" id="open-habit-tracker-btn" class="btn-main" style="background: linear-gradient(135deg, #fff3e0, #ffcc02); color: #ef6c00;" onclick="window.open('habit_tracker.html', '_blank')">📈 完整习惯追踪</button>
+        </div>
+
+        <!-- 优先级矩阵 -->
+        <div class="plan-item-header" style="margin-top: 20px;">
+            <label style="display: flex; align-items: center; gap: 8px;">
+                🎯 优先级矩阵 - 今日Top 3
+                <span style="background: #e3f2fd; color: #1976d2; font-size: 0.8em; padding: 2px 6px; border-radius: 10px; font-weight: normal;">重要且紧急</span>
+            </label>
+            <div style="display: flex; gap: 6px;">
+                <button type="button" class="quick-insert" data-target="day_top3">快捷插入</button>
+                <button type="button" id="ai-suggest-priorities-btn" style="background: #f3e5f5; color: #7b1fa2; border: none; border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 0.85em;">
+                    🤖 AI建议
+                </button>
+                <button type="button" id="priority-timer-btn" style="background: #ffebee; color: #d32f2f; border: none; border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 0.85em;">
+                    ⏰ 番茄钟
+                </button>
+                <button type="button" id="priority-analytics-btn" style="background: #e8f5e9; color: #2e7d32; border: none; border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 0.85em;">
+                    📊 分析
+                </button>
+            </div>
+        </div>
+        <div id="day_top3" class="todo-list-container enhanced-todo" 
+             data-placeholder="[ ] 今天最重要的三件事..." 
+             data-category="high-priority"
+             style="border: 2px solid var(--theme-color); background: linear-gradient(135deg, rgba(25,118,210,0.05), rgba(25,118,210,0.02));">
+        </div>
+
+        <!-- 日常习惯清单 -->
+        <div class="plan-item-header">
+            <label style="display: flex; align-items: center; gap: 8px;">
+                🔄 日常习惯清单
+                <span id="habit-streak-display" style="background: #4caf50; color: white; font-size: 0.8em; padding: 2px 6px; border-radius: 10px; font-weight: normal;">连续 0 天</span>
+            </label>
+            <div style="display: flex; gap: 6px;">
+                <button type="button" class="quick-insert" data-target="day_must_dos">快捷插入</button>
+                <button type="button" id="habit-analytics-btn" style="background: #e8f5e9; color: #2e7d32; border: none; border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 0.85em;">
+                    📊 习惯分析
+                </button>
+                <button type="button" id="habit-reminder-btn" style="background: #fff3e0; color: #ef6c00; border: none; border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 0.85em;">
+                    🔔 智能提醒
+                </button>
+            </div>
+        </div>
+        <div id="day_must_dos" class="todo-list-container enhanced-todo" 
+             data-placeholder="[ ] 每天都要坚持的习惯..." 
+             data-category="habits"
+             style="border: 2px solid #4caf50; background: linear-gradient(135deg, rgba(76,175,80,0.05), rgba(76,175,80,0.02));">
+        </div>
+
+        <!-- 智能任务管理 -->
+        <div class="plan-item-header">
+            <label style="display: flex; align-items: center; gap: 8px;">
+                📝 智能任务管理
+                <span id="task-completion-rate" style="background: #ff9800; color: white; font-size: 0.8em; padding: 2px 6px; border-radius: 10px; font-weight: normal;">完成率 0%</span>
+            </label>
+            <div style="display: flex; gap: 6px;">
+                <button type="button" class="quick-insert" data-target="day_todos">快捷插入</button>
+                <button type="button" id="auto-categorize-btn" style="background: #e3f2fd; color: #1976d2; border: none; border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 0.85em;">
+                    🏷️ 智能分类
+                </button>
+                <button type="button" id="difficulty-estimator-btn" style="background: #f3e5f5; color: #7b1fa2; border: none; border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 0.85em;">
+                    🎯 难度评估
+                </button>
+                <button type="button" id="task-dependency-btn" onclick="if(window.showTaskDependency) window.showTaskDependency(); else alert('功能加载中，请稍后重试');" style="background: #ffebee; color: #d32f2f; border: none; border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 0.85em;">
+                    🔗 依赖关系
+                </button>
+            </div>
+        </div>
+        <div id="day_todos" class="todo-list-container enhanced-todo" 
+             data-placeholder="[ ] 其他任务和待办事项..." 
+             data-category="general-tasks"
+             style="border: 2px solid #ff9800; background: linear-gradient(135deg, rgba(255,152,0,0.05), rgba(255,152,0,0.02));">
+        </div>
+
+        <!-- 智能时间块规划 -->
+        <div class="plan-item-header">
+            <label style="display: flex; align-items: center; gap: 8px;">
+                ⏰ 智能时间块规划
+                <span id="time-utilization" style="background: #9c27b0; color: white; font-size: 0.8em; padding: 2px 6px; border-radius: 10px; font-weight: normal;">利用率 0%</span>
+            </label>
+        </div>
+        <div style="display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;">
+            <button type="button" id="timeblock-templates" class="btn-main" style="background: linear-gradient(135deg, #e3f2fd, #bbdefb); color: #1976d2;">🧠 智能模板</button>
+            <button type="button" id="timeblock-suggest" class="btn-main" style="background: linear-gradient(135deg, #e8f5e9, #c8e6c9); color: #2e7d32;">💡 AI建议</button>
+            <button type="button" id="timeblock-check" class="btn-main" style="background: linear-gradient(135deg, #fff3e0, #ffcc02); color: #ef6c00;">⚠️ 冲突检测</button>
+            <button type="button" id="energy-optimization-btn" style="background: linear-gradient(135deg, #fce4ec, #f8bbd9); color: #c2185b;">⚡ 能量优化</button>
+            <button type="button" id="break-scheduler-btn" style="background: linear-gradient(135deg, #f3e5f5, #e1bee7); color: #7b1fa2;">🧘 休息安排</button>
+        </div>
+        <div id="day_timeblock" class="todo-list-container enhanced-timeblock" 
+             data-placeholder="例如：
+09:00-10:30 💼 深度工作时间 [高能量]
+10:30-10:45 ☕ 休息恢复
+10:45-12:00 📞 会议沟通 [中等能量]
+12:00-13:00 🍽️ 午餐休息
+13:00-14:30 📝 轻度任务 [低能量恢复期]
+14:30-16:00 🎯 创意工作 [能量回升]
+16:00-16:15 🚶 活动休息
+16:15-17:30 📊 总结整理"></div>
+        
+        <!-- 时间块统计 -->
+        <div id="timeblock-stats" style="margin-top: 8px; margin-bottom: 16px; font-size: 0.9em; color: #666; background: rgba(255,255,255,0.8); padding: 12px; border-radius: 8px; border: 1px solid #e0e0e0;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px;">
+                <div style="text-align: center;">
+                    <div style="color: #1976d2; font-weight: 600; font-size: 1.1em;" id="total-planned-time">0h</div>
+                    <div style="font-size: 0.8em; color: #666;">计划时间</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="color: #4caf50; font-weight: 600; font-size: 1.1em;" id="focus-time">0h</div>
+                    <div style="font-size: 0.8em; color: #666;">专注时间</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="color: #ff9800; font-weight: 600; font-size: 1.1em;" id="break-time">0h</div>
+                    <div style="font-size: 0.8em; color: #666;">休息时间</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="color: #9c27b0; font-weight: 600; font-size: 1.1em;" id="efficiency-score">0%</div>
+                    <div style="font-size: 0.8em; color: #666;">效率评分</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 日记和反思 -->
+        <div class="plan-item-header">
+            <label style="display: flex; align-items: center; gap: 8px;">
+                📔 日记与反思
+                <span style="background: #795548; color: white; font-size: 0.8em; padding: 2px 6px; border-radius: 10px; font-weight: normal;">成长记录</span>
+            </label>
+            <div style="display: flex; gap: 6px;">
+                <a href="reflection_template.html" target="_blank" style="background: #e3f2fd; color: #1976d2; border: none; border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 0.85em; text-decoration: none; display: inline-block;">
+                    🧠 智能反思
+                </a>
+                <a href="mood_tracker.html" target="_blank" style="background: #fff3e0; color: #ef6c00; border: none; border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 0.85em; text-decoration: none; display: inline-block;">
+                    😊 心情记录
+                </a>
+                <a href="gratitude_diary.html" target="_blank" style="background: #e8f5e9; color: #2e7d32; border: none; border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 0.85em; text-decoration: none; display: inline-block;">
+                    🙏 感恩日记
+                </a>
+            </div>
+        </div>
+        <textarea id="day_reflection" placeholder="今天的收获、感悟、改进点...
+
+例如：
+• 今天完成了什么重要任务？
+• 遇到了哪些挑战，如何解决的？
+• 有什么新的学习和成长？
+• 明天需要改进的地方？
+• 值得感恩的三件事..." style="min-height: 120px;"></textarea>
+
+        <!-- 目标设定 -->
+        <div class="plan-item-header">
+            <label>🎯 今日目标与愿景</label>
+        </div>
+        <textarea id="day_goals" placeholder="设定今天的核心目标和期望达成的成果..."></textarea>
+
+    </div>
+
+    <script src="common.js"></script>
+    <script src="data-persistence.js"></script>
+    <script src="sync-service.js"></script>
+    <script src="sync-providers.js"></script>
+    <script src="day_plan.js"></script>
+
+    <!-- 集成的任务编辑和删除功能修复 -->
+    <script>
+        // 修复后的待办事项工具类 - 直接集成在day_plan.html中
+        const DayPlanTodoUtils = {
+            /**
+             * 初始化待办事项容器
+             * @param {HTMLElement} container - 容器元素
+             */
+            init: function(container) {
+                if (!container) return;
+
+                // 不要设置容器本身为contentEditable，只有任务文本才是可编辑的
+                container.contentEditable = false;
+                
+                // 监听输入事件（来自任务文本）
+                container.addEventListener('input', (e) => {
+                    // 只处理来自任务文本的输入事件
+                    if (e.target.classList && e.target.classList.contains('task-text')) {
+                        this.handleTodoInput(e);
+                    }
+                });
+
+                // 监听回车键
+                container.addEventListener('keydown', (e) => {
+                    // 只处理来自任务文本的回车键
+                    if (e.target.classList && e.target.classList.contains('task-text') && e.key === 'Enter') {
+                        e.preventDefault();
+                        this.addNewTodoItem(container);
+                    }
+                });
+
+                // 监听点击事件（用于复选框、删除按钮和空容器点击）
+                container.addEventListener('click', (e) => {
+                    this.handleTodoClick(e);
+                });
+
+                // 初始化现有内容
+                this.initExistingTodos(container);
+                
+                // 如果容器为空，显示占位符并处理点击
+                this.updatePlaceholder(container);
+            },
+
+            /**
+             * 处理待办事项输入（优化版本 - 避免频繁重新渲染）
+             * @param {Event} e - 输入事件
+             */
+            handleTodoInput: function(e) {
+                // 如果是输入法组合中，不做任何处理
+                if (e.isComposing) {
+                    return;
+                }
+                
+                // 只在blur事件时保存数据，不在input事件时重新渲染
+                // 这样可以避免用户输入时频繁丢失焦点
+                const taskElement = e.target;
+                const container = taskElement.closest('.todo-list-container');
+                
+                if (container) {
+                    // 只更新数据属性，不重新渲染HTML
+                    this.updateContainerDataOnly(container);
+                }
+            },
+
+            /**
+             * 添加新的待办事项
+             * @param {HTMLElement} container - 容器元素
+             */
+            addNewTodoItem: function(container) {
+                // 首先移除占位符
+                const placeholder = container.querySelector('.todo-placeholder');
+                if (placeholder) {
+                    placeholder.remove();
+                }
+                
+                // 根据容器类型创建合适格式的新任务
+                let newTaskText = '[ ] ';
+                if (container.classList.contains('enhanced-timeblock')) {
+                    // 时间块格式
+                    newTaskText = '';
+                } else {
+                    // 标准待办事项格式
+                    newTaskText = '[ ] ';
+                }
+                
+                // 创建一个新的任务项（允许空文本用于新建任务）
+                const newTaskItem = this.createTodoElement(newTaskText, true);
+                if (newTaskItem) {
+                    container.appendChild(newTaskItem);
+                    
+                    // 聚焦到新任务的文本框
+                    const textElement = newTaskItem.querySelector('.task-text');
+                    if (textElement) {
+                        textElement.focus();
+                        // 将光标移到文本末尾
+                        if (textElement.tagName === 'TEXTAREA' || textElement.tagName === 'INPUT') {
+                            textElement.setSelectionRange(textElement.value.length, textElement.value.length);
+                        }
+                    }
+                    
+                    // 只更新数据，不重新渲染（避免失去焦点）
+                    this.updateContainerDataOnly(container);
+                }
+            },
+
+            /**
+             * 处理待办事项点击
+             * @param {Event} e - 点击事件
+             */
+            handleTodoClick: function(e) {
+                if (e.target.classList.contains('custom-checkbox')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.toggleTodoItem(e.target);
+                } else if (e.target.classList.contains('task-delete-btn')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.deleteTodoItem(e.target);
+                } else if (e.target.classList.contains('todo-list-container')) {
+                    // 点击空容器时创建新任务
+                    const tasks = e.target.querySelectorAll('.task-item');
+                    if (tasks.length === 0) {
+                        this.addNewTodoItem(e.target);
+                    }
+                }
+            },
+
+            /**
+             * 切换待办事项状态
+             * @param {HTMLElement} checkbox - 复选框元素
+             */
+            toggleTodoItem: function(checkbox) {
+                const taskItem = checkbox.closest('.task-item');
+                const taskText = taskItem.querySelector('.task-text');
+                const container = taskItem.closest('.todo-list-container');
+                
+                const isChecked = checkbox.classList.contains('checked');
+                
+                if (isChecked) {
+                    checkbox.classList.remove('checked');
+                    taskText.style.textDecoration = 'none';
+                    taskText.style.opacity = '1';
+                } else {
+                    checkbox.classList.add('checked');
+                    taskText.style.textDecoration = 'line-through';
+                    taskText.style.opacity = '0.6';
+                }
+                
+                this.updateContainerContent(container);
+                
+                // 触发进度更新
+                if (typeof updateProgress === 'function') {
+                    setTimeout(() => {
+                        updateProgress();
+                    }, 100);
+                }
+            },
+
+            /**
+             * 删除待办事项（修复版本）
+             * @param {HTMLElement} deleteBtn - 删除按钮
+             */
+            deleteTodoItem: function(deleteBtn) {
+                const taskItem = deleteBtn.closest('.task-item');
+                const container = taskItem.closest('.todo-list-container');
+                const taskText = taskItem.querySelector('.task-text').textContent;
+                
+                console.log(`🗑️ 删除任务: "${taskText}"`);
+                
+                // 添加删除动画
+                taskItem.style.transition = 'all 0.3s ease';
+                taskItem.style.opacity = '0';
+                taskItem.style.transform = 'translateX(-20px)';
+                
+                // 延迟删除以显示动画
+                setTimeout(() => {
+                    taskItem.remove();
+                    this.updateContainerContent(container);
+                    
+                    console.log('✅ 任务删除完成，容器内容已更新');
+                    
+                    // 显示删除成功提示
+                    if (typeof MessageUtils !== 'undefined' && MessageUtils.success) {
+                        MessageUtils.success(`已删除任务: ${taskText.length > 20 ? taskText.substring(0, 20) + '...' : taskText}`);
+                    }
+                    
+                    // 触发进度更新
+                    if (typeof updateProgress === 'function') {
+                        setTimeout(() => {
+                            updateProgress();
+                        }, 100);
+                    }
+                }, 300);
+            },
+
+            /**
+             * 渲染待办事项
+             * @param {HTMLElement} container - 容器元素
+             */
+            renderTodos: function(container) {
+                const content = container.textContent;
+                const lines = content.split('\n').filter(line => line.trim());
+                
+                // 清空容器并重新渲染
+                container.innerHTML = '';
+                
+                lines.forEach((line, index) => {
+                    // 只处理有效的待办事项或时间块格式
+                    const trimmedLine = line.trim();
+                    if (trimmedLine && (trimmedLine.match(/^\[.\]/) || !trimmedLine.match(/^\[/))) {
+                        try {
+                            const taskItem = this.createTodoElement(line);
+                            if (taskItem && taskItem.nodeType === Node.ELEMENT_NODE) {
+                                container.appendChild(taskItem);
+                            }
+                        } catch (error) {
+                            console.error('❌ 创建待办事项元素时出错:', error, '行内容:', line, '行索引:', index);
+                        }
+                    }
+                });
+                
+                // 渲染完成后调整所有textarea的高度
+                setTimeout(() => {
+                    const textareas = container.querySelectorAll('.task-text');
+                    textareas.forEach(textarea => {
+                        if (textarea.tagName === 'TEXTAREA') {
+                            textarea.style.height = 'auto';
+                            const scrollHeight = textarea.scrollHeight;
+                            textarea.style.height = Math.max(scrollHeight, 22) + 'px';
+                        }
+                    });
+                }, 10);
+                
+                // 渲染完成后更新占位符
+                this.updatePlaceholder(container);
+            },
+
+            /**
+             * 创建待办事项元素（修复版本）
+             * @param {string} line - 待办事项文本
+             * @param {boolean} allowEmpty - 是否允许空文本（用于创建新任务）
+             * @returns {HTMLElement} 任务元素
+             */
+            createTodoElement: function(line, allowEmpty = false) {
+                // 尝试匹配标准的待办事项格式 [x] 或 [ ]
+                const todoMatch = line.match(/^\[(.)\]\s*(.*)$/);
+                let isChecked = false;
+                let text = '';
+                let isTimeblock = false;
+                
+                if (todoMatch) {
+                    // 标准待办事项格式
+                    isChecked = todoMatch[1] === 'x';
+                    text = todoMatch[2].trim(); // 确保去除前后空格
+                    
+                    // 如果文本为空且不允许空文本，不创建任务项
+                    if (!text && !allowEmpty) {
+                        return null;
+                    }
+                } else if (line.trim()) {
+                    // 时间块或其他格式（不以 [ ] 开头）
+                    text = line.trim();
+                    isTimeblock = true;
+                    
+                    // 如果文本为空且不允许空文本，不创建任务项
+                    if (!text && !allowEmpty) {
+                        return null;
+                    }
+                } else {
+                    return null;
+                }
+                
+                const taskItem = document.createElement('div');
+                taskItem.className = 'task-item';
+                
+                const taskContent = document.createElement('div');
+                taskContent.className = 'task-content';
+                taskContent.style.cssText = 'display: flex; align-items: flex-start; width: 100%; gap: 8px;';
+                
+                // 只为标准待办事项创建复选框，时间块不需要复选框
+                let checkbox = null;
+                if (!isTimeblock) {
+                    checkbox = document.createElement('div');
+                    checkbox.className = 'custom-checkbox';
+                    if (isChecked) checkbox.classList.add('checked');
+                }
+                
+                // 使用textarea元素支持多行文本和自动换行
+                const taskTextEl = document.createElement('textarea');
+                taskTextEl.className = 'task-text';
+                taskTextEl.value = text;
+                taskTextEl.rows = 1; // 初始只显示一行
+                
+                // 设置基本属性，确保输入法正常工作
+                taskTextEl.spellcheck = false;
+                taskTextEl.setAttribute('inputmode', 'text');
+                taskTextEl.setAttribute('lang', 'zh-CN');
+                
+                // 设置样式 - 确保自动换行
+                taskTextEl.style.border = 'none';
+                taskTextEl.style.outline = 'none';
+                taskTextEl.style.background = 'transparent';
+                taskTextEl.style.width = '100%';
+                taskTextEl.style.maxWidth = '100%';
+                taskTextEl.style.font = 'inherit';
+                taskTextEl.style.color = 'inherit';
+                taskTextEl.style.resize = 'none'; // 禁止手动调整大小
+                taskTextEl.style.overflowY = 'hidden'; // 隐藏垂直滚动条
+                taskTextEl.style.overflowX = 'hidden'; // 隐藏水平滚动条
+                taskTextEl.style.minHeight = '1.4em'; // 最小高度
+                taskTextEl.style.boxSizing = 'border-box'; // 正确的盒模型
+                taskTextEl.style.wordWrap = 'break-word'; // 自动换行
+                taskTextEl.style.wordBreak = 'break-all'; // 强制换行
+                taskTextEl.style.whiteSpace = 'pre-wrap'; // 保持换行
+                taskTextEl.style.overflowWrap = 'break-word'; // 现代浏览器换行
+                
+                // 处理键盘事件
+                taskTextEl.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        if (e.shiftKey) {
+                            // Shift+Enter: 允许换行
+                            return true;
+                        } else {
+                            // 单独的Enter: 创建新任务
+                            e.preventDefault();
+                            const container = this.closest('.todo-list-container');
+                            if (container && DayPlanTodoUtils) {
+                                DayPlanTodoUtils.addNewTodoItem(container);
+                            }
+                        }
+                    } else if (e.key === 'Tab') {
+                        if (!e.shiftKey) {
+                            // Tab: 切换到下一个输入区域
+                            e.preventDefault();
+                            const container = this.closest('.todo-list-container');
+                            if (container) {
+                                focusNextContainer(container);
+                            }
+                        }
+                    }
+                });
+                
+                // 自动调整高度的增强版本
+                function adjustHeight() {
+                    taskTextEl.style.height = 'auto';
+                    const scrollHeight = taskTextEl.scrollHeight;
+                    taskTextEl.style.height = Math.max(scrollHeight, 22) + 'px'; // 最小高度22px
+                }
+                
+                // 监听多个事件以确保高度调整
+                taskTextEl.addEventListener('input', adjustHeight);
+                taskTextEl.addEventListener('paste', function() {
+                    // 粘贴后延迟调整高度
+                    setTimeout(adjustHeight, 10);
+                });
+                taskTextEl.addEventListener('keyup', adjustHeight);
+                
+                // 初始化时也调整高度
+                setTimeout(adjustHeight, 10);
+                
+                // 失去焦点时进行完整更新（包括重新渲染）
+                taskTextEl.addEventListener('blur', function() {
+                    const container = this.closest('.todo-list-container');
+                    if (container && DayPlanTodoUtils) {
+                        // 使用完整更新，因为blur时不会干扰用户输入
+                        DayPlanTodoUtils.updateContainerContent(container);
+                    }
+                });
+                
+                if (isChecked) {
+                    taskTextEl.style.textDecoration = 'line-through';
+                    taskTextEl.style.opacity = '0.6';
+                }
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'task-delete-btn';
+                deleteBtn.innerHTML = '×';
+                deleteBtn.title = '删除此项';
+                
+                // 组装任务内容：复选框（如果有）+ 文本 + 删除按钮
+                if (checkbox) {
+                    taskContent.appendChild(checkbox);
+                }
+                taskContent.appendChild(taskTextEl);
+                taskContent.appendChild(deleteBtn);
+                taskItem.appendChild(taskContent);
+                
+                return taskItem;
+            },
+
+            /**
+             * 只更新容器数据，不重新渲染HTML（避免输入时丢失焦点）
+             * @param {HTMLElement} container - 容器元素
+             */
+            updateContainerDataOnly: function(container) {
+                const tasks = container.querySelectorAll('.task-item');
+                const lines = [];
+                
+                tasks.forEach(task => {
+                    const checkbox = task.querySelector('.custom-checkbox');
+                    const textElement = task.querySelector('.task-text');
+                    
+                    // 适配textarea、input元素和div元素
+                    let text = '';
+                    if (textElement) {
+                        if (textElement.tagName === 'TEXTAREA' || textElement.tagName === 'INPUT') {
+                            text = textElement.value || '';
+                        } else {
+                            text = textElement.textContent || '';
+                        }
+                        text = text.trim();
+                    }
+                    
+                    if (text) {
+                        // 修复：根据是否有复选框决定格式
+                        if (checkbox) {
+                            const isChecked = checkbox.classList.contains('checked');
+                            lines.push(`[${isChecked ? 'x' : ' '}] ${text}`);
+                        } else {
+                            // 时间块或其他没有复选框的格式
+                            lines.push(text);
+                        }
+                    }
+                });
+                
+                const newContent = lines.join('\n');
+                container.setAttribute('data-content', newContent);
+                // 注意：这里不设置textContent和不调用renderTodos，保持HTML结构不变
+                
+                // 触发保存事件
+                const inputEvent = new Event('input', { bubbles: true, cancelable: true });
+                container.dispatchEvent(inputEvent);
+            },
+
+            /**
+             * 更新容器内容（完整版本 - 包含HTML重新渲染）
+             * @param {HTMLElement} container - 容器元素
+             */
+            updateContainerContent: function(container) {
+                const tasks = container.querySelectorAll('.task-item');
+                const lines = [];
+                
+                tasks.forEach(task => {
+                    const checkbox = task.querySelector('.custom-checkbox');
+                    const textElement = task.querySelector('.task-text');
+                    
+                    // 适配textarea、input元素和div元素
+                    let text = '';
+                    if (textElement) {
+                        if (textElement.tagName === 'TEXTAREA' || textElement.tagName === 'INPUT') {
+                            text = textElement.value || '';
+                        } else {
+                            text = textElement.textContent || '';
+                        }
+                        text = text.trim();
+                    }
+                    
+                    if (text) {
+                        // 修复：根据是否有复选框决定格式
+                        if (checkbox) {
+                            const isChecked = checkbox.classList.contains('checked');
+                            lines.push(`[${isChecked ? 'x' : ' '}] ${text}`);
+                        } else {
+                            // 时间块或其他没有复选框的格式
+                            lines.push(text);
+                        }
+                    }
+                });
+                
+                const newContent = lines.join('\n');
+                container.setAttribute('data-content', newContent);
+                container.textContent = newContent;
+                
+                // 关键修复：重新渲染HTML结构以保持交互功能
+                this.renderTodos(container);
+                
+                // 触发保存事件
+                const inputEvent = new Event('input', { bubbles: true, cancelable: true });
+                container.dispatchEvent(inputEvent);
+            },
+
+            /**
+             * 初始化现有待办事项
+             * @param {HTMLElement} container - 容器元素
+             */
+            initExistingTodos: function(container) {
+                const content = container.textContent;
+                if (content && content.includes('[')) {
+                    // 延迟渲染，确保DOM完全初始化
+                    setTimeout(() => {
+                        this.renderTodos(container);
+                        
+                        // 额外调整一次高度，确保加载的数据正确显示
+                        setTimeout(() => {
+                            const textareas = container.querySelectorAll('.task-text');
+                            textareas.forEach(textarea => {
+                                if (textarea.tagName === 'TEXTAREA') {
+                                    textarea.style.height = 'auto';
+                                    const scrollHeight = textarea.scrollHeight;
+                                    textarea.style.height = Math.max(scrollHeight, 22) + 'px';
+                                }
+                            });
+                        }, 200);
+                    }, 100);
+                }
+            },
+
+            /**
+             * 更新占位符显示
+             * @param {HTMLElement} container - 容器元素
+             */
+            updatePlaceholder: function(container) {
+                const tasks = container.querySelectorAll('.task-item');
+                const placeholder = container.querySelector('.todo-placeholder');
+                
+                if (tasks.length === 0) {
+                    // 没有任务时显示占位符
+                    if (!placeholder) {
+                        const placeholderEl = document.createElement('div');
+                        placeholderEl.className = 'todo-placeholder';
+                        placeholderEl.textContent = container.getAttribute('data-placeholder') || '点击添加新任务...';
+                        placeholderEl.style.cssText = `
+                            color: #999;
+                            cursor: pointer;
+                            padding: 8px;
+                            font-style: italic;
+                            user-select: none;
+                        `;
+                        
+                        placeholderEl.addEventListener('click', () => {
+                            this.addNewTodoItem(container);
+                        });
+                        
+                        // 添加Tab键支持
+                        if (typeof addTabSupportToPlaceholder === 'function') {
+                            addTabSupportToPlaceholder(placeholderEl);
+                        }
+                        
+                        container.appendChild(placeholderEl);
+                    }
+                } else {
+                    // 有任务时移除占位符
+                    if (placeholder) {
+                        placeholder.remove();
+                    }
+                }
+            },
+
+            /**
+             * 设置光标到容器末尾
+             * @param {HTMLElement} container - 容器元素
+             */
+            setCursorToEnd: function(container) {
+                const range = document.createRange();
+                const selection = window.getSelection();
+                range.selectNodeContents(container);
+                range.collapse(false);
+                selection.removeAllRanges();
+                selection.addRange(range);
+            }
+        };
+
+        // 修复全局键盘事件冲突 - 完全避免干扰输入法
+        const DayPlanKeyboardUtils = {
+            init: function() {
+                // 只在冒泡阶段监听，降低干扰可能性
+                document.addEventListener('keydown', (e) => {
+                    // 如果是任务文本或任何可编辑元素，完全不处理
+                    if (e.target.classList && e.target.classList.contains('task-text')) {
+                        return; // 任务文本编辑时完全不干预
+                    }
+                    
+                    // 检查其他可编辑元素
+                    if (e.target.contentEditable === 'true' || 
+                        e.target.tagName === 'INPUT' || 
+                        e.target.tagName === 'TEXTAREA') {
+                        return; // 所有编辑元素都不干预
+                    }
+                    
+                    // 检查是否正在使用输入法
+                    if (e.isComposing) {
+                        return; // 输入法组合期间不处理任何快捷键
+                    }
+                    
+                    // 只在确定不是编辑状态时处理快捷键
+                    if (e.ctrlKey && e.key === 'q') {
+                        e.preventDefault();
+                        console.log('Ctrl+Q pressed - emergency modal close');
+                    }
+                }, false); // 使用冒泡阶段，优先级更低
+            }
+        };
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 初始化日计划页面的任务编辑功能');
+            
+            // 先初始化键盘事件处理（优先级更高）
+            DayPlanKeyboardUtils.init();
+            
+            // 延迟初始化待办事项容器，确保其他脚本加载完成
+            setTimeout(() => {
+                const todoContainers = document.querySelectorAll('.todo-list-container');
+                console.log('找到待办事项容器数量:', todoContainers.length);
+                
+                todoContainers.forEach(container => {
+                    console.log('初始化容器:', container.id);
+                    DayPlanTodoUtils.init(container);
+                });
+                
+                console.log('✅ 日计划页面任务编辑功能初始化完成');
+                
+                // 调试：检查所有容器的状态
+                todoContainers.forEach((container, index) => {
+                    console.log(`容器 ${index + 1}: ${container.id}`);
+                    console.log(`  - 占位符文本: ${container.getAttribute('data-placeholder')}`);
+                    console.log(`  - 容器高度: ${container.offsetHeight}px`);
+                    console.log(`  - 容器是否可见: ${container.offsetParent !== null}`);
+                    
+                    // 确保每个容器都有占位符
+                    if (container.children.length === 0) {
+                        const placeholder = container.querySelector('.todo-placeholder');
+                        if (!placeholder) {
+                            console.log(`  - 添加占位符到 ${container.id}`);
+                            DayPlanTodoUtils.updatePlaceholder(container);
+                        }
+                    }
+                });
+                
+                // 任务编辑功能初始化完成后，重新加载数据以确保正确渲染
+                if (typeof loadTodayPlan === 'function') {
+                    console.log('🔄 重新加载今日计划数据，确保正确显示');
+                    loadTodayPlan();
+                }
+                
+                
+                // 为textarea元素添加Tab键支持
+                const textareas = ['day_reflection', 'day_goals'];
+                textareas.forEach(id => {
+                    const textarea = document.getElementById(id);
+                    if (textarea) {
+                        textarea.addEventListener('keydown', function(e) {
+                            if (e.key === 'Tab' && !e.shiftKey) {
+                                e.preventDefault();
+                                focusNextContainer(this);
+                            }
+                        });
+                    }
+                });
+            }, 600); // 延迟600ms确保day_plan.js的初始化完全完成
+        });
+        
+        // 容器切换功能 - 定义所有容器的顺序
+        const containerOrder = ['day_top3', 'day_must_dos', 'day_todos', 'day_timeblock', 'day_reflection', 'day_goals'];
+        
+        // 切换到下一个容器的函数
+        function focusNextContainer(currentContainer) {
+            const currentId = currentContainer.id;
+            const currentIndex = containerOrder.indexOf(currentId);
+            
+            if (currentIndex !== -1 && currentIndex < containerOrder.length - 1) {
+                const nextId = containerOrder[currentIndex + 1];
+                const nextContainer = document.getElementById(nextId);
+                
+                if (nextContainer) {
+                    // 如果是textarea元素，直接聚焦
+                    if (nextContainer.tagName === 'TEXTAREA') {
+                        nextContainer.focus();
+                        // 将光标移到末尾
+                        nextContainer.setSelectionRange(nextContainer.value.length, nextContainer.value.length);
+                    } else {
+                        // 如果是todo-list-container，检查是否有任务，没有则创建新任务
+                        const existingTasks = nextContainer.querySelectorAll('.task-item');
+                        if (existingTasks.length === 0) {
+                            // 没有任务，创建新任务
+                            if (DayPlanTodoUtils) {
+                                DayPlanTodoUtils.addNewTodoItem(nextContainer);
+                            }
+                        } else {
+                            // 有任务，聚焦到最后一个任务
+                            const lastTask = existingTasks[existingTasks.length - 1];
+                            const lastTaskText = lastTask.querySelector('.task-text');
+                            if (lastTaskText) {
+                                lastTaskText.focus();
+                                if (lastTaskText.tagName === 'TEXTAREA') {
+                                    lastTaskText.setSelectionRange(lastTaskText.value.length, lastTaskText.value.length);
+                                }
+                            }
+                        }
+                    }
+                    
+                    // 滚动到目标容器
+                    nextContainer.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center' 
+                    });
+                    
+                    // 显示切换提示
+                    if (typeof MessageUtils !== 'undefined' && MessageUtils.info) {
+                        const containerNames = {
+                            'day_top3': '优先级矩阵',
+                            'day_must_dos': '日常习惯清单', 
+                            'day_todos': '智能任务管理',
+                            'day_timeblock': '智能时间块规划',
+                            'day_reflection': '日记与反思',
+                            'day_goals': '今日目标与愿景'
+                        };
+                        const containerName = containerNames[nextId] || '下一个区域';
+                        MessageUtils.info(`已切换到：${containerName}`, 'info', 1500);
+                    }
+                }
+            } else {
+                // 已经是最后一个容器，可以循环到第一个
+                const firstContainer = document.getElementById(containerOrder[0]);
+                if (firstContainer) {
+                    firstContainer.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center' 
+                    });
+                    if (typeof MessageUtils !== 'undefined' && MessageUtils.info) {
+                        MessageUtils.info('已循环到第一个区域：优先级矩阵', 'info', 1500);
+                    }
+                }
+            }
+        }
+        
+        // 为占位符添加Tab键支持
+        function addTabSupportToPlaceholder(placeholder) {
+            placeholder.addEventListener('keydown', function(e) {
+                if (e.key === 'Tab') {
+                    e.preventDefault();
+                    const container = this.closest('.todo-list-container');
+                    if (container) {
+                        focusNextContainer(container);
+                    }
+                }
+            });
+            
+            // 使占位符可以获得焦点
+            placeholder.setAttribute('tabindex', '0');
+        }
+        
+
+        // 暴露到全局作用域以便其他脚本使用
+        window.DayPlanTodoUtils = DayPlanTodoUtils;
+        window.DayPlanKeyboardUtils = DayPlanKeyboardUtils;
+
+    </script>
+
+    <!-- 任务编辑相关的CSS样式增强 -->
+    <style>
+        .task-text {
+            /* 基本样式 */
+            border: none !important;
+            outline: none !important;
+            background: transparent !important;
+            width: 100% !important;
+            max-width: 100% !important; /* 确保不超出容器 */
+            resize: none !important; /* 禁止手动调整大小 */
+            overflow-y: hidden !important; /* 只隐藏垂直滚动条 */
+            overflow-x: hidden !important; /* 隐藏水平滚动条 */
+            box-sizing: border-box !important; /* 包含padding和border在内的宽度计算 */
+            
+            /* 字体和布局 */
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Microsoft YaHei', 'SimSun', sans-serif !important;
+            font-size: inherit !important;
+            color: inherit !important;
+            line-height: 1.4 !important;
+            padding: 4px 0 !important;
+            margin: 0 !important;
+            min-height: 1.4em !important;
+            
+            /* 强制换行设置 */
+            word-wrap: break-word !important;
+            word-break: break-all !important; /* 强制在任何字符处换行 */
+            white-space: pre-wrap !important;
+            overflow-wrap: break-word !important; /* 现代浏览器的换行属性 */
+            
+            /* 确保输入法正常工作 */
+            ime-mode: auto !important;
+            -webkit-ime-mode: auto !important;
+            -ms-ime-mode: auto !important;
+        }
+        
+        .task-text:focus {
+            outline: 2px solid var(--theme-color) !important;
+            background: rgba(25, 118, 210, 0.05) !important;
+        }
+        
+        .task-delete-btn {
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.3s ease;
+            border-radius: 6px;
+            padding: 6px 8px;
+            margin-left: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            color: #ff6b6b;
+        }
+        
+        .task-delete-btn:hover {
+            background: rgba(255, 107, 107, 0.1) !important;
+            transform: scale(1.1) !important;
+            opacity: 1 !important;
+            color: #ff4757 !important;
+        }
+        
+        .task-item:hover .task-delete-btn {
+            opacity: 0.7;
+        }
+        
+        /* 任务容器布局优化 */
+        .task-item {
+            width: 100% !important;
+            margin-bottom: 8px !important;
+        }
+        
+        .task-content {
+            width: 100% !important;
+            display: flex !important;
+            align-items: flex-start !important;
+            gap: 8px !important;
+            flex-wrap: nowrap !important;
+        }
+        
+        /* 确保checkbox固定宽度 */
+        .custom-checkbox {
+            flex-shrink: 0 !important;
+            margin-top: 2px !important; /* 与文本第一行对齐 */
+        }
+        
+        /* 确保删除按钮固定宽度 */
+        .task-delete-btn {
+            flex-shrink: 0 !important;
+            margin-top: 2px !important; /* 与文本第一行对齐 */
+        }
+        
+        /* 确保空容器可见并有明显的点击区域 */
+        .todo-list-container:empty,
+        .todo-list-container:has(.todo-placeholder) {
+            min-height: 80px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+        
+        .todo-placeholder {
+            width: 100% !important;
+            text-align: center !important;
+            font-size: 0.9em !important;
+            color: #666 !important;
+            background: rgba(255, 255, 255, 0.9) !important;
+            padding: 20px !important;
+            border-radius: 8px !important;
+            border: 2px dashed #ddd !important;
+            transition: all 0.3s ease !important;
+            margin: 4px 0 !important;
+        }
+        
+        .todo-placeholder:hover {
+            background: rgba(25, 118, 210, 0.05) !important;
+            border-color: var(--theme-color) !important;
+            color: var(--theme-color) !important;
+            transform: scale(1.02) !important;
+            cursor: pointer !important;
+        }
+        
+        /* 键盘导航样式 */
+        .todo-placeholder:focus {
+            outline: 2px solid var(--theme-color) !important;
+            background: rgba(25, 118, 210, 0.1) !important;
+            color: var(--theme-color) !important;
+        }
+        
+        /* 改善textarea的焦点样式 */
+        #day_reflection:focus,
+        #day_goals:focus {
+            outline: 2px solid var(--theme-color) !important;
+            border-color: var(--theme-color) !important;
+            background: rgba(25, 118, 210, 0.02) !important;
+        }
+        
+        /* 改善todo容器的焦点样式 */
+        .todo-list-container:focus-within {
+            border-color: var(--theme-color) !important;
+            box-shadow: 0 0 0 3px var(--theme-color-shadow), 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+            transform: translateY(-2px) !important;
+        }
+        
+        /* 键盘提示样式 */
+        kbd {
+            background: #f5f5f5 !important;
+            border: 1px solid #ddd !important;
+            border-radius: 4px !important;
+            padding: 2px 6px !important;
+            font-family: monospace !important;
+            font-size: 0.85em !important;
+            color: #333 !important;
+        }
+
+        
+        /* 隐藏所有同步相关的通知和弹窗 */
+        [id*="sync"], [id*="notification"], [id*="indicator"], 
+        [class*="sync"], [class*="notification"], [class*="indicator"],
+        .sync-notification, .zero-config-notification, 
+        #auto-sync-indicator, #universal-sync-badge {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+
+    </style>
+    
+    <!-- GitHub Pages优化 - 无弹窗版本 -->
+    <script src="config-simple.js"></script>
+    <script src="lenovo-config.js"></script>  <!-- 联想云配置（可选） -->
+    <script src="zero-config-direct-sync.js"></script>  <!-- 零配置GitHub同步 -->
+    <script src="lenovo-cloud-sync.js"></script>  <!-- 零配置联想云同步 -->
+    <script src="github-pages-optimize.js"></script>
+</body>
+
+</html>
+

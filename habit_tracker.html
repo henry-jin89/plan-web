@@ -1,0 +1,1950 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <script src="config.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>智能习惯追踪 - 智能计划管理系统</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .habit-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .habit-card {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+        }
+
+        .habit-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+        }
+
+        .habit-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .habit-name {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: var(--theme-color);
+        }
+
+        .habit-streak {
+            background: linear-gradient(135deg, #4caf50, #2e7d32);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+
+        .habit-progress {
+            margin-bottom: 16px;
+        }
+
+        .habit-progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .habit-progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, var(--theme-color), #1565c0);
+            transition: width 0.6s ease;
+            border-radius: 4px;
+        }
+
+        .habit-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .habit-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .habit-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .habit-btn.check {
+            background: linear-gradient(135deg, #4caf50, #2e7d32);
+            color: white;
+        }
+
+        .habit-btn.check:hover {
+            background: linear-gradient(135deg, #2e7d32, #1b5e20);
+        }
+
+        .habit-btn.skip {
+            background: linear-gradient(135deg, #ff9800, #ef6c00);
+            color: white;
+        }
+
+        .habit-btn.edit {
+            background: linear-gradient(135deg, #2196f3, #1976d2);
+            color: white;
+        }
+
+        .calendar-view {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            margin-top: 12px;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            font-size: 0.75em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-height: 24px;
+            max-height: 32px;
+        }
+
+        .calendar-day.completed {
+            background: #4caf50;
+            color: white;
+        }
+
+        .calendar-day.skipped {
+            background: #ff9800;
+            color: white;
+        }
+
+        .calendar-day.missed {
+            background: #f44336;
+            color: white;
+        }
+
+        .calendar-day.today {
+            border: 2px solid var(--theme-color);
+            background: var(--theme-color-light);
+        }
+
+        .stats-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        }
+
+        .stat-value {
+            font-size: 1.6em;
+            font-weight: bold;
+            color: var(--theme-color);
+            margin-bottom: 2px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.8em;
+        }
+
+        /* 日历工具提示样式 */
+        .calendar-tooltip {
+            position: fixed;
+            background: rgba(255, 255, 255, 0.98);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            padding: 14px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            min-width: 260px;
+            max-width: 340px;
+            max-height: 380px;
+            overflow-y: auto;
+            font-size: 0.9em;
+            backdrop-filter: blur(10px);
+            opacity: 0;
+            transform: scale(0.9);
+            transition: all 0.25s ease;
+            pointer-events: auto;
+            visibility: hidden;
+            transform-origin: left center;
+        }
+
+        .calendar-tooltip.show {
+            opacity: 1;
+            transform: scale(1) !important;
+        }
+
+        /* 不同位置的工具提示样式 */
+        .calendar-tooltip.position-right {
+            transform-origin: left center;
+        }
+
+        .calendar-tooltip.position-left {
+            transform-origin: right center;
+        }
+
+        .calendar-tooltip.position-bottom {
+            transform-origin: center top;
+        }
+
+        .calendar-tooltip.position-top {
+            transform-origin: center bottom;
+        }
+
+        /* 移除箭头 - 因为工具提示已经紧贴显示 */
+
+        .calendar-tooltip h4 {
+            margin: 0 0 12px 0;
+            color: var(--theme-color);
+            font-size: 1em;
+            font-weight: 600;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .tooltip-habit-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 0;
+            border-bottom: 1px solid #f5f5f5;
+        }
+
+        .tooltip-habit-item:last-child {
+            border-bottom: none;
+        }
+
+        .tooltip-habit-icon {
+            font-size: 1.2em;
+            width: 24px;
+            text-align: center;
+        }
+
+        .tooltip-habit-name {
+            flex: 1;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .tooltip-habit-status {
+            font-size: 0.8em;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 500;
+        }
+
+        .tooltip-habit-status.completed {
+            background: #4caf50;
+            color: white;
+        }
+
+        .tooltip-habit-status.skipped {
+            background: #ff9800;
+            color: white;
+        }
+
+        .tooltip-habit-status.missed {
+            background: #f44336;
+            color: white;
+        }
+
+        .tooltip-stats {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e0e0e0;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            font-size: 0.85em;
+        }
+
+        .tooltip-stat {
+            text-align: center;
+            padding: 6px;
+            background: rgba(33, 150, 243, 0.05);
+            border-radius: 6px;
+        }
+
+        .tooltip-stat-value {
+            font-weight: bold;
+            color: var(--theme-color);
+            font-size: 1.1em;
+        }
+
+        .tooltip-stat-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- 页面头部 -->
+        <div class="page-header">
+            <a href="index.html" class="back-to-home">← 返回主页</a>
+            <h1 class="page-title">📈 智能习惯追踪</h1>
+            <div style="display: flex; gap: 8px;">
+                <a href="day_plan.html" class="btn-main" style="font-size: 0.9em;">日计划</a>
+                <button type="button" id="clean-habit-data-btn" class="btn-main" style="background: #ff9800; color: white;">🧹 清理数据</button>
+                <button type="button" id="force-save-habit-btn" class="btn-main" style="background: #4caf50; color: white;">💾 保存</button>
+                <button type="button" id="add-habit-btn" class="btn-main">➕ 新增习惯</button>
+            </div>
+        </div>
+
+        <!-- 统计概览 -->
+        <div class="stats-overview">
+            <div class="stat-card">
+                <div class="stat-value" id="total-habits">0</div>
+                <div class="stat-label">总习惯数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="active-streaks">0</div>
+                <div class="stat-label">活跃连续</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="completion-rate">0%</div>
+                <div class="stat-label">完成率</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="longest-streak">0</div>
+                <div class="stat-label">最长连续</div>
+            </div>
+        </div>
+
+        <!-- 今日习惯 -->
+        <div class="plan-item-header">
+            <label style="display: flex; align-items: center; gap: 8px;">
+                🎯 今日习惯打卡
+                <span id="today-progress" style="background: #4caf50; color: white; font-size: 0.8em; padding: 2px 6px; border-radius: 10px; font-weight: normal;">0/0</span>
+            </label>
+            <div style="display: flex; gap: 6px;">
+                <button type="button" id="add-habit-btn-2" class="btn-main">➕ 新增习惯</button>
+                <button type="button" id="habits-analytics-btn" onclick="showHabitAnalytics()" style="background: #e3f2fd; color: #1976d2; cursor: pointer; border: 1px solid #1976d2; border-radius: 6px; padding: 8px 12px; font-size: 0.9em; transition: all 0.3s ease;">📊 习惯分析</button>
+            </div>
+        </div>
+
+        <!-- 习惯卡片网格 -->
+        <div id="habits-grid" class="habit-grid">
+            <!-- 习惯卡片将动态生成 -->
+        </div>
+
+        <!-- 月度日历视图 -->
+        <div class="calendar-view" style="background: rgba(255, 255, 255, 0.9); border-radius: 12px; padding: 16px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h3 style="margin: 0; color: var(--theme-color); font-size: 1.1em;">📅 月度日历</h3>
+                <div style="display: flex; gap: 6px; align-items: center;">
+                    <button type="button" id="cal-prev" style="padding: 3px 6px; border: 1px solid #ddd; background: white; border-radius: 3px; font-size: 0.9em; cursor: pointer;">←</button>
+                    <span id="calendar-month" style="font-weight: 600; min-width: 80px; text-align: center; font-size: 0.9em;"></span>
+                    <button type="button" id="cal-next" style="padding: 3px 6px; border: 1px solid #ddd; background: white; border-radius: 3px; font-size: 0.9em; cursor: pointer;">→</button>
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 6px;">
+                <div style="text-align: center; font-weight: 600; color: #666; padding: 4px; font-size: 0.8em;">日</div>
+                <div style="text-align: center; font-weight: 600; color: #666; padding: 4px; font-size: 0.8em;">一</div>
+                <div style="text-align: center; font-weight: 600; color: #666; padding: 4px; font-size: 0.8em;">二</div>
+                <div style="text-align: center; font-weight: 600; color: #666; padding: 4px; font-size: 0.8em;">三</div>
+                <div style="text-align: center; font-weight: 600; color: #666; padding: 4px; font-size: 0.8em;">四</div>
+                <div style="text-align: center; font-weight: 600; color: #666; padding: 4px; font-size: 0.8em;">五</div>
+                <div style="text-align: center; font-weight: 600; color: #666; padding: 4px; font-size: 0.8em;">六</div>
+            </div>
+            
+            <div id="calendar-grid" class="calendar-grid">
+                <!-- 日历将动态生成 -->
+            </div>
+
+            <!-- 图例 -->
+            <div style="display: flex; justify-content: center; gap: 16px; margin-top: 12px; font-size: 0.8em;">
+                <div style="display: flex; align-items: center; gap: 4px;">
+                    <div style="width: 10px; height: 10px; background: #4caf50; border-radius: 50%;"></div>
+                    <span>已完成</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                    <div style="width: 10px; height: 10px; background: #ff9800; border-radius: 50%;"></div>
+                    <span>已跳过</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                    <div style="width: 10px; height: 10px; background: #f44336; border-radius: 50%;"></div>
+                    <span>未完成</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 习惯洞察 -->
+        <div class="plan-item-header">
+            <label>🧠 智能习惯洞察</label>
+            <button type="button" id="generate-insights-btn" class="btn-main">🔄 生成洞察</button>
+        </div>
+        <div id="habit-insights" style="background: rgba(255,255,255,0.9); border-radius: 12px; padding: 16px; min-height: 80px; border: 1px solid rgba(0,0,0,0.1);">
+            <p style="text-align: center; color: #666; margin: 20px 0; font-size: 0.9em;">点击"📊 习惯分析"查看您的习惯分析报告</p>
+        </div>
+
+        <!-- 日历工具提示 -->
+        <div id="calendar-tooltip" class="calendar-tooltip">
+            <div id="tooltip-content"></div>
+        </div>
+    </div>
+
+    <script src="common.js"></script>
+    <script>
+        // 全局错误捕获
+        window.addEventListener('error', function(e) {
+            console.error('JavaScript 错误:', e.error);
+            console.error('错误信息:', e.message);
+            console.error('错误位置:', e.filename, e.lineno, e.colno);
+        });
+
+        // 习惯追踪数据
+        let habitsData = JSON.parse(localStorage.getItem('habitTrackerData') || '{}');
+        console.log('加载的习惯数据:', habitsData);
+        let currentCalendarMonth = new Date();
+
+        // 默认习惯模板
+        const defaultHabits = [
+            { name: '晨间锻炼', icon: '💪', target: 30, unit: '分钟' },
+            { name: '阅读学习', icon: '📚', target: 1, unit: '小时' },
+            { name: '冥想放松', icon: '🧘', target: 15, unit: '分钟' },
+            { name: '喝水', icon: '💧', target: 8, unit: '杯' },
+            { name: '早睡', icon: '😴', target: 1, unit: '次' }
+        ];
+
+        // 习惯分析主函数
+        function showHabitAnalytics() {
+            console.log('开始生成习惯分析');
+            
+            const insights = document.getElementById('habit-insights');
+            if (!insights) {
+                console.error('找不到习惯洞察容器');
+                return;
+            }
+            
+            // 显示加载状态
+            insights.innerHTML = `
+                <div style="background: linear-gradient(135deg, #e3f2fd, #f3e5f5); padding: 25px; border-radius: 12px; text-align: center; border-left: 4px solid #2196f3; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <div style="display: inline-block; animation: spin 1s linear infinite; font-size: 2em; margin-bottom: 10px;">🔄</div>
+                    <h3 style="color: #1976d2; margin: 0 0 8px 0;">正在分析您的习惯数据...</h3>
+                    <p style="color: #666; margin: 0; font-size: 0.9em;">请稍候，正在生成个性化分析报告</p>
+                </div>
+                <style>
+                    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                </style>
+            `;
+            
+            // 延迟执行分析
+            setTimeout(() => {
+                generateAnalysisReport();
+            }, 800);
+        }
+
+        // 生成分析报告
+        function generateAnalysisReport() {
+            const insights = document.getElementById('habit-insights');
+            const habits = Object.values(habitsData);
+            
+            if (habits.length === 0) {
+                insights.innerHTML = `
+                    <div style="background: linear-gradient(135deg, #fff3e0, #fce4ec); padding: 30px; border-radius: 12px; text-align: center; border-left: 4px solid #ff9800; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div style="font-size: 3em; margin-bottom: 15px;">📋</div>
+                        <h3 style="color: #ef6c00; margin: 0 0 12px 0;">暂无习惯数据</h3>
+                        <p style="color: #666; margin: 0 0 20px 0; line-height: 1.5;">
+                            开始您的习惯养成之旅！<br>
+                            添加习惯并坚持打卡，即可获得详细的分析报告。
+                        </p>
+                        <button onclick="document.getElementById('add-habit-btn').click()" 
+                                style="background: linear-gradient(135deg, #2196f3, #1976d2); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 1em; font-weight: 500; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                            ➕ 立即添加习惯
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+            
+            // 计算统计数据
+            const stats = calculateHabitStatistics(habits);
+            
+            // 生成并显示报告
+            insights.innerHTML = generateReportHTML(stats);
+            
+            console.log('习惯分析报告生成完成');
+        }
+        
+        // 计算习惯统计数据
+        function calculateHabitStatistics(habits) {
+            let totalRecords = 0;
+            let totalCompleted = 0;
+            let bestHabit = null;
+            let bestRate = 0;
+            let activeStreaks = 0;
+            let longestStreak = 0;
+            
+            habits.forEach(habit => {
+                const records = habit.records || {};
+                const recordDates = Object.keys(records);
+                const completedRecords = Object.values(records).filter(r => r && r.completed);
+                
+                const recordCount = recordDates.length;
+                const completedCount = completedRecords.length;
+                const rate = recordCount > 0 ? Math.round((completedCount / recordCount) * 100) : 0;
+                
+                totalRecords += recordCount;
+                totalCompleted += completedCount;
+                
+                if (rate > bestRate && recordCount > 0) {
+                    bestRate = rate;
+                    bestHabit = habit;
+                }
+                
+                const streak = calculateStreakForHabit(habit);
+                if (streak > 0) activeStreaks++;
+                if (streak > longestStreak) longestStreak = streak;
+            });
+            
+            const overallRate = totalRecords > 0 ? Math.round((totalCompleted / totalRecords) * 100) : 0;
+            
+            return {
+                totalHabits: habits.length,
+                totalRecords,
+                totalCompleted,
+                overallRate,
+                bestHabit,
+                bestRate,
+                activeStreaks,
+                longestStreak
+            };
+        }
+        
+        // 计算单个习惯的连续天数
+        function calculateStreakForHabit(habit) {
+            const records = habit.records || {};
+            const today = new Date();
+            let streak = 0;
+            
+            for (let i = 0; i < 100; i++) {
+                const date = new Date(today);
+                date.setDate(today.getDate() - i);
+                const dateKey = DateUtils.formatDate(date);
+                
+                const record = records[dateKey];
+                if (record && record.completed) {
+                    streak++;
+                } else if (i === 0) {
+                    continue;
+                } else {
+                    break;
+                }
+            }
+            
+            return streak;
+        }
+        
+        // 生成报告HTML
+        function generateReportHTML(stats) {
+            const currentDate = new Date().toLocaleDateString('zh-CN', {
+                year: 'numeric',
+                month: 'long', 
+                day: 'numeric',
+                weekday: 'long'
+            });
+            
+            return `
+                <div style="background: linear-gradient(135deg, #f5f5f5, #fafafa); border-radius: 12px; padding: 18px; box-shadow: 0 2px 12px rgba(0,0,0,0.1);">
+                    <div style="text-align: center; margin-bottom: 18px; padding-bottom: 16px; border-bottom: 1px solid #e0e0e0;">
+                        <h2 style="margin: 0 0 6px 0; color: #1976d2; font-size: 1.3em;">📊 习惯分析报告</h2>
+                        <p style="margin: 0; color: #666; font-size: 0.85em;">${currentDate}</p>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px;">
+                        <div style="background: linear-gradient(135deg, rgba(76,175,80,0.1), rgba(76,175,80,0.05)); padding: 14px; border-radius: 8px; border-left: 3px solid #4caf50; text-align: center;">
+                            <div style="font-size: 1.8em; font-weight: bold; color: #2e7d32; margin-bottom: 3px;">${stats.totalHabits}</div>
+                            <div style="color: #666; font-size: 0.8em;">总习惯数</div>
+                        </div>
+                        <div style="background: linear-gradient(135deg, rgba(25,118,210,0.1), rgba(25,118,210,0.05)); padding: 14px; border-radius: 8px; border-left: 3px solid #1976d2; text-align: center;">
+                            <div style="font-size: 1.8em; font-weight: bold; color: #1976d2; margin-bottom: 3px;">${stats.overallRate}%</div>
+                            <div style="color: #666; font-size: 0.8em;">总完成率</div>
+                        </div>
+                        <div style="background: linear-gradient(135deg, rgba(255,152,0,0.1), rgba(255,152,0,0.05)); padding: 14px; border-radius: 8px; border-left: 3px solid #ff9800; text-align: center;">
+                            <div style="font-size: 1.8em; font-weight: bold; color: #ef6c00; margin-bottom: 3px;">${stats.activeStreaks}</div>
+                            <div style="color: #666; font-size: 0.8em;">活跃连续</div>
+                        </div>
+                        <div style="background: linear-gradient(135deg, rgba(156,39,176,0.1), rgba(156,39,176,0.05)); padding: 14px; border-radius: 8px; border-left: 3px solid #9c27b0; text-align: center;">
+                            <div style="font-size: 1.8em; font-weight: bold; color: #7b1fa2; margin-bottom: 3px;">${stats.longestStreak}</div>
+                            <div style="color: #666; font-size: 0.8em;">最长连续</div>
+                        </div>
+                    </div>
+                    
+                    ${stats.bestHabit ? `
+                    <div style="background: linear-gradient(135deg, rgba(76,175,80,0.08), rgba(139,195,74,0.08)); padding: 18px; border-radius: 10px; margin-bottom: 16px;">
+                        <h3 style="margin: 0 0 12px 0; color: #2e7d32; font-size: 1.1em;">🏆 表现最佳习惯</h3>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="font-size: 2em;">${stats.bestHabit.icon || '📋'}</div>
+                            <div>
+                                <h4 style="margin: 0 0 4px 0; color: #1b5e20; font-size: 1.1em;">${stats.bestHabit.name}</h4>
+                                <div style="background: #4caf50; color: white; display: inline-block; padding: 3px 10px; border-radius: 15px; font-size: 0.8em;">
+                                    完成率: ${stats.bestRate}%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    <div style="background: linear-gradient(135deg, rgba(63,81,181,0.08), rgba(48,63,159,0.08)); padding: 18px; border-radius: 10px;">
+                        <h3 style="margin: 0 0 12px 0; color: #3f51b5; font-size: 1.1em;">💡 个性化建议</h3>
+                        <p style="margin: 0; color: #444; line-height: 1.5; font-size: 0.95em;">${generatePersonalizedAdvice(stats)}</p>
+                    </div>
+                    
+                    <div style="margin-top: 16px; padding: 12px; background: rgba(0,0,0,0.03); border-radius: 6px; text-align: center;">
+                        <p style="margin: 0; font-size: 0.8em; color: #888;">
+                            📈 基于 ${stats.totalHabits} 个习惯的 ${stats.totalRecords} 条记录 | ⏰ ${new Date().toLocaleTimeString()}
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 生成个性化建议
+        function generatePersonalizedAdvice(stats) {
+            const rate = stats.overallRate;
+            if (rate >= 90) return `🎉 您的习惯养成能力非常出色！建议挑战更高难度的习惯。`;
+            if (rate >= 80) return `👏 表现优秀！建议专注于保持现有习惯的稳定性。`;
+            if (rate >= 60) return `👍 不错的开始！建议专注于2-3个最重要的习惯。`;
+            if (rate >= 40) return `💪 继续努力！建议从最容易的1个习惯开始。`;
+            return `🌱 万事开头难！建议选择一个非常简单的习惯开始。`;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('=== DOM 加载完成 ===');
+            
+            // 基础DOM检查
+            const calendarGrid = document.getElementById('calendar-grid');
+            const tooltip = document.getElementById('calendar-tooltip');
+            const tooltipContent = document.getElementById('tooltip-content');
+            
+            console.log('DOM元素检查:', {
+                calendarGrid: !!calendarGrid,
+                tooltip: !!tooltip,
+                tooltipContent: !!tooltipContent
+            });
+            
+            // 检查common.js
+            console.log('检查 DateUtils:', typeof DateUtils);
+            console.log('检查 common.js 模块:', {
+                DateUtils: typeof DateUtils,
+                MessageUtils: typeof MessageUtils,
+                ModalUtils: typeof ModalUtils
+            });
+            
+            if (typeof DateUtils === 'undefined') {
+                console.error('DateUtils 未定义！common.js 可能没有正确加载');
+                alert('错误：common.js 没有正确加载！');
+                return;
+            }
+            
+            // 执行数据清理检查
+            setTimeout(() => {
+                try {
+                    console.log('🧹 执行启动时数据清理检查...');
+                    
+                    // 检查是否有编码问题
+                    let needsCleaning = false;
+                    for (const [habitId, habit] of Object.entries(habitsData)) {
+                        if (habit && habit.name && hasEncodingIssues(habit.name)) {
+                            needsCleaning = true;
+                            break;
+                        }
+                    }
+                    
+                    if (needsCleaning) {
+                        console.log('⚠️ 检测到习惯数据编码问题，自动清理...');
+                        cleanHabitData();
+                    } else {
+                        console.log('✅ 习惯数据检查通过');
+                    }
+                } catch (error) {
+                    console.warn('⚠️ 启动时数据清理失败:', error);
+                }
+            }, 500);
+            
+            // 初始化
+            try {
+                initHabitTracker();
+                
+                // 页面初始化完成
+                console.log('✅ 习惯追踪器初始化完成');
+                
+            } catch (error) {
+                console.error('初始化过程中发生错误:', error);
+                alert('初始化失败: ' + error.message);
+            }
+            
+            // 全局点击检测 - 调试用
+            document.addEventListener('click', function(event) {
+                console.log('全局点击检测:', {
+                    target: event.target,
+                    id: event.target.id,
+                    className: event.target.className,
+                    tagName: event.target.tagName
+                });
+                
+                // 如果点击的是习惯分析按钮
+                if (event.target.id === 'habits-analytics-btn') {
+                    console.log('检测到习惯分析按钮被点击！');
+                }
+            });
+        });
+
+        // 测试基础交互功能
+        function testBasicInteraction() {
+            console.log('=== 测试基础交互功能 ===');
+            
+            const calendarGrid = document.getElementById('calendar-grid');
+            if (!calendarGrid) {
+                console.error('找不到日历网格');
+                return;
+            }
+            
+            const dayElements = calendarGrid.children;
+            console.log('日历中的日期元素数量:', dayElements.length);
+            
+            if (dayElements.length === 0) {
+                console.error('日历中没有日期元素！');
+                return;
+            }
+            
+            // 测试第一个日期元素
+            const firstDay = dayElements[0];
+            console.log('第一个日期元素:', firstDay);
+            console.log('第一个日期元素的事件处理器:', {
+                onmouseenter: typeof firstDay.onmouseenter,
+                onmouseleave: typeof firstDay.onmouseleave,
+                onclick: typeof firstDay.onclick
+            });
+            
+            // 手动测试工具提示
+            testTooltipManually();
+        }
+
+        // 手动测试工具提示
+        function testTooltipManually() {
+            console.log('=== 手动测试工具提示 ===');
+            const tooltip = document.getElementById('calendar-tooltip');
+            const tooltipContent = document.getElementById('tooltip-content');
+            
+            if (!tooltip || !tooltipContent) {
+                console.error('工具提示元素不存在');
+                return false;
+            }
+            
+            tooltipContent.innerHTML = '<h4>手动测试工具提示</h4><p>这是一个手动测试消息</p>';
+            tooltip.style.left = '200px';
+            tooltip.style.top = '200px';
+            tooltip.style.visibility = 'visible';
+            tooltip.style.opacity = '1';
+            tooltip.style.transform = 'none';
+            tooltip.className = 'calendar-tooltip show';
+            
+            console.log('手动工具提示应该显示了');
+            
+            // 3秒后自动隐藏
+            setTimeout(() => {
+                tooltip.style.visibility = 'hidden';
+                tooltip.style.opacity = '0';
+                console.log('手动工具提示已隐藏');
+            }, 3000);
+            
+            return true;
+        }
+
+        // 全局测试函数 - 可以在控制台直接调用
+        window.testHoverTooltip = function() {
+            console.log('=== 用户手动测试工具提示 ===');
+            const calendarGrid = document.getElementById('calendar-grid');
+            const firstDay = calendarGrid.children[0];
+            
+            if (firstDay && firstDay.onmouseenter) {
+                console.log('模拟鼠标进入第一个日期');
+                const fakeEvent = { target: firstDay };
+                firstDay.onmouseenter(fakeEvent);
+            } else {
+                console.error('第一个日期元素或其事件处理器不存在');
+            }
+        };
+
+        function initHabitTracker() {
+            console.log('=== 初始化习惯追踪器 ===');
+            
+            // 如果没有习惯数据，初始化默认习惯
+            if (Object.keys(habitsData).length === 0) {
+                initDefaultHabits();
+            }
+
+            renderHabits();
+            renderCalendar();
+            updateStats();
+            setupEventListeners();
+            
+            // 添加全局点击事件，点击其他地方隐藏工具提示
+            document.addEventListener('click', function(e) {
+                const tooltip = document.getElementById('calendar-tooltip');
+                const calendarGrid = document.getElementById('calendar-grid');
+                
+                // 如果点击的不是日历日期，且工具提示是显示的，则隐藏它
+                if (tooltip && tooltip.style.visibility === 'visible') {
+                    const isClickOnCalendar = calendarGrid && calendarGrid.contains(e.target);
+                    const isClickOnTooltip = tooltip.contains(e.target);
+                    
+                    if (!isClickOnCalendar && !isClickOnTooltip) {
+                        hideDayTooltip();
+                    }
+                }
+            });
+        }
+
+        function setupEventListeners() {
+            document.getElementById('add-habit-btn').addEventListener('click', showAddHabitModal);
+            document.getElementById('add-habit-btn-2').addEventListener('click', showAddHabitModal);
+            document.getElementById('cal-prev').addEventListener('click', () => navigateCalendar(-1));
+            document.getElementById('cal-next').addEventListener('click', () => navigateCalendar(1));
+            document.getElementById('generate-insights-btn').addEventListener('click', generateHabitInsights);
+            
+            // 新增的功能按钮
+            document.getElementById('clean-habit-data-btn')?.addEventListener('click', cleanHabitData);
+            document.getElementById('force-save-habit-btn')?.addEventListener('click', forceSaveHabitData);
+            
+            // 习惯分析按钮事件绑定 - 使用多种方式确保绑定成功
+            const analyticsBtn = document.getElementById('habits-analytics-btn');
+            console.log('查找习惯分析按钮:', analyticsBtn);
+            
+            if (analyticsBtn) {
+                // 方法1: addEventListener
+                analyticsBtn.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    console.log('习惯分析按钮被点击 - addEventListener');
+                    
+                    // 立即显示加载状态
+                    const insights = document.getElementById('habit-insights');
+                    if (insights) {
+                        insights.innerHTML = '<div style="background: #e3f2fd; padding: 20px; border-radius: 8px; text-align: center; border-left: 4px solid #2196f3;"><h3 style="color: #1976d2;">🔄 正在分析...</h3><p style="color: #666;">请稍候，正在生成您的习惯分析报告</p></div>';
+                    }
+                    
+                    // 延迟执行分析
+                    setTimeout(() => {
+                        generateHabitInsights();
+                    }, 100);
+                });
+                
+                // 方法2: onclick 作为备用
+                analyticsBtn.onclick = function(event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    console.log('习惯分析按钮被点击 - onclick');
+                    
+                    // 立即显示加载状态
+                    const insights = document.getElementById('habit-insights');
+                    if (insights) {
+                        insights.innerHTML = '<div style="background: #e3f2fd; padding: 20px; border-radius: 8px; text-align: center; border-left: 4px solid #2196f3;"><h3 style="color: #1976d2;">🔄 正在分析...</h3><p style="color: #666;">请稍候，正在生成您的习惯分析报告</p></div>';
+                    }
+                    
+                    setTimeout(() => {
+                        generateHabitInsights();
+                    }, 100);
+                };
+                
+                console.log('习惯分析按钮事件绑定成功');
+                
+                // 测试按钮是否可见和可点击
+                const style = window.getComputedStyle(analyticsBtn);
+                console.log('按钮样式检查:', {
+                    display: style.display,
+                    visibility: style.visibility,
+                    pointerEvents: style.pointerEvents,
+                    disabled: analyticsBtn.disabled
+                });
+            } else {
+                console.error('找不到习惯分析按钮: habits-analytics-btn');
+                
+                // 尝试延迟查找
+                setTimeout(() => {
+                    const delayedBtn = document.getElementById('habits-analytics-btn');
+                    if (delayedBtn) {
+                        console.log('延迟找到按钮，重新绑定事件');
+                        delayedBtn.addEventListener('click', function(event) {
+                            event.preventDefault();
+                            console.log('延迟绑定的按钮被点击');
+                            alert('按钮点击成功！正在生成分析...');
+                            generateHabitInsights();
+                        });
+                    }
+                }, 1000);
+            }
+        }
+
+        function initDefaultHabits() {
+            defaultHabits.forEach((habit, index) => {
+                const habitId = `habit_${Date.now()}_${index}`;
+                habitsData[habitId] = {
+                    ...habit,
+                    id: habitId,
+                    createdAt: new Date().toISOString(),
+                    records: {}
+                };
+            });
+            saveHabitsData();
+        }
+
+        function renderHabits() {
+            const grid = document.getElementById('habits-grid');
+            grid.innerHTML = '';
+
+            const today = DateUtils.getToday();
+            let todayCompleted = 0;
+            let todayTotal = 0;
+
+            Object.values(habitsData).forEach(habit => {
+                todayTotal++;
+                const todayRecord = habit.records[today];
+                if (todayRecord && todayRecord.completed) {
+                    todayCompleted++;
+                }
+
+                const card = createHabitCard(habit, today);
+                grid.appendChild(card);
+            });
+
+            // 更新今日进度
+            document.getElementById('today-progress').textContent = `${todayCompleted}/${todayTotal}`;
+        }
+
+        function createHabitCard(habit, today) {
+            const card = document.createElement('div');
+            card.className = 'habit-card';
+
+            const todayRecord = habit.records[today];
+            const isCompleted = todayRecord && todayRecord.completed;
+            const streak = calculateStreak(habit);
+            const completionRate = calculateCompletionRate(habit);
+
+            // 安全的文本处理，防止编码问题显示
+            const safeIcon = sanitizeHabitText(habit.icon || '📋');
+            const safeName = sanitizeHabitText(habit.name || '');
+            const safeUnit = sanitizeHabitText(habit.unit || '次');
+            
+            card.innerHTML = `
+                <div class="habit-header">
+                    <div class="habit-name">${safeIcon} ${safeName}</div>
+                    <div class="habit-streak">连续 ${streak} 天</div>
+                </div>
+                
+                <div class="habit-progress">
+                    <div class="habit-progress-bar">
+                        <div class="habit-progress-fill" style="width: ${completionRate}%"></div>
+                    </div>
+                    <div class="habit-stats">
+                        <span>完成率: ${completionRate}%</span>
+                        <span>目标: ${habit.target}${safeUnit}</span>
+                    </div>
+                </div>
+                
+                <div class="habit-actions">
+                    <button class="habit-btn check ${isCompleted ? 'completed' : ''}" 
+                            onclick="toggleHabit('${habit.id}', '${today}')" 
+                            ${isCompleted ? 'disabled' : ''}>
+                        ${isCompleted ? '✅ 已完成' : '✓ 完成'}
+                    </button>
+                    <button class="habit-btn skip" onclick="skipHabit('${habit.id}', '${today}')">跳过</button>
+                    <button class="habit-btn edit" onclick="editHabit('${habit.id}')">编辑</button>
+                </div>
+            `;
+
+            return card;
+        }
+
+        function toggleHabit(habitId, date) {
+            if (!habitsData[habitId].records[date]) {
+                habitsData[habitId].records[date] = {};
+            }
+            
+            habitsData[habitId].records[date].completed = true;
+            habitsData[habitId].records[date].timestamp = new Date().toISOString();
+            
+            saveHabitsData();
+            renderHabits();
+            renderCalendar();
+            updateStats();
+            
+            MessageUtils.success('习惯已打卡完成！');
+        }
+
+        function skipHabit(habitId, date) {
+            if (!habitsData[habitId].records[date]) {
+                habitsData[habitId].records[date] = {};
+            }
+            
+            habitsData[habitId].records[date].skipped = true;
+            habitsData[habitId].records[date].timestamp = new Date().toISOString();
+            
+            saveHabitsData();
+            renderHabits();
+            renderCalendar();
+            updateStats();
+            
+            MessageUtils.info('已跳过今日习惯');
+        }
+
+        function calculateStreak(habit) {
+            const today = new Date();
+            let streak = 0;
+            
+            for (let i = 0; i < 100; i++) {
+                const date = new Date(today);
+                date.setDate(today.getDate() - i);
+                const dateKey = DateUtils.formatDate(date);
+                
+                const record = habit.records[dateKey];
+                if (record && record.completed) {
+                    streak++;
+                } else if (i === 0) {
+                    // 如果今天没完成，从昨天开始算
+                    continue;
+                } else {
+                    break;
+                }
+            }
+            
+            return streak;
+        }
+
+        function calculateCompletionRate(habit) {
+            const records = Object.values(habit.records);
+            if (records.length === 0) return 0;
+            
+            const completed = records.filter(r => r.completed).length;
+            return Math.round((completed / records.length) * 100);
+        }
+
+        function renderCalendar() {
+            console.log('=== 开始渲染日历 ===');
+            const grid = document.getElementById('calendar-grid');
+            if (!grid) {
+                console.error('找不到日历网格元素!');
+                return;
+            }
+            
+            grid.innerHTML = '';
+            
+            const year = currentCalendarMonth.getFullYear();
+            const month = currentCalendarMonth.getMonth();
+            console.log('渲染月份:', year, month + 1);
+            
+            // 更新月份标题
+            document.getElementById('calendar-month').textContent = 
+                `${year}年${month + 1}月`;
+            
+            // 获取月份第一天和最后一天
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const startDate = new Date(firstDay);
+            startDate.setDate(startDate.getDate() - firstDay.getDay());
+            
+            // 生成日历格子
+            for (let i = 0; i < 42; i++) {
+                const date = new Date(startDate);
+                date.setDate(startDate.getDate() + i);
+                
+                const dayElement = document.createElement('div');
+                dayElement.className = 'calendar-day';
+                dayElement.textContent = date.getDate();
+                
+                const dateKey = DateUtils.formatDate(date);
+                console.log('创建日期元素:', date.getDate(), dateKey);
+                const isToday = dateKey === DateUtils.getToday();
+                const isCurrentMonth = date.getMonth() === month;
+                
+                if (isToday) {
+                    dayElement.classList.add('today');
+                }
+                
+                if (!isCurrentMonth) {
+                    dayElement.style.opacity = '0.3';
+                }
+                
+                // 计算当天习惯完成情况
+                const dayStats = calculateDayStats(dateKey);
+                if (dayStats.total > 0) {
+                    if (dayStats.completed === dayStats.total) {
+                        dayElement.classList.add('completed');
+                    } else if (dayStats.completed > 0) {
+                        dayElement.style.background = `linear-gradient(135deg, #4caf50 ${(dayStats.completed/dayStats.total)*100}%, #e0e0e0 ${(dayStats.completed/dayStats.total)*100}%)`;
+                    }
+                }
+
+                // 使用立即执行函数避免闭包问题 - 改为点击触发
+                (function(currentDateKey, currentDayStats) {
+                    // 移除鼠标悬停事件，改为点击事件
+                    dayElement.onclick = function(e) {
+                        e.stopPropagation(); // 防止事件冒泡
+                        console.log('=== 日期被点击 ===', currentDateKey, currentDayStats);
+                        
+                        // 检查工具提示是否已经显示
+                        const tooltip = document.getElementById('calendar-tooltip');
+                        const isVisible = tooltip && tooltip.style.visibility === 'visible';
+                        
+                        if (isVisible) {
+                            // 如果已经显示，则隐藏
+                            hideDayTooltip();
+                        } else {
+                            // 如果未显示，则显示
+                            showDayTooltip(e, currentDateKey, currentDayStats);
+                        }
+                    };
+                })(dateKey, dayStats);
+                
+                // 确保元素可以接收鼠标事件
+                dayElement.style.pointerEvents = 'auto';
+                dayElement.style.cursor = 'pointer';
+                
+                grid.appendChild(dayElement);
+            }
+        }
+
+        function calculateDayStats(date) {
+            let total = 0;
+            let completed = 0;
+            
+            Object.values(habitsData).forEach(habit => {
+                total++;
+                const record = habit.records[date];
+                if (record && record.completed) {
+                    completed++;
+                }
+            });
+            
+            return { total, completed };
+        }
+
+        function navigateCalendar(months) {
+            currentCalendarMonth.setMonth(currentCalendarMonth.getMonth() + months);
+            renderCalendar();
+        }
+
+        function updateStats() {
+            const habits = Object.values(habitsData);
+            
+            // 总习惯数
+            document.getElementById('total-habits').textContent = habits.length;
+            
+            // 活跃连续
+            const activeStreaks = habits.filter(h => calculateStreak(h) > 0).length;
+            document.getElementById('active-streaks').textContent = activeStreaks;
+            
+            // 总完成率
+            const totalRecords = habits.reduce((sum, h) => sum + Object.keys(h.records).length, 0);
+            const totalCompleted = habits.reduce((sum, h) => 
+                sum + Object.values(h.records).filter(r => r.completed).length, 0);
+            const overallRate = totalRecords > 0 ? Math.round((totalCompleted / totalRecords) * 100) : 0;
+            document.getElementById('completion-rate').textContent = `${overallRate}%`;
+            
+            // 最长连续
+            const longestStreak = Math.max(...habits.map(h => calculateStreak(h)), 0);
+            document.getElementById('longest-streak').textContent = longestStreak;
+        }
+
+        function showAddHabitModal() {
+            const content = `
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; margin-bottom: 8px;">习惯名称</label>
+                    <input type="text" id="habit-name" placeholder="例如：晨间锻炼" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; margin-bottom: 8px;">图标</label>
+                    <input type="text" id="habit-icon" placeholder="例如：💪" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                
+                <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+                    <div style="flex: 1;">
+                        <label style="display: block; margin-bottom: 8px;">目标数量</label>
+                        <input type="number" id="habit-target" placeholder="30" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="display: block; margin-bottom: 8px;">单位</label>
+                        <input type="text" id="habit-unit" placeholder="分钟" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                </div>
+            `;
+
+            ModalUtils.show('新增习惯', content, {
+                buttons: [
+                    { text: '取消', class: 'btn-main' },
+                    { text: '添加', class: 'btn-main', handler: addNewHabit }
+                ]
+            });
+        }
+
+        function addNewHabit() {
+            const name = document.getElementById('habit-name').value.trim();
+            const icon = document.getElementById('habit-icon').value.trim();
+            const target = parseInt(document.getElementById('habit-target').value) || 1;
+            const unit = document.getElementById('habit-unit').value.trim() || '次';
+
+            if (!name) {
+                MessageUtils.error('请输入习惯名称');
+                return;
+            }
+
+            const habitId = `habit_${Date.now()}`;
+            habitsData[habitId] = {
+                id: habitId,
+                name: name,
+                icon: icon || '📋',
+                target: target,
+                unit: unit,
+                createdAt: new Date().toISOString(),
+                records: {}
+            };
+
+            saveHabitsData();
+            renderHabits();
+            updateStats();
+            MessageUtils.success('习惯添加成功！');
+        }
+
+        function editHabit(habitId) {
+            const habit = habitsData[habitId];
+            if (!habit) {
+                MessageUtils.error('习惯不存在');
+                return;
+            }
+
+            const content = `
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; margin-bottom: 8px;">习惯名称</label>
+                    <input type="text" id="edit-habit-name" value="${habit.name}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; margin-bottom: 8px;">图标</label>
+                    <input type="text" id="edit-habit-icon" value="${habit.icon}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                
+                <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+                    <div style="flex: 1;">
+                        <label style="display: block; margin-bottom: 8px;">目标数量</label>
+                        <input type="number" id="edit-habit-target" value="${habit.target}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="display: block; margin-bottom: 8px;">单位</label>
+                        <input type="text" id="edit-habit-unit" value="${habit.unit}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 16px; padding: 12px; background: #f5f5f5; border-radius: 8px;">
+                    <h4 style="margin: 0 0 8px 0; color: #666; font-size: 0.9em;">习惯统计</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; font-size: 0.85em;">
+                        <div>连续天数: <strong>${calculateStreak(habit)}</strong></div>
+                        <div>完成率: <strong>${calculateCompletionRate(habit)}%</strong></div>
+                        <div>记录天数: <strong>${Object.keys(habit.records).length}</strong></div>
+                        <div>创建时间: <strong>${new Date(habit.createdAt).toLocaleDateString()}</strong></div>
+                    </div>
+                </div>
+
+                <div style="background: #fff3e0; border: 1px solid #ffcc02; border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+                    <h4 style="margin: 0 0 8px 0; color: #ef6c00; font-size: 0.9em;">⚠️ 危险操作</h4>
+                    <button type="button" id="delete-habit-btn" style="background: #f44336; color: white; border: none; border-radius: 6px; padding: 8px 16px; cursor: pointer; font-size: 0.9em;">
+                        🗑️ 删除此习惯
+                    </button>
+                    <p style="margin: 8px 0 0 0; font-size: 0.8em; color: #666;">删除后将无法恢复所有记录数据</p>
+                </div>
+            `;
+
+            ModalUtils.show(`编辑习惯: ${habit.icon} ${habit.name}`, content, {
+                buttons: [
+                    { text: '取消', class: 'btn-main' },
+                    { text: '保存修改', class: 'btn-main', handler: () => saveHabitEdit(habitId) }
+                ]
+            });
+
+            // 为删除按钮添加事件监听器
+            setTimeout(() => {
+                const deleteBtn = document.getElementById('delete-habit-btn');
+                if (deleteBtn) {
+                    deleteBtn.addEventListener('click', () => deleteHabit(habitId));
+                }
+            }, 100);
+        }
+
+        function saveHabitEdit(habitId) {
+            const name = document.getElementById('edit-habit-name').value.trim();
+            const icon = document.getElementById('edit-habit-icon').value.trim();
+            const target = parseInt(document.getElementById('edit-habit-target').value) || 1;
+            const unit = document.getElementById('edit-habit-unit').value.trim() || '次';
+
+            if (!name) {
+                MessageUtils.error('请输入习惯名称');
+                return;
+            }
+
+            // 更新习惯数据
+            habitsData[habitId].name = name;
+            habitsData[habitId].icon = icon || '📋';
+            habitsData[habitId].target = target;
+            habitsData[habitId].unit = unit;
+            habitsData[habitId].updatedAt = new Date().toISOString();
+
+            saveHabitsData();
+            renderHabits();
+            updateStats();
+            MessageUtils.success('习惯修改成功！');
+        }
+
+        function deleteHabit(habitId) {
+            const habit = habitsData[habitId];
+            if (!habit) return;
+
+            const confirmMessage = `确定要删除习惯"${habit.icon} ${habit.name}"吗？\n\n这将删除所有相关的记录数据，且无法恢复！`;
+            
+            if (confirm(confirmMessage)) {
+                delete habitsData[habitId];
+                saveHabitsData();
+                renderHabits();
+                renderCalendar();
+                updateStats();
+                MessageUtils.success(`已删除习惯: ${habit.name}`);
+                
+                // 关闭模态框
+                if (typeof ModalUtils !== 'undefined' && ModalUtils.hide) {
+                    ModalUtils.hide();
+                }
+            }
+        }
+
+        function generateHabitInsights() {
+            console.log('=== generateHabitInsights 函数开始执行 ===');
+            
+            try {
+                // 检查容器元素
+                const insights = document.getElementById('habit-insights');
+                console.log('查找 habit-insights 元素:', insights);
+                if (!insights) {
+                    console.error('找不到 habit-insights 元素');
+                    return;
+                }
+                
+                // 获取习惯数据
+                const habits = Object.values(habitsData);
+                console.log('习惯数据:', habits);
+                console.log('习惯数量:', habits.length);
+                
+                if (habits.length === 0) {
+                    console.log('没有习惯数据，显示空状态');
+                    insights.innerHTML = `
+                        <div style="background: #fff3e0; padding: 30px; border-radius: 12px; text-align: center; border-left: 4px solid #ff9800;">
+                            <h3 style="color: #ef6c00; margin: 0 0 16px 0;">📋 暂无习惯数据</h3>
+                            <p style="color: #666; margin: 0 0 20px 0;">请先添加一些习惯，然后进行打卡记录，才能生成分析报告。</p>
+                            <button onclick="document.getElementById('add-habit-btn').click()" 
+                                    style="background: #2196f3; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 1em;">
+                                ➕ 立即添加习惯
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                console.log('开始分析习惯数据...');
+                
+                // 计算统计数据
+                let bestHabit = habits[0];
+                let maxRate = 0;
+                let totalRecords = 0;
+                let totalCompleted = 0;
+                
+                habits.forEach(habit => {
+                    const records = habit.records || {};
+                    const recordCount = Object.keys(records).length;
+                    const completedCount = Object.values(records).filter(r => r && r.completed).length;
+                    const rate = recordCount > 0 ? Math.round((completedCount / recordCount) * 100) : 0;
+                    
+                    console.log(`习惯 ${habit.name}: ${completedCount}/${recordCount} = ${rate}%`);
+                    
+                    if (rate > maxRate) {
+                        maxRate = rate;
+                        bestHabit = habit;
+                    }
+                    
+                    totalRecords += recordCount;
+                    totalCompleted += completedCount;
+                });
+                
+                const overallRate = totalRecords > 0 ? Math.round((totalCompleted / totalRecords) * 100) : 0;
+                console.log('统计结果:', { totalRecords, totalCompleted, overallRate, maxRate });
+                
+                // 生成分析结果HTML
+                const resultHtml = `
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+                        <div style="background: linear-gradient(135deg, rgba(76,175,80,0.1), rgba(76,175,80,0.05)); padding: 20px; border-radius: 12px; border-left: 4px solid #4caf50; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                            <h4 style="margin: 0 0 12px 0; color: #2e7d32; font-size: 1.1em;">🏆 表现最佳习惯</h4>
+                            <p style="margin: 0; font-size: 1.2em; font-weight: 600;"><strong>${sanitizeHabitText(bestHabit.icon || '📋')} ${sanitizeHabitText(bestHabit.name || '')}</strong></p>
+                            <p style="margin: 8px 0 0 0; color: #666; font-size: 1em;">完成率: <strong style="color: #2e7d32;">${maxRate}%</strong></p>
+                        </div>
+                        
+                        <div style="background: linear-gradient(135deg, rgba(25,118,210,0.1), rgba(25,118,210,0.05)); padding: 20px; border-radius: 12px; border-left: 4px solid #1976d2; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                            <h4 style="margin: 0 0 12px 0; color: #1976d2; font-size: 1.1em;">📊 整体数据</h4>
+                            <p style="margin: 0; font-size: 1.1em;">总记录数: <strong>${totalRecords}</strong> 次</p>
+                            <p style="margin: 8px 0 0 0; color: #666; font-size: 1em;">总完成率: <strong style="color: #1976d2;">${overallRate}%</strong></p>
+                        </div>
+                        
+                        <div style="background: linear-gradient(135deg, rgba(255,152,0,0.1), rgba(255,152,0,0.05)); padding: 20px; border-radius: 12px; border-left: 4px solid #ff9800; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                            <h4 style="margin: 0 0 12px 0; color: #ef6c00; font-size: 1.1em;">💡 改进建议</h4>
+                            <p style="margin: 0; font-size: 1em; line-height: 1.4;">
+                                ${overallRate >= 80 ? '🎉 表现优秀！继续保持这种良好的习惯！' : 
+                                  overallRate >= 60 ? '👍 不错的开始！可以尝试提高一致性。' :
+                                  overallRate >= 30 ? '💪 继续努力！建议专注于1-2个核心习惯。' :
+                                  '🌱 刚刚开始！建议先从最容易的习惯开始培养。'}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 20px; padding: 16px; background: rgba(0,0,0,0.03); border-radius: 8px; text-align: center;">
+                        <p style="margin: 0; font-size: 0.9em; color: #666;">
+                            📅 分析完成时间: ${new Date().toLocaleString()} | 
+                            📈 基于 ${habits.length} 个习惯的 ${totalRecords} 条记录
+                        </p>
+                    </div>
+                `;
+                
+                console.log('更新显示内容...');
+                insights.innerHTML = resultHtml;
+                console.log('=== 习惯分析完成 ===');
+                
+            } catch (error) {
+                console.error('生成习惯分析时出错:', error);
+                const insights = document.getElementById('habit-insights');
+                if (insights) {
+                    insights.innerHTML = `
+                        <div style="background: rgba(244,67,54,0.1); padding: 25px; border-radius: 12px; border-left: 4px solid #f44336; text-align: center;">
+                            <h3 style="margin: 0 0 16px 0; color: #d32f2f;">⚠️ 分析失败</h3>
+                            <p style="margin: 0 0 12px 0; color: #666;">生成习惯分析时出现错误，请重试或刷新页面。</p>
+                            <p style="margin: 0 0 20px 0; font-size: 0.85em; color: #999; font-family: monospace;">错误信息: ${error.message}</p>
+                            <button onclick="generateHabitInsights()" 
+                                    style="background: #2196f3; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 1em;">
+                                🔄 重新分析
+                            </button>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        // 显示日期工具提示 - 简化版本
+        function showDayTooltip(event, dateKey, dayStats) {
+            console.log('=== showDayTooltip 被调用 ===', { dateKey, dayStats });
+            
+            const tooltip = document.getElementById('calendar-tooltip');
+            const tooltipContent = document.getElementById('tooltip-content');
+            
+            if (!tooltip || !tooltipContent) {
+                console.error('找不到工具提示元素');
+                return;
+            }
+            
+            console.log('工具提示元素找到，开始显示...');
+
+            // 简化的工具提示内容
+            const date = new Date(dateKey);
+            const formattedDate = date.toLocaleDateString('zh-CN', {
+                month: 'long',
+                day: 'numeric',
+                weekday: 'long'
+            });
+
+            // 获取当天的详细习惯数据
+            const dayDetails = getDayHabitDetails(dateKey);
+            
+            let tooltipHtml = `
+                <h4 style="margin: 0 0 12px 0; color: #1976d2; font-size: 1.1em;">📅 ${formattedDate}</h4>
+                <div style="margin-bottom: 12px; padding: 8px; background: rgba(33,150,243,0.1); border-radius: 8px; text-align: center;">
+                    <span style="font-weight: 600; color: #1976d2; font-size: 1em;">完成进度: ${dayStats.completed}/${dayStats.total}</span>
+                </div>
+            `;
+
+            if (dayDetails.habits.length === 0) {
+                tooltipHtml += `
+                    <div style="text-align: center; color: #666; padding: 16px;">
+                        <div style="font-size: 2em; margin-bottom: 8px;">📝</div>
+                        <p style="margin: 0; font-size: 0.9em;">这一天还没有习惯记录</p>
+                    </div>
+                `;
+            } else {
+                // 分类显示习惯
+                const completedHabits = dayDetails.habits.filter(h => h.record && h.record.completed);
+                const skippedHabits = dayDetails.habits.filter(h => h.record && h.record.skipped);
+                const missedHabits = dayDetails.habits.filter(h => !h.record || (!h.record.completed && !h.record.skipped));
+
+                // 显示已完成的习惯
+                if (completedHabits.length > 0) {
+                    tooltipHtml += `
+                        <div style="margin-bottom: 12px;">
+                            <h5 style="margin: 0 0 6px 0; color: #2e7d32; font-size: 1em; display: flex; align-items: center;">
+                                ✅ 已完成 (${completedHabits.length})
+                            </h5>
+                            <div style="max-height: 80px; overflow-y: auto;">
+                    `;
+                    completedHabits.forEach(habit => {
+                        const safeIcon = sanitizeHabitText(habit.icon || '📋');
+                        const safeName = sanitizeHabitText(habit.name || '');
+                        tooltipHtml += `
+                            <div style="display: flex; align-items: center; gap: 6px; padding: 4px 0; font-size: 0.9em;">
+                                <span style="font-size: 1.1em;">${safeIcon}</span>
+                                <span style="color: #333; flex: 1;">${safeName}</span>
+                                <span style="background: #4caf50; color: white; font-size: 0.8em; padding: 2px 8px; border-radius: 8px;">完成</span>
+                            </div>
+                        `;
+                    });
+                    tooltipHtml += `</div></div>`;
+                }
+
+                // 显示已跳过的习惯
+                if (skippedHabits.length > 0) {
+                    tooltipHtml += `
+                        <div style="margin-bottom: 12px;">
+                            <h5 style="margin: 0 0 6px 0; color: #ef6c00; font-size: 1em; display: flex; align-items: center;">
+                                ⏭️ 已跳过 (${skippedHabits.length})
+                            </h5>
+                            <div style="max-height: 70px; overflow-y: auto;">
+                    `;
+                    skippedHabits.forEach(habit => {
+                        const safeIcon = sanitizeHabitText(habit.icon || '📋');
+                        const safeName = sanitizeHabitText(habit.name || '');
+                        tooltipHtml += `
+                            <div style="display: flex; align-items: center; gap: 6px; padding: 4px 0; font-size: 0.9em;">
+                                <span style="font-size: 1.1em;">${safeIcon}</span>
+                                <span style="color: #333; flex: 1;">${safeName}</span>
+                                <span style="background: #ff9800; color: white; font-size: 0.8em; padding: 2px 8px; border-radius: 8px;">跳过</span>
+                            </div>
+                        `;
+                    });
+                    tooltipHtml += `</div></div>`;
+                }
+
+                // 显示未完成的习惯
+                if (missedHabits.length > 0) {
+                    tooltipHtml += `
+                        <div style="margin-bottom: 8px;">
+                            <h5 style="margin: 0 0 6px 0; color: #d32f2f; font-size: 1em; display: flex; align-items: center;">
+                                ❌ 未完成 (${missedHabits.length})
+                            </h5>
+                            <div style="max-height: 70px; overflow-y: auto;">
+                    `;
+                    missedHabits.forEach(habit => {
+                        const safeIcon = sanitizeHabitText(habit.icon || '📋');
+                        const safeName = sanitizeHabitText(habit.name || '');
+                        tooltipHtml += `
+                            <div style="display: flex; align-items: center; gap: 6px; padding: 4px 0; font-size: 0.9em;">
+                                <span style="font-size: 1.1em;">${safeIcon}</span>
+                                <span style="color: #333; flex: 1;">${safeName}</span>
+                                <span style="background: #f44336; color: white; font-size: 0.8em; padding: 2px 8px; border-radius: 8px;">未做</span>
+                            </div>
+                        `;
+                    });
+                    tooltipHtml += `</div></div>`;
+                }
+            }
+
+            // 设置内容
+            tooltipContent.innerHTML = tooltipHtml;
+            console.log('工具提示内容已设置');
+
+            // 精确定位到日期数字旁边 - 使用fixed定位
+            const rect = event.target.getBoundingClientRect();
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            
+            // 设置固定定位并获取尺寸
+            tooltip.style.position = 'fixed';
+            tooltip.style.visibility = 'hidden';
+            tooltip.style.opacity = '1';
+            tooltip.style.display = 'block';
+            
+            // 等待一帧确保尺寸计算正确
+            setTimeout(() => {
+                const tooltipRect = tooltip.getBoundingClientRect();
+                
+                let left, top;
+                const gap = 8; // 与日期的间距
+                
+                // 默认显示在右侧
+                left = rect.right + gap;
+                top = rect.top;
+                
+                // 检查是否超出右边界
+                if (left + tooltipRect.width > viewportWidth - 20) {
+                    // 改为左侧显示
+                    left = rect.left - tooltipRect.width - gap;
+                }
+                
+                // 检查是否超出左边界
+                if (left < 20) {
+                    // 强制显示在右侧，但限制在屏幕内
+                    left = Math.min(rect.right + gap, viewportWidth - tooltipRect.width - 20);
+                }
+                
+                // 垂直位置调整
+                if (top + tooltipRect.height > viewportHeight - 20) {
+                    top = viewportHeight - tooltipRect.height - 20;
+                }
+                if (top < 20) {
+                    top = 20;
+                }
+                
+                // 应用最终位置
+                tooltip.style.left = left + 'px';
+                tooltip.style.top = top + 'px';
+                tooltip.style.visibility = 'visible';
+                tooltip.style.opacity = '1';
+                tooltip.style.transform = 'scale(1)';
+                tooltip.className = `calendar-tooltip show`;
+                
+                console.log('=== Fixed定位调试 ===');
+                console.log('日期位置:', { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom });
+                console.log('工具提示位置:', { left, top, width: tooltipRect.width, height: tooltipRect.height });
+                
+            }, 10);
+        }
+
+        // 隐藏日期工具提示
+        function hideDayTooltip() {
+            console.log('=== hideDayTooltip 被调用 ===');
+            const tooltip = document.getElementById('calendar-tooltip');
+            if (tooltip) {
+                tooltip.style.visibility = 'hidden';
+                tooltip.style.opacity = '0';
+                tooltip.classList.remove('show');
+                console.log('工具提示已隐藏');
+            }
+        }
+
+        // 获取指定日期的习惯详情
+        function getDayHabitDetails(dateKey) {
+            const habits = Object.values(habitsData);
+            const dayHabits = habits.map(habit => ({
+                ...habit,
+                record: habit.records[dateKey] || null
+            }));
+
+            return {
+                habits: dayHabits,
+                total: habits.length,
+                completed: dayHabits.filter(h => h.record && h.record.completed).length,
+                skipped: dayHabits.filter(h => h.record && h.record.skipped).length
+            };
+        }
+
+        // 清理习惯数据中的编码问题
+        function cleanHabitData() {
+            try {
+                console.log('🧹 开始清理习惯数据...');
+                
+                let foundCorruption = false;
+                const cleanedData = {};
+                
+                // 遍历所有习惯
+                for (const [habitId, habit] of Object.entries(habitsData)) {
+                    if (!habit || typeof habit !== 'object') {
+                        console.warn('⚠️ 跳过无效习惯:', habitId);
+                        continue;
+                    }
+                    
+                    const cleanedHabit = {
+                        id: habitId,
+                        name: sanitizeHabitText(habit.name || ''),
+                        icon: sanitizeHabitText(habit.icon || '📋'),
+                        target: parseInt(habit.target) || 1,
+                        unit: sanitizeHabitText(habit.unit || '次'),
+                        createdAt: habit.createdAt || new Date().toISOString(),
+                        updatedAt: habit.updatedAt,
+                        records: {}
+                    };
+                    
+                    // 检查是否有编码问题
+                    if (habit.name && hasEncodingIssues(habit.name)) {
+                        console.log(`🗑️ 发现损坏习惯名称: ${habit.name}`);
+                        foundCorruption = true;
+                        continue; // 跳过损坏的习惯
+                    }
+                    
+                    // 清理记录数据
+                    if (habit.records && typeof habit.records === 'object') {
+                        for (const [date, record] of Object.entries(habit.records)) {
+                            if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                                console.warn('⚠️ 跳过无效日期:', date);
+                                continue;
+                            }
+                            
+                            if (record && typeof record === 'object') {
+                                cleanedHabit.records[date] = {
+                                    completed: Boolean(record.completed),
+                                    skipped: Boolean(record.skipped),
+                                    timestamp: record.timestamp || new Date().toISOString()
+                                };
+                            }
+                        }
+                    }
+                    
+                    cleanedData[habitId] = cleanedHabit;
+                }
+                
+                if (foundCorruption) {
+                    console.log('✅ 发现并清理了损坏的习惯数据');
+                    habitsData = cleanedData;
+                    saveHabitsData();
+                    
+                    // 重新渲染界面
+                    renderHabits();
+                    renderCalendar();
+                    updateStats();
+                    
+                    MessageUtils.success('已清理损坏的习惯数据！');
+                    return true;
+                } else {
+                    console.log('✅ 习惯数据完整，无需清理');
+                    MessageUtils.info('数据检查完成，未发现问题');
+                    return false;
+                }
+                
+            } catch (error) {
+                console.error('❌ 清理习惯数据失败:', error);
+                MessageUtils.error('数据清理失败: ' + error.message);
+                return false;
+            }
+        }
+        
+        // 检查文本是否有编码问题
+        function hasEncodingIssues(text) {
+            if (typeof text !== 'string') return false;
+            
+            // 检查常见的编码错误字符
+            const encodingIssuePatterns = [
+                /Â+/g,
+                /\u00C2/g,
+                /Ã¢â‚¬/g,
+                /â€/g,
+                /¥€/g,
+                /®®/g,
+                /[^\x20-\x7E\u4e00-\u9fff]/g // 非正常显示字符
+            ];
+            
+            return encodingIssuePatterns.some(pattern => pattern.test(text));
+        }
+        
+        // 清理文本中的编码问题
+        function sanitizeHabitText(text) {
+            if (typeof text !== 'string') {
+                return String(text || '');
+            }
+            
+            let cleaned = text;
+            
+            // 移除或替换编码错误字符
+            cleaned = cleaned
+                .replace(/Â+/g, '') // 移除Â字符
+                .replace(/\u00C2/g, '') // 移除C2字符
+                .replace(/Ã¢â‚¬â„¢/g, "'") // 修复智能引号
+                .replace(/Ã¢â‚¬Â/g, '–') // 修复破折号
+                .replace(/Ã¢â‚¬Å"/g, '"') // 修复左双引号
+                .replace(/Ã¢â‚¬/g, '')
+                .replace(/â€™/g, "'")
+                .replace(/â€œ/g, '"')
+                .replace(/â€/g, '"')
+                .replace(/â„¢/g, '')
+                .replace(/¥€/g, '')
+                .replace(/®®/g, '')
+                .replace(/[\x00-\x1F\x7F-\x9F]/g, '') // 移除控制字符
+                .replace(/\uFEFF/g, '') // 移除BOM
+                .replace(/\u200B/g, '') // 移除零宽空格
+                .replace(/\u00A0/g, ' ') // 替换不间断空格
+                .replace(/\s+/g, ' ') // 合并多个空格
+                .trim();
+            
+            // 如果清理后为空，返回默认值
+            if (!cleaned) {
+                return '';
+            }
+            
+            return cleaned;
+        }
+        
+        // 强制保存习惯数据
+        async function forceSaveHabitData() {
+            try {
+                console.log('💾 开始强制保存习惯数据...');
+                
+                const confirmed = confirm(
+                    '将强制保存当前习惯数据，并清理任何损坏的数据。\n\n' +
+                    '这将确保数据的完整性和正确性。\n\n' +
+                    '是否继续？'
+                );
+                
+                if (!confirmed) {
+                    return;
+                }
+                
+                // 1. 先清理数据
+                console.log('🧹 步骤1：清理损坏数据');
+                cleanHabitData();
+                
+                // 2. 验证数据格式
+                console.log('✅ 步骤2：验证数据格式');
+                const validatedData = validateHabitData(habitsData);
+                habitsData = validatedData;
+                
+                // 3. 强制保存到localStorage
+                console.log('💾 步骤3：保存到本地存储');
+                const jsonString = JSON.stringify(habitsData, null, 0);
+                localStorage.setItem('habitTrackerData', jsonString);
+                
+                // 4. 如果有同步服务，推送到云端
+                if (window.syncService) {
+                    const status = window.syncService.getSyncStatus();
+                    
+                    if (status.enabled) {
+                        try {
+                            console.log('☁️ 步骤4：同步到云端');
+                            MessageUtils.info('正在同步到云端...');
+                            await window.syncService.manualSync();
+                            MessageUtils.success('✅ 习惯数据已保存并同步到云端！');
+                        } catch (syncError) {
+                            console.error('❌ 云端同步失败:', syncError);
+                            MessageUtils.warning('本地保存成功，但云端同步失败: ' + syncError.message);
+                        }
+                    } else {
+                        MessageUtils.success('✅ 习惯数据已保存到本地！');
+                    }
+                } else {
+                    MessageUtils.success('✅ 习惯数据已保存到本地！');
+                }
+                
+                // 5. 重新渲染界面确保数据一致性
+                console.log('🎨 步骤5：重新渲染界面');
+                renderHabits();
+                renderCalendar();
+                updateStats();
+                
+                console.log('✅ 强制保存完成');
+                
+            } catch (error) {
+                console.error('❌ 强制保存失败:', error);
+                MessageUtils.error('保存失败: ' + error.message);
+            }
+        }
+        
+        // 验证习惯数据格式
+        function validateHabitData(data) {
+            const validatedData = {};
+            
+            if (!data || typeof data !== 'object') {
+                console.warn('⚠️ 习惯数据格式无效，返回空对象');
+                return {};
+            }
+            
+            for (const [habitId, habit] of Object.entries(data)) {
+                if (!habit || typeof habit !== 'object') {
+                    console.warn('⚠️ 跳过无效习惯:', habitId);
+                    continue;
+                }
+                
+                // 验证必需字段
+                if (!habit.name || !habit.id) {
+                    console.warn('⚠️ 跳过缺少必需字段的习惯:', habitId);
+                    continue;
+                }
+                
+                validatedData[habitId] = {
+                    id: habit.id,
+                    name: sanitizeHabitText(habit.name),
+                    icon: sanitizeHabitText(habit.icon || '📋'),
+                    target: Math.max(1, parseInt(habit.target) || 1),
+                    unit: sanitizeHabitText(habit.unit || '次'),
+                    createdAt: habit.createdAt || new Date().toISOString(),
+                    updatedAt: habit.updatedAt,
+                    records: habit.records || {}
+                };
+            }
+            
+            console.log(`✅ 验证完成，有效习惯: ${Object.keys(validatedData).length} 个`);
+            return validatedData;
+        }
+
+        function saveHabitsData() {
+            try {
+                // 在保存前先清理数据
+                const cleanedData = validateHabitData(habitsData);
+                const jsonString = JSON.stringify(cleanedData, null, 0);
+                localStorage.setItem('habitTrackerData', jsonString);
+                habitsData = cleanedData;
+            } catch (error) {
+                console.error('❌ 保存习惯数据失败:', error);
+                MessageUtils.error('数据保存失败，请重试');
+            }
+        }
+    </script>
+    
+    <!-- 同步服务 -->
+    <script src="sync-service.js"></script>
+    <script src="sync-providers.js"></script>
+    <!-- 通用自动同步功能 -->
+    <script src="universal-auto-sync.js"></script>
+    <!-- 全自动后台同步 -->
+    <script src="auto-background-sync.js"></script>
+</body>
+
+</html>
+

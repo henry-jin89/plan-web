@@ -1,0 +1,1831 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <script src="config.js"></script>
+    <script src="backup-helper.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据同步设置 - 计划管理器</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .sync-container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .sync-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e3f2fd;
+        }
+
+        .sync-header h1 {
+            color: #1976d2;
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .sync-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .sync-status.connected {
+            background: #e8f5e8;
+            color: #2e7d32;
+            border: 1px solid #4caf50;
+        }
+
+        .sync-status.disconnected {
+            background: #ffeaa7;
+            color: #d68910;
+            border: 1px solid #f39c12;
+        }
+
+        .sync-status.error {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #f44336;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .provider-selection {
+            margin-bottom: 30px;
+        }
+
+        .provider-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        .provider-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .provider-card:hover {
+            border-color: #1976d2;
+            box-shadow: 0 4px 12px rgba(25, 118, 210, 0.15);
+        }
+
+        .provider-card.selected {
+            border-color: #1976d2;
+            background: #e3f2fd;
+        }
+
+        .provider-icon {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+        }
+
+        .provider-icon.github { background: #333; }
+        .provider-icon.drive { background: #4285f4; }
+        .provider-icon.server { background: #ff9800; }
+        .provider-icon.webrtc { background: #9c27b0; }
+
+        .provider-card h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 1.1rem;
+        }
+
+        .provider-card p {
+            margin: 0;
+            color: #666;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .provider-pros {
+            margin-top: 10px;
+        }
+
+        .provider-pros span {
+            display: inline-block;
+            background: #e8f5e8;
+            color: #2e7d32;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            margin: 2px 4px 2px 0;
+        }
+
+        .sync-config {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .sync-config.active {
+            display: block;
+        }
+
+        .config-field {
+            margin-bottom: 20px;
+        }
+
+        .config-field label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .config-field input,
+        .config-field select,
+        .config-field textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .config-field input:focus,
+        .config-field select:focus,
+        .config-field textarea:focus {
+            outline: none;
+            border-color: #1976d2;
+        }
+
+        .config-help {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 5px;
+            line-height: 1.4;
+        }
+
+        .config-help a {
+            color: #1976d2;
+            text-decoration: none;
+        }
+
+        .config-help a:hover {
+            text-decoration: underline;
+        }
+
+        .sync-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 120px;
+        }
+
+        .btn-primary {
+            background: #1976d2;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1565c0;
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-success {
+            background: #4caf50;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #45a049;
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #d32f2f;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .sync-log {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 2px 0;
+        }
+
+        .log-entry.success { color: #2e7d32; }
+        .log-entry.error { color: #c62828; }
+        .log-entry.warning { color: #f57c00; }
+        .log-entry.info { color: #1976d2; }
+
+        .advanced-settings {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f0f0f0;
+            border-radius: 8px;
+        }
+
+        .advanced-toggle {
+            cursor: pointer;
+            color: #1976d2;
+            font-weight: 500;
+            margin-bottom: 15px;
+        }
+
+        .advanced-content {
+            display: none;
+        }
+
+        .advanced-content.open {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .sync-container {
+                margin: 10px;
+                padding: 15px;
+            }
+            
+            .provider-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .sync-actions {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="sync-container">
+        <div class="sync-header">
+            <h1>📱💻 数据同步设置</h1>
+            <p>让您的计划在所有设备之间保持同步</p>
+        </div>
+
+        <div id="sync-status" class="sync-status disconnected">
+            <div class="status-indicator"></div>
+            <span>同步未启用</span>
+        </div>
+
+        <div class="provider-selection">
+            <h2>选择同步方式</h2>
+            <p>选择最适合您需求的数据同步方式：</p>
+            
+            <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <h4 style="margin: 0 0 10px 0; color: #1976d2;">📱💻 跨设备同步说明</h4>
+                <p style="margin: 0; font-size: 14px; color: #333; line-height: 1.5;">
+                    <strong>重要：</strong>所有设备（电脑、手机、平板）必须使用相同的同步配置才能保持数据同步。
+                    配置完成后，手机端将自动在页面切换、网络恢复时同步最新数据。
+                    <br><br>
+                    <strong>推荐：</strong>GitHub同步免费可靠，Google Drive简单易用，联想个人云私有安全。
+                </p>
+            </div>
+            
+            <div class="provider-grid">
+                <div class="provider-card" data-provider="github">
+                    <div class="provider-icon github">📱</div>
+                    <h3>GitHub 同步</h3>
+                    <p>使用GitHub仓库存储数据，免费且可靠。</p>
+                    <div class="provider-pros">
+                        <span>免费</span>
+                        <span>可靠</span>
+                        <span>版本控制</span>
+                    </div>
+                </div>
+
+                <div class="provider-card" data-provider="drive">
+                    <div class="provider-icon drive">☁️</div>
+                    <h3>Google Drive</h3>
+                    <p>使用Google Drive云存储，简单易用。</p>
+                    <div class="provider-pros">
+                        <span>简单</span>
+                        <span>15GB免费</span>
+                        <span>快速</span>
+                    </div>
+                </div>
+
+                <div class="provider-card" data-provider="server">
+                    <div class="provider-icon server">🖥️</div>
+                    <h3>自建服务器</h3>
+                    <p>使用您自己的服务器，完全控制数据。</p>
+                    <div class="provider-pros">
+                        <span>私有</span>
+                        <span>可控</span>
+                        <span>安全</span>
+                    </div>
+                </div>
+
+                <div class="provider-card" data-provider="webrtc">
+                    <div class="provider-icon webrtc">🔗</div>
+                    <h3>设备直连</h3>
+                    <p>设备间直接同步，无需服务器。</p>
+                    <div class="provider-pros">
+                        <span>实时</span>
+                        <span>无服务器</span>
+                        <span>局域网</span>
+                    </div>
+                </div>
+
+                <div class="provider-card" data-provider="lenovo">
+                    <div class="provider-icon lenovo" style="background: #e60012;">🏠</div>
+                    <h3>联想个人云</h3>
+                    <p>使用您的联想家庭存储作为私有同步服务器。</p>
+                    <div class="provider-pros">
+                        <span>私有安全</span>
+                        <span>高速稳定</span>
+                        <span>无限容量</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GitHub 配置 -->
+        <div id="github-config" class="sync-config">
+            <h3>GitHub 同步配置</h3>
+            <div class="config-field">
+                <label for="github-token">Personal Access Token</label>
+                <input type="password" id="github-token" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+                <div class="config-help">
+                    在 <a href="https://github.com/settings/tokens" target="_blank">GitHub Settings → Developer settings → Personal access tokens</a> 创建，需要 "repo" 权限。
+                </div>
+            </div>
+            <div class="config-field">
+                <label for="github-owner">仓库所有者</label>
+                <input type="text" id="github-owner" placeholder="your-username">
+                <div class="config-help">您的GitHub用户名或组织名</div>
+            </div>
+            <div class="config-field">
+                <label for="github-repo">仓库名称</label>
+                <input type="text" id="github-repo" placeholder="plan-data">
+                <div class="config-help">用于存储数据的仓库名称（建议创建私有仓库）</div>
+            </div>
+            <div class="config-field">
+                <label for="github-branch">分支名称</label>
+                <input type="text" id="github-branch" value="main" placeholder="main">
+                <div class="config-help">用于存储数据的分支，默认为 main</div>
+            </div>
+            
+            <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-top: 15px;">
+                <h4 style="margin: 0 0 10px 0; color: #856404;">⚠️ 常见问题排查</h4>
+                <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #333;">
+                    <li><strong>Token权限</strong>：需要选择"repo"权限（私有仓库）或"public_repo"权限（公开仓库）</li>
+                    <li><strong>仓库存在</strong>：请确保仓库已创建并且账号有访问权限</li>
+                    <li><strong>网络访问</strong>：确保能正常访问GitHub.com</li>
+                    <li><strong>HTTPS协议</strong>：建议使用HTTPS访问本应用以避免CORS问题</li>
+                </ul>
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button type="button" class="btn btn-secondary" onclick="checkGitHubRepo()">
+                    🔍 检查仓库
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="createGitHubRepo()">
+                    ➕ 创建仓库
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="resetGitHubData()">
+                    🔄 重置数据
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="showGitHubHelp()">
+                    📚 设置教程
+                </button>
+            </div>
+        </div>
+
+        <!-- Google Drive 配置 -->
+        <div id="drive-config" class="sync-config">
+            <h3>Google Drive 同步配置</h3>
+            <div class="config-field">
+                <label for="drive-access-token">访问令牌</label>
+                <input type="password" id="drive-access-token" placeholder="将通过OAuth获取">
+                <div class="config-help">点击"获取授权"按钮通过Google OAuth获取访问令牌</div>
+            </div>
+            <div class="config-field">
+                <label for="drive-folder-id">文件夹ID（可选）</label>
+                <input type="text" id="drive-folder-id" placeholder="留空将保存到根目录">
+                <div class="config-help">指定Google Drive中的文件夹ID，留空将保存到根目录</div>
+            </div>
+            <button type="button" class="btn btn-secondary" onclick="authenticateGoogleDrive()">
+                获取Google Drive授权
+            </button>
+        </div>
+
+        <!-- 自建服务器配置 -->
+        <div id="server-config" class="sync-config">
+            <h3>自建服务器配置</h3>
+            <div class="config-field">
+                <label for="server-url">服务器地址</label>
+                <input type="url" id="server-url" placeholder="https://your-server.com/api/">
+                <div class="config-help">您的同步服务器API地址</div>
+            </div>
+            <div class="config-field">
+                <label for="server-api-key">API密钥（可选）</label>
+                <input type="password" id="server-api-key" placeholder="your-api-key">
+                <div class="config-help">服务器要求的API密钥</div>
+            </div>
+            <div class="config-field">
+                <label for="server-user-id">用户ID（可选）</label>
+                <input type="text" id="server-user-id" placeholder="your-user-id">
+                <div class="config-help">多用户环境下的用户标识</div>
+            </div>
+        </div>
+
+        <!-- WebRTC 配置 -->
+        <div id="webrtc-config" class="sync-config">
+            <h3>设备直连配置</h3>
+            <div class="config-field">
+                <label for="webrtc-room-id">房间ID</label>
+                <input type="text" id="webrtc-room-id" placeholder="my-sync-room">
+                <div class="config-help">用于连接设备的房间标识，在所有设备上使用相同的房间ID</div>
+            </div>
+            <div class="config-field">
+                <label for="webrtc-role">设备角色</label>
+                <select id="webrtc-role">
+                    <option value="initiator">发起者（电脑）</option>
+                    <option value="joiner">加入者（手机）</option>
+                </select>
+                <div class="config-help">选择这台设备的角色，通常电脑作为发起者，手机作为加入者</div>
+            </div>
+            <div class="config-field">
+                <label for="webrtc-signal-url">信令服务器（可选）</label>
+                <input type="url" id="webrtc-signal-url" placeholder="wss://signal-server.com">
+                <div class="config-help">自定义信令服务器地址，留空使用默认服务器</div>
+            </div>
+        </div>
+
+        <!-- 联想个人云配置 -->
+        <div id="lenovo-config" class="sync-config">
+            <h3>联想个人云配置</h3>
+            <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <h4 style="margin: 0 0 10px 0; color: #1976d2;">🏠 使用您的联想家庭存储</h4>
+                <p style="margin: 0; font-size: 14px; color: #333;">
+                    将您的联想个人云设备作为私有同步服务器，享受高速稳定的数据同步体验。
+                    数据完全掌控在您手中，无需担心隐私泄露。
+                </p>
+            </div>
+            
+            <div class="config-field">
+                <label for="lenovo-url">WebDAV地址</label>
+                <input type="url" id="lenovo-url" placeholder="http://192.168.1.100:5005" value="http://192.168.1.100:5005">
+                <div class="config-help">
+                    联想个人云的WebDAV访问地址。通常是设备IP + 端口5005。
+                    <br>📍 查找方法：在联想云管理界面查看设备IP，然后加上":5005"
+                </div>
+            </div>
+            
+            <div class="config-field">
+                <label for="lenovo-username">用户名</label>
+                <input type="text" id="lenovo-username" placeholder="planSync">
+                <div class="config-help">
+                    在联想云上创建的专用用户账号。建议创建一个专门用于同步的用户。
+                    <br>📍 创建方法：联想云管理界面 → 用户管理 → 添加用户
+                </div>
+            </div>
+            
+            <div class="config-field">
+                <label for="lenovo-password">密码</label>
+                <input type="password" id="lenovo-password" placeholder="用户密码">
+                <div class="config-help">对应用户的密码</div>
+            </div>
+            
+            <div class="config-field">
+                <label for="lenovo-timeout">连接超时（秒）</label>
+                <input type="number" id="lenovo-timeout" value="30" min="5" max="120">
+                <div class="config-help">网络连接超时时间，建议保持默认值30秒</div>
+            </div>
+            
+            <div class="config-field">
+                <label>
+                    <input type="checkbox" id="lenovo-backup" checked>
+                    启用自动备份
+                </label>
+                <div class="config-help">上传新数据前自动备份现有数据，提供额外的数据保护</div>
+            </div>
+            
+            <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-top: 15px;">
+                <h4 style="margin: 0 0 10px 0; color: #856404;">⚠️ 设置前的准备工作</h4>
+                <ol style="margin: 0; padding-left: 20px; font-size: 14px; color: #333;">
+                    <li>确保联想个人云设备已开机并连接到网络</li>
+                    <li>在联想云管理界面启用WebDAV服务</li>
+                    <li>创建专用用户账号并设置密码</li>
+                    <li>确认设备IP地址（通常在192.168.1.x网段）</li>
+                    <li>测试网络连通性（ping设备IP地址）</li>
+                </ol>
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button type="button" class="btn btn-secondary" onclick="detectLenovoCloud()">
+                    🔍 自动检测设备
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="testLenovoConnection()">
+                    🧪 测试WebDAV连接
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="openLenovoHelp()">
+                    📚 查看详细教程
+                </button>
+            </div>
+        </div>
+
+        <div class="advanced-settings">
+            <div class="advanced-toggle" onclick="toggleAdvanced()">
+                ⚙️ 高级设置 <span id="advanced-arrow">▼</span>
+            </div>
+            <div class="advanced-content" id="advanced-content">
+                <div class="config-field">
+                    <label for="sync-interval">自动同步间隔（秒）</label>
+                    <input type="number" id="sync-interval" value="30" min="10" max="3600">
+                    <div class="config-help">自动同步的时间间隔，建议30-300秒</div>
+                </div>
+                <div class="config-field">
+                    <label>
+                        <input type="checkbox" id="sync-on-change" checked>
+                        数据变更时立即同步
+                    </label>
+                    <div class="config-help">当本地数据发生变更时自动触发同步</div>
+                </div>
+                <div class="config-field">
+                    <label>
+                        <input type="checkbox" id="conflict-manual" checked>
+                        冲突时手动处理
+                    </label>
+                    <div class="config-help">当发生数据冲突时弹窗让用户选择，否则自动使用最新数据</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sync-actions">
+            <button type="button" class="btn btn-secondary" onclick="testConnection()">
+                测试连接
+            </button>
+            <button type="button" class="btn btn-primary" onclick="enableSync()">
+                启用同步
+            </button>
+            <button type="button" class="btn btn-success" onclick="manualSync()" disabled>
+                立即同步
+            </button>
+            <button type="button" class="btn btn-danger" onclick="disableSync()" disabled>
+                禁用同步
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="forceReinitializeSync()">
+                🔄 重新初始化
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="forceEnableSync()">
+                ⚡ 强制启用
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="showCrossDeviceHelp()">
+                📱💻 跨设备指南
+            </button>
+        </div>
+
+        <div class="sync-log" id="sync-log">
+            <div class="log-entry info">等待配置同步设置...</div>
+        </div>
+    </div>
+
+    <script src="sync-service.js"></script>
+    <script src="sync-providers.js"></script>
+    
+    <!-- 通用自动同步功能 -->
+    <script src="universal-auto-sync.js"></script>
+    <!-- 同步初始化修复脚本 -->
+    <script src="fix-sync-initialization.js"></script>
+    <!-- 跨浏览器数据恢复脚本 -->
+    <script src="cross-browser-sync-recovery.js"></script>
+    <script>
+        let selectedProvider = null;
+        let syncEnabled = false;
+        let isInitialLoad = true;
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initializePage();
+            loadExistingConfig();
+            setupDataChangeDetection();
+            setupNetworkHandlers();
+        });
+
+        function initializePage() {
+            // 绑定提供商选择事件
+            document.querySelectorAll('.provider-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    selectProvider(this.dataset.provider);
+                });
+            });
+
+            // 监听同步事件
+            window.addEventListener('sync-complete', function(event) {
+                addLogEntry('同步完成: ' + event.detail.timestamp, 'success');
+                updateSyncStatus();
+            });
+
+            window.addEventListener('data-updated', function(event) {
+                addLogEntry('数据已更新: ' + event.detail.timestamp, 'info');
+                // 数据更新时使用防抖同步
+                if (syncEnabled && document.getElementById('sync-on-change').checked) {
+                    debounceSync();
+                }
+            });
+
+            // 监听存储变化（其他标签页的修改）
+            window.addEventListener('storage', function(event) {
+                if (syncEnabled && event.key && event.key.startsWith('planData_')) {
+                    addLogEntry('检测到其他设备数据变化', 'info');
+                    if (document.getElementById('sync-on-change').checked) {
+                        debounceSync();
+                    }
+                }
+            });
+        }
+
+        // 设置数据变化检测
+        function setupDataChangeDetection() {
+            // 监听localStorage变化的polyfill
+            const originalSetItem = localStorage.setItem;
+            localStorage.setItem = function(key, value) {
+                const event = new CustomEvent('localStorageChange', {
+                    detail: { key, value, oldValue: localStorage.getItem(key) }
+                });
+                window.dispatchEvent(event);
+                originalSetItem.apply(this, arguments);
+            };
+
+            // 监听本地数据变化
+            window.addEventListener('localStorageChange', function(event) {
+                if (syncEnabled && event.detail.key && event.detail.key.startsWith('planData_')) {
+                    addLogEntry('本地数据已修改: ' + event.detail.key, 'info');
+                    if (document.getElementById('sync-on-change').checked && !syncInProgress) {
+                        debounceSync();
+                    }
+                }
+            });
+        }
+
+        // 设置网络状态处理
+        function setupNetworkHandlers() {
+            let wasOffline = false;
+            
+            window.addEventListener('online', function() {
+                if (wasOffline && syncEnabled && !syncInProgress) {
+                    addLogEntry('网络已恢复，正在同步数据...', 'info');
+                    setTimeout(() => {
+                        if (!syncInProgress) {
+                            manualSync();
+                        }
+                    }, 3000);
+                }
+                wasOffline = false;
+            });
+
+            window.addEventListener('offline', function() {
+                wasOffline = true;
+                addLogEntry('网络已断开，将在恢复后自动同步', 'warning');
+            });
+        }
+
+        // 防抖同步函数和同步锁
+        let syncTimer = null;
+        let syncInProgress = false;
+        let lastSyncAttempt = 0;
+        
+        function debounceSync() {
+            if (syncTimer) clearTimeout(syncTimer);
+            if (syncInProgress) {
+                addLogEntry('同步正在进行中，跳过本次请求', 'info');
+                return;
+            }
+            
+            const now = Date.now();
+            const minInterval = 10000; // 最小同步间隔10秒
+            
+            if (now - lastSyncAttempt < minInterval) {
+                addLogEntry(`同步间隔过短，延迟到${Math.ceil((minInterval - (now - lastSyncAttempt))/1000)}秒后执行`, 'info');
+                syncTimer = setTimeout(() => {
+                    if (syncEnabled && !syncInProgress) {
+                        manualSync();
+                    }
+                }, minInterval - (now - lastSyncAttempt));
+                return;
+            }
+            
+            syncTimer = setTimeout(() => {
+                if (syncEnabled && !syncInProgress) {
+                    manualSync();
+                }
+            }, 5000); // 5秒后同步
+        }
+
+        function loadExistingConfig() {
+            const config = window.syncService.getSyncConfig();
+            if (config && config.enabled) {
+                selectProvider(config.provider);
+                loadProviderSettings(config.provider, config.settings);
+                syncEnabled = true;
+                updateSyncStatus();
+                updateButtons();
+            }
+        }
+
+        function selectProvider(provider) {
+            selectedProvider = provider;
+            
+            // 更新UI
+            document.querySelectorAll('.provider-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            document.querySelector(`[data-provider="${provider}"]`).classList.add('selected');
+
+            // 显示对应的配置
+            document.querySelectorAll('.sync-config').forEach(config => {
+                config.classList.remove('active');
+            });
+            document.getElementById(`${provider}-config`).classList.add('active');
+
+            addLogEntry(`已选择 ${getProviderName(provider)} 同步方式`, 'info');
+        }
+
+        function loadProviderSettings(provider, settings) {
+            switch(provider) {
+                case 'github':
+                    document.getElementById('github-token').value = settings.token || '';
+                    document.getElementById('github-owner').value = settings.owner || '';
+                    document.getElementById('github-repo').value = settings.repo || '';
+                    document.getElementById('github-branch').value = settings.branch || 'main';
+                    break;
+                case 'drive':
+                    document.getElementById('drive-access-token').value = settings.accessToken || '';
+                    document.getElementById('drive-folder-id').value = settings.folderId || '';
+                    break;
+                case 'server':
+                    document.getElementById('server-url').value = settings.serverUrl || '';
+                    document.getElementById('server-api-key').value = settings.apiKey || '';
+                    document.getElementById('server-user-id').value = settings.userId || '';
+                    break;
+                case 'webrtc':
+                    document.getElementById('webrtc-room-id').value = settings.roomId || '';
+                    document.getElementById('webrtc-role').value = settings.isInitiator ? 'initiator' : 'joiner';
+                    document.getElementById('webrtc-signal-url').value = settings.signalUrl || '';
+                    break;
+                case 'lenovo':
+                    document.getElementById('lenovo-url').value = settings.url || 'http://192.168.1.100:5005';
+                    document.getElementById('lenovo-username').value = settings.username || '';
+                    document.getElementById('lenovo-password').value = settings.password || '';
+                    document.getElementById('lenovo-timeout').value = settings.timeout || 30;
+                    document.getElementById('lenovo-backup').checked = settings.enableBackup !== false;
+                    break;
+            }
+        }
+
+        function getProviderName(provider) {
+            const names = {
+                'github': 'GitHub',
+                'drive': 'Google Drive',
+                'server': '自建服务器',
+                'webrtc': '设备直连',
+                'lenovo': '联想个人云'
+            };
+            return names[provider] || provider;
+        }
+
+        function getProviderSettings(provider) {
+            switch(provider) {
+                case 'github':
+                    return {
+                        token: document.getElementById('github-token').value.trim(),
+                        owner: document.getElementById('github-owner').value.trim(),
+                        repo: document.getElementById('github-repo').value.trim(),
+                        branch: document.getElementById('github-branch').value.trim() || 'main'
+                    };
+                case 'drive':
+                    return {
+                        accessToken: document.getElementById('drive-access-token').value.trim(),
+                        folderId: document.getElementById('drive-folder-id').value.trim()
+                    };
+                case 'server':
+                    return {
+                        serverUrl: document.getElementById('server-url').value.trim(),
+                        apiKey: document.getElementById('server-api-key').value.trim(),
+                        userId: document.getElementById('server-user-id').value.trim()
+                    };
+                case 'webrtc':
+                    return {
+                        roomId: document.getElementById('webrtc-room-id').value.trim(),
+                        isInitiator: document.getElementById('webrtc-role').value === 'initiator',
+                        signalUrl: document.getElementById('webrtc-signal-url').value.trim()
+                    };
+                case 'lenovo':
+                    return {
+                        url: document.getElementById('lenovo-url').value.trim(),
+                        username: document.getElementById('lenovo-username').value.trim(),
+                        password: document.getElementById('lenovo-password').value.trim(),
+                        timeout: parseInt(document.getElementById('lenovo-timeout').value) * 1000,
+                        enableBackup: document.getElementById('lenovo-backup').checked
+                    };
+                default:
+                    return {};
+            }
+        }
+
+        async function testConnection() {
+            if (!selectedProvider) {
+                alert('请先选择同步方式');
+                return;
+            }
+
+            const settings = getProviderSettings(selectedProvider);
+            addLogEntry(`正在测试 ${getProviderName(selectedProvider)} 连接...`, 'info');
+
+            try {
+                let provider;
+                switch(selectedProvider) {
+                    case 'github':
+                        provider = new GitHubSyncProvider(settings);
+                        break;
+                    case 'drive':
+                        provider = new GoogleDriveSyncProvider(settings);
+                        break;
+                    case 'server':
+                        provider = new ServerSyncProvider(settings);
+                        break;
+                    case 'webrtc':
+                        provider = new WebRTCSyncProvider(settings);
+                        break;
+                    case 'lenovo':
+                        provider = new LenovoCloudSyncProvider(settings);
+                        break;
+                }
+
+                const success = await provider.testConnection();
+                if (success) {
+                    addLogEntry('✅ 连接测试成功！', 'success');
+                    
+                    // 额外测试数据操作
+                    if (selectedProvider === 'github') {
+                        addLogEntry('正在测试数据读写权限...', 'info');
+                        await testGitHubDataOperations(provider);
+                    }
+                } else {
+                    addLogEntry('❌ 连接测试失败', 'error');
+                }
+            } catch (error) {
+                addLogEntry(`❌ 连接测试失败: ${error.message}`, 'error');
+                diagnoseConnectionError(error, selectedProvider);
+            }
+        }
+
+        // GitHub数据操作测试
+        async function testGitHubDataOperations(provider) {
+            try {
+                // 测试读取操作
+                addLogEntry('测试数据下载...', 'info');
+                const data = await provider.downloadData();
+                addLogEntry('✅ 数据下载测试成功', 'success');
+                
+                // 测试写入操作
+                addLogEntry('测试数据上传...', 'info');
+                const testData = {
+                    test: true,
+                    timestamp: new Date().toISOString(),
+                    message: '连接测试数据'
+                };
+                await provider.uploadData(testData);
+                addLogEntry('✅ 数据上传测试成功', 'success');
+                addLogEntry('🎉 GitHub同步功能完全正常！', 'success');
+                
+            } catch (error) {
+                addLogEntry(`❌ 数据操作测试失败: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+
+        // 连接错误诊断
+        function diagnoseConnectionError(error, provider) {
+            const errorMsg = error.message.toLowerCase();
+            
+            if (provider === 'github') {
+                if (errorMsg.includes('401') || errorMsg.includes('unauthorized')) {
+                    addLogEntry('🔍 诊断：GitHub Token无效或已过期', 'warning');
+                    addLogEntry('💡 解决方案：请检查Personal Access Token是否正确', 'info');
+                } else if (errorMsg.includes('403') || errorMsg.includes('forbidden')) {
+                    addLogEntry('🔍 诊断：GitHub Token权限不足', 'warning');
+                    addLogEntry('💡 解决方案：Token需要"repo"权限（如果是私有仓库）', 'info');
+                } else if (errorMsg.includes('404') || errorMsg.includes('not found')) {
+                    addLogEntry('🔍 诊断：仓库不存在或无权访问', 'warning');
+                    addLogEntry('💡 解决方案：检查仓库所有者和仓库名称是否正确', 'info');
+                } else if (errorMsg.includes('cors') || errorMsg.includes('blocked')) {
+                    addLogEntry('🔍 诊断：浏览器CORS限制', 'warning');
+                    addLogEntry('💡 解决方案：请使用HTTPS访问，或尝试不同浏览器', 'info');
+                } else if (errorMsg.includes('network') || errorMsg.includes('fetch')) {
+                    addLogEntry('🔍 诊断：网络连接问题', 'warning');
+                    addLogEntry('💡 解决方案：检查网络连接和GitHub服务状态', 'info');
+                }
+            }
+        }
+
+        async function enableSync() {
+            if (!selectedProvider) {
+                alert('请先选择同步方式');
+                return;
+            }
+
+            const settings = getProviderSettings(selectedProvider);
+            addLogEntry(`正在启用 ${getProviderName(selectedProvider)} 同步...`, 'info');
+
+            try {
+                // 验证必填字段
+                if (!validateProviderSettings(selectedProvider, settings)) {
+                    return;
+                }
+
+                // 应用高级设置
+                const interval = parseInt(document.getElementById('sync-interval').value) * 1000;
+                window.syncService.syncInterval = interval;
+
+                await window.syncService.enableSync(selectedProvider, settings);
+                syncEnabled = true;
+                updateSyncStatus();
+                updateButtons();
+                addLogEntry('同步已成功启用！', 'success');
+                
+                // 启动定期状态检查
+                startStatusMonitor();
+                
+                // 立即执行一次同步测试
+                setTimeout(() => {
+                    addLogEntry('正在执行初始同步...', 'info');
+                    manualSync().then(() => {
+                        addLogEntry('初始同步完成，所有设备现在可以保持数据同步', 'success');
+                    }).catch(err => {
+                        addLogEntry(`初始同步失败: ${err.message}`, 'warning');
+                    });
+                }, 2000);
+                
+            } catch (error) {
+                addLogEntry(`启用同步失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 验证提供商设置
+        function validateProviderSettings(provider, settings) {
+            switch(provider) {
+                case 'github':
+                    if (!settings.token) {
+                        addLogEntry('❌ 请输入GitHub Personal Access Token', 'error');
+                        return false;
+                    }
+                    if (!settings.owner) {
+                        addLogEntry('❌ 请输入仓库所有者', 'error');
+                        return false;
+                    }
+                    if (!settings.repo) {
+                        addLogEntry('❌ 请输入仓库名称', 'error');
+                        return false;
+                    }
+                    break;
+                case 'drive':
+                    if (!settings.accessToken) {
+                        addLogEntry('❌ 请获取Google Drive访问令牌', 'error');
+                        return false;
+                    }
+                    break;
+                case 'server':
+                    if (!settings.serverUrl) {
+                        addLogEntry('❌ 请输入服务器地址', 'error');
+                        return false;
+                    }
+                    break;
+                case 'lenovo':
+                    if (!settings.url || !settings.username || !settings.password) {
+                        addLogEntry('❌ 请填写完整的联想云连接信息', 'error');
+                        return false;
+                    }
+                    break;
+            }
+            return true;
+        }
+
+        // 状态监控器
+        let statusMonitor = null;
+        function startStatusMonitor() {
+            if (statusMonitor) clearInterval(statusMonitor);
+            statusMonitor = setInterval(() => {
+                if (syncEnabled) {
+                    updateSyncStatus();
+                    checkSyncHealth();
+                }
+            }, 10000); // 每10秒检查一次
+        }
+
+        function stopStatusMonitor() {
+            if (statusMonitor) {
+                clearInterval(statusMonitor);
+                statusMonitor = null;
+            }
+        }
+
+        // 同步健康检查
+        function checkSyncHealth() {
+            const status = window.syncService.getSyncStatus();
+            const lastSync = status.lastSync ? new Date(status.lastSync) : null;
+            const now = new Date();
+            
+            if (lastSync && (now - lastSync) > 300000) { // 5分钟没有同步
+                addLogEntry('⚠️ 同步间隔较长，可能存在网络问题', 'warning');
+            }
+        }
+
+        async function disableSync() {
+            if (confirm('确定要禁用数据同步吗？')) {
+                window.syncService.disableSync();
+                syncEnabled = false;
+                stopStatusMonitor();
+                updateSyncStatus();
+                updateButtons();
+                addLogEntry('同步已禁用', 'warning');
+            }
+        }
+
+        async function manualSync(retryCount = 0) {
+            if (!syncEnabled) {
+                if (retryCount === 0) { // 只在用户手动触发时提示
+                    alert('请先启用同步');
+                }
+                return;
+            }
+
+            // 检查同步锁
+            if (syncInProgress) {
+                addLogEntry('同步正在进行中，请稍候...', 'warning');
+                return;
+            }
+
+            const maxRetries = 3;
+            const retryDelay = 3000; // 3秒
+            const now = Date.now();
+
+            // 检查最小同步间隔
+            if (retryCount === 0 && now - lastSyncAttempt < 10000) {
+                addLogEntry('同步间隔过短，请稍后再试', 'warning');
+                return;
+            }
+
+            try {
+                syncInProgress = true;
+                lastSyncAttempt = now;
+                
+                addLogEntry('开始手动同步...', 'info');
+                await window.syncService.manualSync();
+                addLogEntry('手动同步完成！', 'success');
+                
+                // 重置重试计数
+                if (retryCount > 0) {
+                    addLogEntry(`重试成功，数据已同步`, 'success');
+                }
+                
+            } catch (error) {
+                console.error('同步失败:', error);
+                
+                if (retryCount < maxRetries) {
+                    addLogEntry(`同步失败，${retryDelay/1000}秒后重试... (${retryCount + 1}/${maxRetries})`, 'warning');
+                    setTimeout(() => {
+                        syncInProgress = false; // 释放锁
+                        manualSync(retryCount + 1);
+                    }, retryDelay);
+                    return; // 不释放锁，等待重试
+                } else {
+                    addLogEntry(`同步失败，已重试${maxRetries}次: ${error.message}`, 'error');
+                    
+                    // 检查是否是网络问题
+                    if (!navigator.onLine) {
+                        addLogEntry('检测到网络离线，将在网络恢复后自动重试', 'warning');
+                    } else {
+                        // 提供更多帮助信息
+                        suggestSyncSolution(error);
+                        diagnoseConnectionError(error, selectedProvider);
+                    }
+                }
+            } finally {
+                if (retryCount >= maxRetries || retryCount === 0) {
+                    syncInProgress = false; // 释放同步锁
+                }
+            }
+        }
+
+        // 根据错误类型提供解决方案建议
+        function suggestSyncSolution(error) {
+            const errorMsg = error.message.toLowerCase();
+            
+            if (errorMsg.includes('401') || errorMsg.includes('unauthorized')) {
+                addLogEntry('💡 建议：检查访问令牌或密码是否正确', 'info');
+            } else if (errorMsg.includes('403') || errorMsg.includes('forbidden')) {
+                addLogEntry('💡 建议：检查仓库权限或API密钥权限', 'info');
+            } else if (errorMsg.includes('404') || errorMsg.includes('not found')) {
+                addLogEntry('💡 建议：检查仓库名称或文件路径是否正确', 'info');
+            } else if (errorMsg.includes('timeout') || errorMsg.includes('network')) {
+                addLogEntry('💡 建议：检查网络连接或稍后重试', 'info');
+            } else if (errorMsg.includes('quota') || errorMsg.includes('limit')) {
+                addLogEntry('💡 建议：API配额已用完，请稍后重试', 'info');
+            } else {
+                addLogEntry('💡 建议：检查同步设置或重新配置同步服务', 'info');
+            }
+        }
+
+        function updateSyncStatus() {
+            const statusElement = document.getElementById('sync-status');
+            const status = window.syncService.getSyncStatus();
+
+            statusElement.className = 'sync-status';
+            
+            if (status.enabled && status.online) {
+                statusElement.classList.add('connected');
+                statusElement.innerHTML = `
+                    <div class="status-indicator"></div>
+                    <span>已连接 - ${getProviderName(selectedProvider)} | 最后同步: ${status.lastSync ? new Date(status.lastSync).toLocaleString() : '从未'}</span>
+                `;
+            } else if (status.enabled && !status.online) {
+                statusElement.classList.add('error');
+                statusElement.innerHTML = `
+                    <div class="status-indicator"></div>
+                    <span>离线状态 - 将在网络恢复后自动同步</span>
+                `;
+            } else {
+                statusElement.classList.add('disconnected');
+                statusElement.innerHTML = `
+                    <div class="status-indicator"></div>
+                    <span>同步未启用</span>
+                `;
+            }
+        }
+
+        function updateButtons() {
+            const testBtn = document.querySelector('button[onclick="testConnection()"]');
+            const enableBtn = document.querySelector('button[onclick="enableSync()"]');
+            const syncBtn = document.querySelector('button[onclick="manualSync()"]');
+            const disableBtn = document.querySelector('button[onclick="disableSync()"]');
+
+            if (syncEnabled) {
+                enableBtn.disabled = true;
+                syncBtn.disabled = false;
+                disableBtn.disabled = false;
+                enableBtn.textContent = '同步已启用';
+            } else {
+                enableBtn.disabled = false;
+                syncBtn.disabled = true;
+                disableBtn.disabled = true;
+                enableBtn.textContent = '启用同步';
+            }
+        }
+
+        function addLogEntry(message, type = 'info') {
+            const logElement = document.getElementById('sync-log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            
+            logElement.appendChild(entry);
+            logElement.scrollTop = logElement.scrollHeight;
+
+            // 限制日志条目数量
+            while (logElement.children.length > 50) {
+                logElement.removeChild(logElement.firstChild);
+            }
+        }
+
+        // 同步状态重置（防止锁卡死）
+        function resetSyncStatus() {
+            if (syncInProgress) {
+                const lockTime = Date.now() - lastSyncAttempt;
+                if (lockTime > 60000) { // 如果锁定超过1分钟，强制重置
+                    addLogEntry('检测到同步锁异常，正在重置...', 'warning');
+                    syncInProgress = false;
+                    if (syncTimer) {
+                        clearTimeout(syncTimer);
+                        syncTimer = null;
+                    }
+                    addLogEntry('同步状态已重置', 'info');
+                }
+            }
+        }
+
+        // 每30秒检查一次同步状态
+        setInterval(resetSyncStatus, 30000);
+
+        // 强制重新初始化同步服务
+        function forceReinitializeSync() {
+            addLogEntry('🔄 正在强制重新初始化同步服务...', 'info');
+            
+            try {
+                // 重新初始化同步服务
+                if (window.syncService) {
+                    console.log('重新初始化同步配置...');
+                    window.syncService.initSyncConfig();
+                    
+                    // 检查状态
+                    const status = window.syncService.getSyncStatus();
+                    console.log('同步服务状态:', status);
+                    
+                    if (status.enabled) {
+                        addLogEntry('✅ 同步服务重新初始化成功', 'success');
+                        updateSyncStatus();
+                        updateButtons();
+                    } else {
+                        addLogEntry('⚠️ 同步服务未启用，请检查配置', 'warning');
+                    }
+                } else {
+                    addLogEntry('❌ 同步服务未加载', 'error');
+                }
+                
+                // 重新初始化通用自动同步
+                if (window.universalAutoSync) {
+                    console.log('刷新通用自动同步状态...');
+                    window.universalAutoSync.forceRefreshStatus();
+                }
+                
+            } catch (error) {
+                console.error('重新初始化失败:', error);
+                addLogEntry(`❌ 重新初始化失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 强制启用同步功能
+        async function forceEnableSync() {
+            if (!selectedProvider) {
+                alert('请先选择同步方式');
+                return;
+            }
+
+            const settings = getProviderSettings(selectedProvider);
+            addLogEntry('⚡ 正在强制启用同步功能...', 'info');
+
+            try {
+                // 验证必填字段
+                if (!validateProviderSettings(selectedProvider, settings)) {
+                    return;
+                }
+
+                // 强制设置同步状态
+                window.syncService.syncEnabled = true;
+                
+                // 创建同步提供商
+                let provider;
+                switch(selectedProvider) {
+                    case 'github':
+                        provider = new GitHubSyncProvider(settings);
+                        break;
+                    case 'drive':
+                        provider = new GoogleDriveSyncProvider(settings);
+                        break;
+                    case 'server':
+                        provider = new ServerSyncProvider(settings);
+                        break;
+                    case 'webrtc':
+                        provider = new WebRTCSyncProvider(settings);
+                        break;
+                    case 'lenovo':
+                        provider = new LenovoCloudSyncProvider(settings);
+                        break;
+                }
+                
+                window.syncService.syncProvider = provider;
+                
+                // 保存配置
+                window.syncService.setSyncConfig({
+                    enabled: true,
+                    provider: selectedProvider,
+                    settings: settings,
+                    lastSync: new Date().toISOString()
+                });
+                
+                syncEnabled = true;
+                updateSyncStatus();
+                updateButtons();
+                addLogEntry('✅ 同步功能已强制启用！', 'success');
+                
+                // 启动自动同步
+                window.syncService.startAutoSync();
+                
+            } catch (error) {
+                addLogEntry(`❌ 强制启用失败: ${error.message}`, 'error');
+            }
+        }
+
+        // GitHub辅助功能
+        async function checkGitHubRepo() {
+            const token = document.getElementById('github-token').value.trim();
+            const owner = document.getElementById('github-owner').value.trim();
+            const repo = document.getElementById('github-repo').value.trim();
+            
+            if (!token || !owner || !repo) {
+                addLogEntry('❌ 请先填写完整的GitHub配置信息', 'error');
+                return;
+            }
+            
+            try {
+                addLogEntry('🔍 正在检查GitHub仓库...', 'info');
+                
+                const response = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const repoInfo = await response.json();
+                    addLogEntry('✅ 仓库检查通过！', 'success');
+                    addLogEntry(`📋 仓库信息：${repoInfo.private ? '私有' : '公开'}仓库，${repoInfo.default_branch}分支`, 'info');
+                    
+                    // 更新分支名称
+                    document.getElementById('github-branch').value = repoInfo.default_branch;
+                } else if (response.status === 404) {
+                    addLogEntry('❌ 仓库不存在，您可以点击"创建仓库"按钮', 'warning');
+                } else if (response.status === 401) {
+                    addLogEntry('❌ Token无效或已过期', 'error');
+                } else if (response.status === 403) {
+                    addLogEntry('❌ Token权限不足或访问被拒绝', 'error');
+                } else {
+                    addLogEntry(`❌ 检查失败：${response.status} ${response.statusText}`, 'error');
+                }
+            } catch (error) {
+                addLogEntry(`❌ 检查失败：${error.message}`, 'error');
+            }
+        }
+
+        async function createGitHubRepo() {
+            const token = document.getElementById('github-token').value.trim();
+            const owner = document.getElementById('github-owner').value.trim();
+            const repo = document.getElementById('github-repo').value.trim();
+            
+            if (!token || !owner || !repo) {
+                addLogEntry('❌ 请先填写完整的GitHub配置信息', 'error');
+                return;
+            }
+            
+            const isPrivate = confirm('创建私有仓库？\n选择"确定"创建私有仓库（推荐），"取消"创建公开仓库');
+            
+            try {
+                addLogEntry('🚀 正在创建GitHub仓库...', 'info');
+                
+                const response = await fetch('https://api.github.com/user/repos', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: repo,
+                        description: '计划管理器数据同步仓库',
+                        private: isPrivate,
+                        auto_init: true,
+                        gitignore_template: null
+                    })
+                });
+                
+                if (response.status === 201) {
+                    const repoInfo = await response.json();
+                    addLogEntry('✅ 仓库创建成功！', 'success');
+                    addLogEntry(`📋 仓库地址：${repoInfo.html_url}`, 'info');
+                } else if (response.status === 422) {
+                    addLogEntry('❌ 仓库名称已存在，请使用不同的名称', 'error');
+                } else {
+                    const error = await response.json();
+                    addLogEntry(`❌ 创建失败：${error.message}`, 'error');
+                }
+            } catch (error) {
+                addLogEntry(`❌ 创建失败：${error.message}`, 'error');
+            }
+        }
+
+        function showGitHubHelp() {
+            const helpModal = document.createElement('div');
+            helpModal.style.cssText = `
+                position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0,0,0,0.5); z-index: 10000;
+                display: flex; align-items: center; justify-content: center;
+                padding: 20px;
+            `;
+            
+            helpModal.innerHTML = `
+                <div style="background: white; padding: 30px; border-radius: 12px; max-width: 600px; max-height: 80vh; overflow-y: auto;">
+                    <h3 style="margin-top: 0;">📚 GitHub同步设置教程</h3>
+                    
+                    <h4>1. 创建Personal Access Token</h4>
+                    <ol>
+                        <li>访问 <a href="https://github.com/settings/tokens" target="_blank">GitHub Settings → Developer settings → Personal access tokens</a></li>
+                        <li>点击"Generate new token"</li>
+                        <li>设置过期时间（建议90天或No expiration）</li>
+                        <li>选择权限：
+                            <ul>
+                                <li><strong>repo</strong> - 完整仓库权限（私有仓库必需）</li>
+                                <li><strong>public_repo</strong> - 公开仓库权限（仅公开仓库时可选）</li>
+                            </ul>
+                        </li>
+                        <li>点击"Generate token"并复制Token</li>
+                    </ol>
+                    
+                    <h4>2. 仓库设置</h4>
+                    <ul>
+                        <li><strong>仓库所有者</strong>：您的GitHub用户名</li>
+                        <li><strong>仓库名称</strong>：建议使用"plan-data"或类似名称</li>
+                        <li><strong>私有性</strong>：推荐创建私有仓库保护数据隐私</li>
+                    </ul>
+                    
+                    <h4>3. 常见问题</h4>
+                    <ul>
+                        <li><strong>401错误</strong>：Token无效，请重新生成</li>
+                        <li><strong>403错误</strong>：权限不足，检查Token权限设置</li>
+                        <li><strong>404错误</strong>：仓库不存在，请先创建仓库</li>
+                        <li><strong>CORS错误</strong>：请使用HTTPS访问本应用</li>
+                    </ul>
+                    
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button onclick="this.parentElement.parentElement.parentElement.remove()" 
+                                style="padding: 10px 20px; background: #1976d2; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                            我知道了
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(helpModal);
+        }
+
+        async function resetGitHubData() {
+            if (!confirm('确定要重置GitHub数据吗？这将清空远程仓库中的数据文件并重新上传当前本地数据。')) {
+                return;
+            }
+            
+            const token = document.getElementById('github-token').value.trim();
+            const owner = document.getElementById('github-owner').value.trim();
+            const repo = document.getElementById('github-repo').value.trim();
+            
+            if (!token || !owner || !repo) {
+                addLogEntry('❌ 请先填写完整的GitHub配置信息', 'error');
+                return;
+            }
+            
+            try {
+                addLogEntry('🔄 正在重置GitHub数据...', 'info');
+                
+                // 创建GitHub提供商实例
+                const provider = new GitHubSyncProvider({
+                    token: token,
+                    owner: owner,
+                    repo: repo,
+                    branch: document.getElementById('github-branch').value.trim() || 'main'
+                });
+                
+                // 获取当前本地数据
+                const localData = window.syncService.getLocalData();
+                
+                // 强制上传本地数据到GitHub（覆盖远程数据）
+                await provider.uploadData(localData);
+                
+                addLogEntry('✅ GitHub数据重置成功！', 'success');
+                addLogEntry('💾 已将当前本地数据上传到GitHub', 'success');
+                
+            } catch (error) {
+                addLogEntry(`❌ 重置失败：${error.message}`, 'error');
+                console.error('重置GitHub数据失败:', error);
+            }
+        }
+
+        function toggleAdvanced() {
+            const content = document.getElementById('advanced-content');
+            const arrow = document.getElementById('advanced-arrow');
+            
+            if (content.classList.contains('open')) {
+                content.classList.remove('open');
+                arrow.textContent = '▼';
+            } else {
+                content.classList.add('open');
+                arrow.textContent = '▲';
+            }
+        }
+
+        async function authenticateGoogleDrive() {
+            // 简化的Google OAuth流程提示
+            const clientId = prompt('请输入您的Google Drive API客户端ID\n（在Google Cloud Console中创建）:');
+            if (!clientId) return;
+
+            const redirectUri = window.location.origin + window.location.pathname;
+            const scope = 'https://www.googleapis.com/auth/drive.file';
+            
+            const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+                `client_id=${encodeURIComponent(clientId)}&` +
+                `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+                `scope=${encodeURIComponent(scope)}&` +
+                `response_type=token&` +
+                `state=google_drive_auth`;
+
+            // 在新窗口中打开授权页面
+            const authWindow = window.open(authUrl, 'google_auth', 'width=500,height=600');
+            
+            // 监听授权完成
+            const checkAuth = setInterval(() => {
+                try {
+                    if (authWindow.closed) {
+                        clearInterval(checkAuth);
+                        return;
+                    }
+                    
+                    const url = authWindow.location.href;
+                    if (url.includes('access_token=')) {
+                        const token = url.match(/access_token=([^&]+)/)[1];
+                        document.getElementById('drive-access-token').value = token;
+                        authWindow.close();
+                        clearInterval(checkAuth);
+                        addLogEntry('Google Drive授权成功', 'success');
+                    }
+                } catch (e) {
+                    // 跨域限制，忽略错误
+                }
+            }, 1000);
+        }
+
+        // 联想个人云辅助功能
+        async function detectLenovoCloud() {
+            addLogEntry('正在自动检测联想个人云设备...', 'info');
+            
+            const commonIPs = [
+                '192.168.1.100', '192.168.1.101', '192.168.1.102',
+                '192.168.0.100', '192.168.0.101', '192.168.0.102',
+                '192.168.31.100', '192.168.31.101'
+            ];
+            
+            for (const ip of commonIPs) {
+                try {
+                    const testUrl = `http://${ip}:5005`;
+                    addLogEntry(`检测: ${testUrl}`, 'info');
+                    
+                    const response = await fetch(testUrl, {
+                        method: 'OPTIONS',
+                        timeout: 5000
+                    });
+                    
+                    if (response.ok || response.status === 401) {
+                        document.getElementById('lenovo-url').value = testUrl;
+                        addLogEntry(`✅ 发现联想个人云设备: ${testUrl}`, 'success');
+                        return;
+                    }
+                } catch (error) {
+                    // 继续检测下一个IP
+                }
+            }
+            
+            addLogEntry('❌ 未自动检测到联想个人云设备，请手动输入IP地址', 'warning');
+        }
+
+        async function testLenovoConnection() {
+            const url = document.getElementById('lenovo-url').value.trim();
+            const username = document.getElementById('lenovo-username').value.trim();
+            const password = document.getElementById('lenovo-password').value.trim();
+            
+            if (!url || !username || !password) {
+                addLogEntry('❌ 请填写完整的连接信息', 'error');
+                return;
+            }
+            
+            try {
+                addLogEntry('正在测试WebDAV连接...', 'info');
+                
+                const response = await fetch(url, {
+                    method: 'PROPFIND',
+                    headers: {
+                        'Authorization': `Basic ${btoa(username + ':' + password)}`,
+                        'Depth': '1'
+                    }
+                });
+                
+                if (response.status === 401) {
+                    addLogEntry('❌ 用户名或密码错误', 'error');
+                } else if (response.ok) {
+                    addLogEntry('✅ WebDAV连接测试成功！', 'success');
+                } else {
+                    addLogEntry(`❌ 连接失败: ${response.status} ${response.statusText}`, 'error');
+                }
+            } catch (error) {
+                addLogEntry(`❌ 连接错误: ${error.message}`, 'error');
+            }
+        }
+
+        function openLenovoHelp() {
+            const helpContent = `
+# 联想个人云设置教程
+
+## 1. 启用WebDAV服务
+1. 打开联想个人云管理界面（通常是 http://设备IP）
+2. 登录管理员账号
+3. 进入"应用中心"或"服务"
+4. 找到并启用"WebDAV"服务
+5. 设置端口为5005（默认）
+
+## 2. 创建用户账号
+1. 进入"用户管理"
+2. 点击"添加用户"
+3. 设置用户名：planSync
+4. 设置密码并确认
+5. 分配适当的权限
+
+## 3. 获取设备IP
+- 在管理界面的"系统信息"中查看
+- 或在路由器管理界面查看连接设备
+- 通常格式：192.168.1.x 或 192.168.0.x
+
+## 4. 测试连接
+使用本页面的"测试WebDAV连接"功能验证配置是否正确。
+
+如需更多帮助，请查看联想个人云用户手册。
+            `;
+            
+            const helpWindow = window.open('', 'lenovo-help', 'width=600,height=500');
+            helpWindow.document.write(`
+                <html>
+                <head><title>联想个人云设置教程</title></head>
+                <body style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.6;">
+                    <pre style="white-space: pre-wrap;">${helpContent}</pre>
+                    <button onclick="window.close()" style="margin-top: 20px; padding: 10px 20px;">关闭</button>
+                </body>
+                </html>
+            `);
+        }
+
+        // 网络状态监听
+        window.addEventListener('online', function() {
+            updateSyncStatus();
+            addLogEntry('网络已连接', 'success');
+        });
+
+        window.addEventListener('offline', function() {
+            updateSyncStatus();
+            addLogEntry('网络已断开', 'warning');
+        });
+
+        // 页面可见性检测（重要：处理手机切换应用的情况）
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden && syncEnabled && !syncInProgress) {
+                addLogEntry('页面重新可见，检查同步状态...', 'info');
+                setTimeout(() => {
+                    if (navigator.onLine && syncEnabled && !syncInProgress) {
+                        addLogEntry('执行后台同步检查...', 'info');
+                        manualSync();
+                    }
+                }, 2000);
+            }
+        });
+
+        // PWA应用恢复检测
+        window.addEventListener('focus', function() {
+            if (syncEnabled && navigator.onLine && !syncInProgress) {
+                const timeSinceLastSync = Date.now() - lastSyncAttempt;
+                if (timeSinceLastSync > 30000) { // 30秒后才自动同步
+                    addLogEntry('应用获得焦点，正在同步最新数据...', 'info');
+                    setTimeout(() => {
+                        if (!syncInProgress) {
+                            manualSync();
+                        }
+                    }, 1000);
+                }
+            }
+        });
+
+        // 移动端特殊处理
+        if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+            // 移动端自动同步间隔稍长一些以节省电量
+            document.getElementById('sync-interval').value = '60'; // 60秒
+            
+            // 添加移动端特有的事件监听
+            window.addEventListener('pagehide', function() {
+                if (syncEnabled && navigator.onLine && !syncInProgress) {
+                    const timeSinceLastSync = Date.now() - lastSyncAttempt;
+                    if (timeSinceLastSync > 15000) { // 15秒后才执行后台同步
+                        addLogEntry('应用进入后台，执行最后同步...', 'info');
+                        // 快速同步（不重试）
+                        syncInProgress = true;
+                        lastSyncAttempt = Date.now();
+                        window.syncService.manualSync().finally(() => {
+                            syncInProgress = false;
+                        });
+                    }
+                }
+            });
+            
+            addLogEntry('🔔 移动设备检测：已优化同步策略', 'info');
+        }
+
+        // 添加跨设备同步提示功能
+        function showCrossDeviceHelp() {
+            const helpModal = document.createElement('div');
+            helpModal.style.cssText = `
+                position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0,0,0,0.5); z-index: 10000;
+                display: flex; align-items: center; justify-content: center;
+                padding: 20px;
+            `;
+            
+            helpModal.innerHTML = `
+                <div style="background: white; padding: 30px; border-radius: 12px; max-width: 500px; max-height: 80vh; overflow-y: auto;">
+                    <h3 style="margin-top: 0;">📱💻 跨设备同步指南</h3>
+                    
+                    <h4>1. 设置要求</h4>
+                    <ul>
+                        <li>所有设备必须使用相同的同步配置</li>
+                        <li>确保网络连接正常</li>
+                        <li>GitHub仓库或云存储权限正确</li>
+                    </ul>
+                    
+                    <h4>2. 移动端使用技巧</h4>
+                    <ul>
+                        <li>添加到主屏幕以获得最佳体验</li>
+                        <li>保持应用在后台运行</li>
+                        <li>切换回应用时会自动同步</li>
+                        <li>网络恢复时会自动重试</li>
+                    </ul>
+                    
+                    <h4>3. 常见问题解决</h4>
+                    <ul>
+                        <li>数据不同步：检查网络和配置</li>
+                        <li>同步冲突：系统会自动合并</li>
+                        <li>连接超时：会自动重试3次</li>
+                    </ul>
+                    
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button onclick="this.parentElement.parentElement.parentElement.remove()" 
+                                style="padding: 10px 20px; background: #1976d2; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                            我知道了
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(helpModal);
+        }
+    </script>
+</body>
+</html>
+
