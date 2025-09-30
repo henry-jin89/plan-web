@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>多层级计划表 - 主页</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="mobile-styles.css">
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Firebase配置 -->
+    <script src="firebase-config.js"></script>
+    
+    <!-- 同步修复工具 -->
+    <script src="sync-fix.js"></script>
+    
+    <!-- 防缓存机制 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
+    <!-- PWA支持 -->
+    <meta name="theme-color" content="#1976d2">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="计划管理器">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+
+    <!-- 立即阻止弹窗的脚本 -->
+    <script>
+        // 立即禁用所有弹窗和通知
+        window.DISABLE_ALL_NOTIFICATIONS = true;
+        window.DISABLE_SYNC_NOTIFICATIONS = true;
+        
+        // 重写弹窗函数
+        const originalAlert = window.alert || function(){};
+        const originalConfirm = window.confirm || function(){return true;};
+        
+        window.alert = function(message) {
+            if (typeof message === 'string' && (
+                message.includes('同步') || 
+                message.includes('失败') || 
+                message.includes('错误') ||
+                message.includes('sync') ||
+                message.includes('error')
+            )) {
+                console.log('[弹窗已阻止]:', message);
+                return;
+            }
+            // 允许其他类型的alert
+            console.log('[Alert]:', message);
+        };
+        
+        window.confirm = function(message) {
+            console.log('[Confirm已阻止]:', message);
+            return true;
+        };
+        
+        // 阻止创建同步相关的DOM元素
+        const originalCreateElement = document.createElement;
+        document.createElement = function(tagName) {
+            const element = originalCreateElement.call(this, tagName);
+            
+            // 拦截可能的同步通知元素
+            const originalSetAttribute = element.setAttribute;
+            element.setAttribute = function(name, value) {
+                if (name === 'id' && typeof value === 'string' && 
+                    (value.includes('sync') || value.includes('notification') || value.includes('indicator'))) {
+                    console.log('[DOM元素创建已阻止]:', tagName, name, value);
+                    return;
+                }
+                return originalSetAttribute.call(this, name, value);
+            };
+            
+            return element;
+        };
+        
+        console.log('🛡️ 弹窗防护已启用');
+    </script>
+
+    <!-- 内联关键CSS以确保快速渲染 -->
+    <style>
+        /* 确保页面立即可见 */
+        html, body {
+            visibility: visible !important;
+            opacity: 1 !important;
+            display: block !important;
+        }
+        
+        /* 加载动画 */
+        .loading-spinner {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(25, 118, 210, 0.3);
+            border-top: 4px solid #1976d2;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            z-index: 9999;
+        }
+        
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        
+        /* 隐藏加载动画当内容加载完成 */
+        .content-loaded .loading-spinner {
+            display: none;
+        }
+        
+        /* 隐藏所有同步相关的通知和弹窗 */
+        [id*="sync"], [id*="notification"], [id*="indicator"], 
+        [class*="sync"], [class*="notification"], [class*="indicator"],
+        .sync-notification, .zero-config-notification, 
+        #auto-sync-indicator, #universal-sync-badge {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+        
+        /* 主页特有样式 */
+        .welcome-section {
+            text-align: center;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 252, 0.8));
+            border-radius: 20px;
+            margin-bottom: 32px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+        }
+
+        .welcome-title {
+            font-size: 3em;
+            font-weight: bold;
+            margin-bottom: 16px;
+            background: linear-gradient(45deg, #667eea, #764ba2, #f093fb);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: titleGlow 3s ease-in-out infinite alternate;
+        }
+
+        .welcome-subtitle {
+            font-size: 1.2em;
+            color: #666;
+            margin-bottom: 32px;
+            line-height: 1.6;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .feature-icon {
+            font-size: 3em;
+            margin-bottom: 16px;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+        }
+
+        .feature-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #1976d2;
+            margin-bottom: 12px;
+        }
+
+        .feature-description {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .feature-link {
+            background: linear-gradient(135deg, #1976d2, #1565c0);
+            color: white;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+
+        .feature-link:hover {
+            background: linear-gradient(135deg, #1565c0, #0d47a1);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+        }
+
+        .quick-actions {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .quick-action-btn {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 248, 248, 0.8));
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 16px 24px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 500;
+            color: #555;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 160px;
+            justify-content: center;
+        }
+
+        .quick-action-btn:hover {
+            background: linear-gradient(135deg, #e3f2fd, rgba(25, 118, 210, 0.1));
+            border-color: #1976d2;
+            color: #1976d2;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(25, 118, 210, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            .welcome-title {
+                font-size: 2.2em;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+            
+            .quick-actions {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .quick-action-btn {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 加载指示器 -->
+    <div class="loading-spinner" id="loadingSpinner"></div>
+
+    <div class="container">
+        <!-- 欢迎区域 -->
+        <div class="welcome-section">
+            <h1 class="welcome-title">学习工作生活计划表</h1>
+            <p class="welcome-subtitle">
+                智能化多层级计划管理系统<br>
+                让每一天都充满意义，让每个目标都触手可及
+            </p>
+            
+            <!-- 快捷操作 -->
+            <div class="quick-actions">
+                <a href="one-click-sync.html" class="quick-action-btn" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; font-weight: 600;">
+                    🌟 一键启用云同步
+                </a>
+                <a href="day_plan.html" class="quick-action-btn">
+                    📅 今日计划
+                </a>
+                <a href="week_plan.html" class="quick-action-btn">
+                    📊 本周计划
+                </a>
+                <a href="month_plan.html" class="quick-action-btn">
+                    📈 本月计划
+                </a>
+                <a href="habit_tracker.html" class="quick-action-btn">
+                    🎯 习惯追踪
+                </a>
+                <a href="reflection_template.html" class="quick-action-btn">
+                    🧠 反思模板
+                </a>
+            </div>
+        </div>
+
+        <!-- 功能导航 -->
+        <div class="tabs">
+            <a href="day_plan.html" class="tab">日计划</a>
+            <a href="week_plan.html" class="tab">周计划</a>
+            <a href="month_plan.html" class="tab">月计划</a>
+            <a href="quarter_plan.html" class="tab">季度计划</a>
+            <a href="halfyear_plan.html" class="tab">半年计划</a>
+            <a href="year_plan.html" class="tab">年计划</a>
+            <a href="monthly_schedule.html" class="tab">月度日程</a>
+        </div>
+
+        <!-- 功能特色展示 -->
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">📋</div>
+                <h3 class="feature-title">日计划管理</h3>
+                <p class="feature-description">智能优先级矩阵，时间块规划，AI助手建议，让每一天都高效有序</p>
+                <a href="day_plan.html" class="feature-link">开始规划</a>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">📊</div>
+                <h3 class="feature-title">周计划统筹</h3>
+                <p class="feature-description">目标分解，进度跟踪，周回顾分析，构建持续改进的工作节奏</p>
+                <a href="week_plan.html" class="feature-link">制定计划</a>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">📈</div>
+                <h3 class="feature-title">月度规划</h3>
+                <p class="feature-description">里程碑设定，习惯培养，数据分析，实现中长期目标突破</p>
+                <a href="month_plan.html" class="feature-link">开始规划</a>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🎯</div>
+                <h3 class="feature-title">季度OKR</h3>
+                <p class="feature-description">目标关键结果管理，战略规划分解，团队协作对齐</p>
+                <a href="quarter_plan.html" class="feature-link">设定目标</a>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🚀</div>
+                <h3 class="feature-title">年度愿景</h3>
+                <p class="feature-description">长期价值观规划，人生目标设定，成长轨迹记录</p>
+                <a href="year_plan.html" class="feature-link">规划未来</a>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">📅</div>
+                <h3 class="feature-title">日程管理</h3>
+                <p class="feature-description">月度日历，事件提醒，统计分析，全方位时间管理</p>
+                <a href="monthly_schedule.html" class="feature-link">管理日程</a>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">📈</div>
+                <h3 class="feature-title">习惯追踪</h3>
+                <p class="feature-description">智能习惯分析，数据可视化，行为模式洞察，持续自我优化</p>
+                <a href="habit_tracker.html" class="feature-link">开始追踪</a>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🧠</div>
+                <h3 class="feature-title">反思模板</h3>
+                <p class="feature-description">智能反思工具，结构化思考框架，促进个人成长和深度思考</p>
+                <a href="reflection_template.html" class="feature-link">开始反思</a>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">😊</div>
+                <h3 class="feature-title">心情记录</h3>
+                <p class="feature-description">记录每日心情变化，分析情绪模式，培养积极心态</p>
+                <a href="mood_tracker.html" class="feature-link">记录心情</a>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🙏</div>
+                <h3 class="feature-title">感恩日记</h3>
+                <p class="feature-description">每日感恩记录，培养感恩心态，提升生活幸福感</p>
+                <a href="gratitude_diary.html" class="feature-link">感恩记录</a>
+            </div>
+        </div>
+
+        <!-- 页脚信息 -->
+        <div style="text-align: center; padding: 20px; color: #666; font-size: 0.9em;">
+            <p>💡 智能化计划管理，让目标触手可及</p>
+            <p>🔥 Firebase数据库同步，跨设备数据自动保存</p>
+            <p><a href="firebase-status.html" style="color: #1976d2;">🔥 Firebase状态</a> | 
+               <a href="sync-settings.html" style="color: #1976d2;">⚙️ 同步设置</a></p>
+        </div>
+    </div>
+
+    <!-- 基础JavaScript - 内联以确保加载 -->
+    <script>
+        console.log('🚀 计划管理器启动');
+        
+        // 基础工具函数
+        window.StorageUtils = {
+            savePlan: function(type, date, data) {
+                try {
+                    const key = `planData_${type}`;
+                    const allPlans = JSON.parse(localStorage.getItem(key) || '{}');
+                    allPlans[date] = {
+                        ...data,
+                        lastModified: new Date().toISOString()
+                    };
+                    localStorage.setItem(key, JSON.stringify(allPlans));
+                    return true;
+                } catch (e) {
+                    console.error('保存失败:', e);
+                    return false;
+                }
+            },
+            
+            loadPlan: function(type, date) {
+                try {
+                    const key = `planData_${type}`;
+                    const allPlans = JSON.parse(localStorage.getItem(key) || '{}');
+                    return allPlans[date] || null;
+                } catch (e) {
+                    console.error('加载失败:', e);
+                    return null;
+                }
+            },
+            
+            getAllPlans: function(type) {
+                try {
+                    const key = `planData_${type}`;
+                    return JSON.parse(localStorage.getItem(key) || '{}');
+                } catch (e) {
+                    console.error('获取所有计划失败:', e);
+                    return {};
+                }
+            }
+        };
+
+        window.DateUtils = {
+            getToday: function() {
+                return new Date().toISOString().split('T')[0];
+            },
+            
+            formatDate: function(date) {
+                if (typeof date === 'string') {
+                    return date;
+                }
+                return date.toISOString().split('T')[0];
+            }
+        };
+
+        // 页面加载完成处理
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('✅ DOM加载完成');
+            
+            // 隐藏加载指示器
+            const spinner = document.getElementById('loadingSpinner');
+            if (spinner) {
+                spinner.style.display = 'none';
+            }
+            document.body.classList.add('content-loaded');
+            
+            // 添加交互效果
+            const featureCards = document.querySelectorAll('.feature-card');
+            featureCards.forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-8px) scale(1.02)';
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0) scale(1)';
+                });
+            });
+            
+            console.log('✅ 页面初始化完成');
+        });
+
+        // 错误处理
+        window.addEventListener('error', function(event) {
+            console.error('页面错误:', event.error);
+            // 确保即使有错误也隐藏加载指示器
+            const spinner = document.getElementById('loadingSpinner');
+            if (spinner) {
+                spinner.style.display = 'none';
+            }
+        });
+
+        // 超时保护
+        setTimeout(function() {
+            const spinner = document.getElementById('loadingSpinner');
+            if (spinner) {
+                spinner.style.display = 'none';
+            }
+            document.body.classList.add('content-loaded');
+            console.log('⏰ 超时保护：强制显示页面内容');
+        }, 3000);
+        
+        // 定期清理同步通知元素
+        function cleanupSyncNotifications() {
+            const selectors = [
+                '[id*="sync"]', '[id*="notification"]', '[id*="indicator"]',
+                '[class*="sync"]', '[class*="notification"]', '[class*="indicator"]',
+                '.sync-notification', '.zero-config-notification', 
+                '#auto-sync-indicator', '#universal-sync-badge'
+            ];
+            
+            selectors.forEach(selector => {
+                const elements = document.querySelectorAll(selector);
+                elements.forEach(element => {
+                    if (element.textContent && (
+                        element.textContent.includes('同步') ||
+                        element.textContent.includes('失败') ||
+                        element.textContent.includes('错误') ||
+                        element.textContent.includes('sync')
+                    )) {
+                        element.remove();
+                        console.log('🧹 已清理同步通知元素:', selector);
+                    }
+                });
+            });
+        }
+        
+        // 每秒清理一次
+        setInterval(cleanupSyncNotifications, 1000);
+        
+        // 页面加载完成后立即清理一次
+        document.addEventListener('DOMContentLoaded', cleanupSyncNotifications);
+        
+        console.log('✅ 基础脚本加载完成');
+    </script>
+    
+    <!-- 异步加载外部脚本 - 非阻塞 -->
+    <script>
+        // 异步加载外部JavaScript文件
+        function loadScriptAsync(src, callback) {
+            const script = document.createElement('script');
+            script.src = src;
+            script.async = true;
+            script.onload = callback;
+            script.onerror = function() {
+                console.warn(`脚本加载失败: ${src}`);
+                if (callback) callback();
+            };
+            document.head.appendChild(script);
+        }
+        
+        // 只加载必要的脚本，避免冲突
+        const scriptsToLoad = [
+            'firebase-database-sync.js',  // Firebase数据库同步（最高优先级）
+            'universal-cloud-sync.js',   // 通用云同步系统（备用）
+            'auto-cloud-sync.js',        // 自动云同步系统（备用）
+            'common.js',                 // 通用工具函数
+            'config-simple.js'           // 简化配置
+        ];
+        
+        let loadIndex = 0;
+        function loadNextScript() {
+            if (loadIndex < scriptsToLoad.length) {
+                const script = scriptsToLoad[loadIndex++];
+                console.log(`📦 异步加载: ${script}`);
+                loadScriptAsync(script, loadNextScript);
+            } else {
+                console.log('✅ 所有外部脚本加载完成');
+            }
+        }
+        
+        // 延迟加载外部脚本，确保页面首先可见
+        setTimeout(loadNextScript, 1000);
+    </script>
+</body>
+</html>

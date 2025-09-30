@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <script src="config.js"></script>
+    
+    <!-- Firebase配置 -->
+    <script src="firebase-config.js"></script>
+    
+    <!-- 同步修复工具 -->
+    <script src="sync-fix.js"></script>
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>😊 心情记录 - 情感管理系统</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .mood-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .mood-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid #ff9800;
+        }
+
+        .mood-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 16px;
+            margin: 20px 0;
+        }
+
+        .mood-item {
+            background: linear-gradient(135deg, #fff, #f8f9fa);
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .mood-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .mood-item.selected {
+            border-color: #ff9800;
+            background: linear-gradient(135deg, #fff3e0, #ffcc02);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255,152,0,0.3);
+        }
+
+        .mood-emoji {
+            font-size: 2.5em;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .mood-label {
+            font-size: 0.9em;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .mood-value {
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .mood-history {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .mood-chart {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #e0e0e0;
+        }
+
+        .mood-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .stat-item {
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: 700;
+            color: #ff9800;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .mood-note {
+            width: 100%;
+            min-height: 100px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: vertical;
+            margin-top: 12px;
+        }
+
+        .mood-note:focus {
+            outline: none;
+            border-color: #ff9800;
+            box-shadow: 0 0 0 3px rgba(255,152,0,0.1);
+        }
+
+        .quick-moods {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 12px 0;
+        }
+
+        .quick-mood-btn {
+            background: #fff3e0;
+            color: #ef6c00;
+            border: 1px solid #ffcc02;
+            border-radius: 20px;
+            padding: 6px 12px;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .quick-mood-btn:hover {
+            background: #ff9800;
+            color: white;
+        }
+
+        .insights-panel {
+            background: linear-gradient(135deg, #e8f5e9, #f1f8e9);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+            border-left: 4px solid #4caf50;
+        }
+
+        .mood-timeline {
+            margin-top: 20px;
+        }
+
+        .timeline-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .timeline-emoji {
+            font-size: 1.5em;
+        }
+
+        .timeline-content {
+            flex: 1;
+        }
+
+        .timeline-time {
+            font-size: 0.8em;
+            color: #666;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- 页面头部 -->
+        <div class="page-header">
+            <a href="day_plan.html" class="back-to-home">← 返回日计划</a>
+            <h1 class="page-title">😊 心情记录</h1>
+            <div style="display: flex; gap: 8px;">
+                <button type="button" id="save-mood-btn" class="btn-main">💾 保存记录</button>
+                <button type="button" id="export-mood-btn" class="btn-main">📊 导出数据</button>
+            </div>
+        </div>
+
+        <div class="mood-container">
+            <!-- 当前心情选择 -->
+            <div class="mood-card">
+                <h3 style="color: #ff9800; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                    😊 今天的心情如何？
+                </h3>
+                
+                <div class="mood-selector">
+                    <div class="mood-item" data-mood="terrible" data-value="1">
+                        <span class="mood-emoji">😭</span>
+                        <div class="mood-label">非常糟糕</div>
+                        <div class="mood-value">1分</div>
+                    </div>
+                    <div class="mood-item" data-mood="bad" data-value="2">
+                        <span class="mood-emoji">😢</span>
+                        <div class="mood-label">不太好</div>
+                        <div class="mood-value">2分</div>
+                    </div>
+                    <div class="mood-item" data-mood="poor" data-value="3">
+                        <span class="mood-emoji">😕</span>
+                        <div class="mood-label">有点低落</div>
+                        <div class="mood-value">3分</div>
+                    </div>
+                    <div class="mood-item" data-mood="neutral" data-value="4">
+                        <span class="mood-emoji">😐</span>
+                        <div class="mood-label">一般般</div>
+                        <div class="mood-value">4分</div>
+                    </div>
+                    <div class="mood-item" data-mood="okay" data-value="5">
+                        <span class="mood-emoji">🙂</span>
+                        <div class="mood-label">还可以</div>
+                        <div class="mood-value">5分</div>
+                    </div>
+                    <div class="mood-item" data-mood="good" data-value="6">
+                        <span class="mood-emoji">😊</span>
+                        <div class="mood-label">不错</div>
+                        <div class="mood-value">6分</div>
+                    </div>
+                    <div class="mood-item" data-mood="great" data-value="7">
+                        <span class="mood-emoji">😄</span>
+                        <div class="mood-label">很好</div>
+                        <div class="mood-value">7分</div>
+                    </div>
+                    <div class="mood-item" data-mood="excellent" data-value="8">
+                        <span class="mood-emoji">🤗</span>
+                        <div class="mood-label">很棒</div>
+                        <div class="mood-value">8分</div>
+                    </div>
+                    <div class="mood-item" data-mood="amazing" data-value="9">
+                        <span class="mood-emoji">😆</span>
+                        <div class="mood-label">超棒</div>
+                        <div class="mood-value">9分</div>
+                    </div>
+                    <div class="mood-item" data-mood="euphoric" data-value="10">
+                        <span class="mood-emoji">🥳</span>
+                        <div class="mood-label">超级棒</div>
+                        <div class="mood-value">10分</div>
+                    </div>
+                </div>
+
+                <!-- 心情原因快捷选择 -->
+                <div style="margin-top: 16px;">
+                    <label style="font-weight: 600; margin-bottom: 8px; display: block;">是什么影响了你的心情？</label>
+                    <div class="quick-moods">
+                        <button class="quick-mood-btn" onclick="addMoodReason('工作顺利')">💼 工作顺利</button>
+                        <button class="quick-mood-btn" onclick="addMoodReason('学习进步')">📚 学习进步</button>
+                        <button class="quick-mood-btn" onclick="addMoodReason('运动健身')">🏃 运动健身</button>
+                        <button class="quick-mood-btn" onclick="addMoodReason('社交愉快')">👥 社交愉快</button>
+                        <button class="quick-mood-btn" onclick="addMoodReason('休息充足')">😴 休息充足</button>
+                        <button class="quick-mood-btn" onclick="addMoodReason('天气不错')">☀️ 天气不错</button>
+                        <button class="quick-mood-btn" onclick="addMoodReason('压力大')">😰 压力大</button>
+                        <button class="quick-mood-btn" onclick="addMoodReason('身体不适')">🤒 身体不适</button>
+                        <button class="quick-mood-btn" onclick="addMoodReason('工作困难')">😤 工作困难</button>
+                        <button class="quick-mood-btn" onclick="addMoodReason('人际冲突')">😠 人际冲突</button>
+                    </div>
+                </div>
+
+                <!-- 心情记录文本 -->
+                <textarea id="mood-note" class="mood-note" 
+                    placeholder="详细记录一下你的心情和感受...
+
+例如：
+• 今天心情很好，因为...
+• 感到有点沮丧，主要原因是...
+• 对于...感到很兴奋
+• 在...方面感到焦虑"></textarea>
+
+                <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button type="button" onclick="addMoodTemplate('开心原因')" style="background: #e8f5e9; color: #2e7d32; border: none; border-radius: 6px; padding: 6px 10px; cursor: pointer; font-size: 0.85em;">😊 开心原因</button>
+                    <button type="button" onclick="addMoodTemplate('困扰问题')" style="background: #ffebee; color: #d32f2f; border: none; border-radius: 6px; padding: 6px 10px; cursor: pointer; font-size: 0.85em;">😰 困扰问题</button>
+                    <button type="button" onclick="addMoodTemplate('期待事情')" style="background: #e3f2fd; color: #1976d2; border: none; border-radius: 6px; padding: 6px 10px; cursor: pointer; font-size: 0.85em;">🎯 期待事情</button>
+                    <button type="button" onclick="addMoodTemplate('感激的事')" style="background: #f3e5f5; color: #7b1fa2; border: none; border-radius: 6px; padding: 6px 10px; cursor: pointer; font-size: 0.85em;">🙏 感激的事</button>
+                </div>
+            </div>
+
+            <!-- 心情分析 -->
+            <div class="mood-history">
+                <h3 style="color: #ff9800; margin-bottom: 16px;">📊 心情分析</h3>
+                
+                <div class="mood-stats">
+                    <div class="stat-item">
+                        <div class="stat-number" id="average-mood">0</div>
+                        <div class="stat-label">平均心情</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="mood-trend">0</div>
+                        <div class="stat-label">心情趋势</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="best-mood">0</div>
+                        <div class="stat-label">最佳心情</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="records-count">0</div>
+                        <div class="stat-label">记录天数</div>
+                    </div>
+                </div>
+
+                <div class="mood-chart">
+                    <canvas id="mood-chart-canvas" width="400" height="200"></canvas>
+                </div>
+
+                <!-- 智能洞察 -->
+                <div class="insights-panel">
+                    <h4 style="color: #2e7d32; margin-bottom: 12px;">🧠 智能洞察</h4>
+                    <div id="mood-insights">
+                        <div style="margin-bottom: 8px;">💡 根据记录，您的心情在工作日表现更稳定</div>
+                        <div style="margin-bottom: 8px;">📈 最近一周心情呈上升趋势</div>
+                        <div style="margin-bottom: 8px;">🌟 运动和社交活动对您的心情有积极影响</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 最近记录 -->
+            <div class="mood-card">
+                <h3 style="color: #ff9800; margin-bottom: 16px;">📝 最近记录</h3>
+                <div class="mood-timeline" id="mood-timeline">
+                    <!-- 动态加载最近的心情记录 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="common.js"></script>
+    <script>
+        let currentMoodData = {
+            date: new Date().toISOString().split('T')[0],
+            mood: null,
+            value: 0,
+            note: '',
+            timestamp: new Date().toISOString()
+        };
+
+        // 初始化心情追踪器
+        document.addEventListener('DOMContentLoaded', function() {
+            initMoodTracker();
+        });
+
+        function initMoodTracker() {
+            // 绑定心情选择器
+            const moodItems = document.querySelectorAll('.mood-item');
+            moodItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    selectMood(this);
+                });
+            });
+
+            // 绑定文本框
+            const moodNote = document.getElementById('mood-note');
+            moodNote.addEventListener('input', function() {
+                currentMoodData.note = this.value;
+                autoSaveMood();
+            });
+
+            // 加载今日已有记录
+            loadTodayMood();
+            
+            // 更新统计
+            updateMoodStats();
+            
+            // 加载最近记录
+            loadRecentMoods();
+            
+            // 绘制图表
+            drawMoodChart();
+        }
+
+        function selectMood(element) {
+            // 清除之前的选择
+            document.querySelectorAll('.mood-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            // 选择当前项
+            element.classList.add('selected');
+            
+            // 更新数据
+            currentMoodData.mood = element.dataset.mood;
+            currentMoodData.value = parseInt(element.dataset.value);
+            currentMoodData.timestamp = new Date().toISOString();
+            
+            // 自动保存
+            autoSaveMood();
+            
+            // 更新洞察
+            updateMoodInsights();
+            
+            MessageUtils.success(`心情记录：${element.querySelector('.mood-label').textContent}`);
+        }
+
+        function addMoodReason(reason) {
+            const moodNote = document.getElementById('mood-note');
+            const currentValue = moodNote.value.trim();
+            const newValue = currentValue ? currentValue + '\n• ' + reason : '• ' + reason;
+            moodNote.value = newValue;
+            currentMoodData.note = newValue;
+            autoSaveMood();
+        }
+
+        function addMoodTemplate(type) {
+            const templates = {
+                '开心原因': '😊 今天开心的原因：\n• \n• \n• ',
+                '困扰问题': '😰 让我困扰的问题：\n• 问题：\n• 影响：\n• 应对方式：',
+                '期待事情': '🎯 期待的事情：\n• \n• \n• ',
+                '感激的事': '🙏 感激的事情：\n• \n• \n• '
+            };
+            
+            const template = templates[type];
+            if (template) {
+                const moodNote = document.getElementById('mood-note');
+                const currentValue = moodNote.value.trim();
+                const newValue = currentValue ? currentValue + '\n\n' + template : template;
+                moodNote.value = newValue;
+                currentMoodData.note = newValue;
+                moodNote.focus();
+                autoSaveMood();
+            }
+        }
+
+        function autoSaveMood() {
+            if (currentMoodData.mood || currentMoodData.note) {
+                const moodHistory = getMoodHistory();
+                const todayIndex = moodHistory.findIndex(record => record.date === currentMoodData.date);
+                
+                if (todayIndex >= 0) {
+                    moodHistory[todayIndex] = { ...currentMoodData };
+                } else {
+                    moodHistory.unshift({ ...currentMoodData });
+                }
+                
+                // 只保留最近90天的记录
+                moodHistory.splice(90);
+                
+                localStorage.setItem('mood_history', JSON.stringify(moodHistory));
+                
+                // 更新统计
+                updateMoodStats();
+            }
+        }
+
+        function loadTodayMood() {
+            const moodHistory = getMoodHistory();
+            const todayRecord = moodHistory.find(record => record.date === currentMoodData.date);
+            
+            if (todayRecord) {
+                currentMoodData = { ...todayRecord };
+                
+                // 恢复心情选择
+                if (todayRecord.mood) {
+                    const moodItem = document.querySelector(`[data-mood="${todayRecord.mood}"]`);
+                    if (moodItem) {
+                        moodItem.classList.add('selected');
+                    }
+                }
+                
+                // 恢复文本内容
+                if (todayRecord.note) {
+                    document.getElementById('mood-note').value = todayRecord.note;
+                }
+            }
+        }
+
+        function getMoodHistory() {
+            try {
+                const stored = localStorage.getItem('mood_history');
+                return stored ? JSON.parse(stored) : [];
+            } catch (error) {
+                console.error('读取心情历史失败:', error);
+                return [];
+            }
+        }
+
+        function updateMoodStats() {
+            const moodHistory = getMoodHistory().filter(record => record.value > 0);
+            
+            if (moodHistory.length === 0) {
+                document.getElementById('average-mood').textContent = '0';
+                document.getElementById('mood-trend').textContent = '0';
+                document.getElementById('best-mood').textContent = '0';
+                document.getElementById('records-count').textContent = '0';
+                return;
+            }
+            
+            // 平均心情
+            const average = moodHistory.reduce((sum, record) => sum + record.value, 0) / moodHistory.length;
+            document.getElementById('average-mood').textContent = average.toFixed(1);
+            
+            // 心情趋势（最近7天 vs 之前7天）
+            const recent7 = moodHistory.slice(0, 7);
+            const previous7 = moodHistory.slice(7, 14);
+            
+            if (recent7.length > 0 && previous7.length > 0) {
+                const recentAvg = recent7.reduce((sum, r) => sum + r.value, 0) / recent7.length;
+                const previousAvg = previous7.reduce((sum, r) => sum + r.value, 0) / previous7.length;
+                const trend = ((recentAvg - previousAvg) / previousAvg * 100).toFixed(1);
+                document.getElementById('mood-trend').textContent = trend > 0 ? '+' + trend + '%' : trend + '%';
+            } else {
+                document.getElementById('mood-trend').textContent = '0%';
+            }
+            
+            // 最佳心情
+            const bestMood = Math.max(...moodHistory.map(record => record.value));
+            document.getElementById('best-mood').textContent = bestMood;
+            
+            // 记录天数
+            document.getElementById('records-count').textContent = moodHistory.length;
+        }
+
+        function updateMoodInsights() {
+            const moodHistory = getMoodHistory().filter(record => record.value > 0);
+            const insightsContainer = document.getElementById('mood-insights');
+            
+            if (moodHistory.length < 3) {
+                insightsContainer.innerHTML = '<div>💡 继续记录几天后，我们将为您提供个性化的心情洞察</div>';
+                return;
+            }
+            
+            let insights = [];
+            
+            // 分析心情平均值
+            const average = moodHistory.reduce((sum, record) => sum + record.value, 0) / moodHistory.length;
+            if (average >= 7) {
+                insights.push('🌟 您的整体心情状态很好，继续保持！');
+            } else if (average >= 5) {
+                insights.push('😊 您的心情状态总体良好，偶尔可以尝试一些让自己更开心的活动');
+            } else {
+                insights.push('💪 建议关注心理健康，尝试放松活动或寻求支持');
+            }
+            
+            // 分析最近趋势
+            const recent5 = moodHistory.slice(0, 5);
+            if (recent5.length >= 3) {
+                const trend = recent5[0].value - recent5[recent5.length - 1].value;
+                if (trend > 1) {
+                    insights.push('📈 最近心情呈上升趋势，很棒！');
+                } else if (trend < -1) {
+                    insights.push('📉 最近心情有所下降，注意调节和休息');
+                }
+            }
+            
+            // 分析记录内容
+            const allNotes = moodHistory.map(r => r.note).join(' ').toLowerCase();
+            if (allNotes.includes('工作')) {
+                insights.push('💼 工作对您的心情影响较大，注意工作生活平衡');
+            }
+            if (allNotes.includes('运动') || allNotes.includes('锻炼')) {
+                insights.push('🏃 运动对您的心情有积极影响，建议继续保持');
+            }
+            if (allNotes.includes('朋友') || allNotes.includes('社交')) {
+                insights.push('👥 社交活动对您的心情很重要');
+            }
+            
+            // 显示洞察
+            insightsContainer.innerHTML = insights.map(insight => 
+                `<div style="margin-bottom: 8px;">${insight}</div>`
+            ).join('');
+        }
+
+        function loadRecentMoods() {
+            const moodHistory = getMoodHistory().slice(0, 7); // 显示最近7天
+            const timeline = document.getElementById('mood-timeline');
+            
+            if (moodHistory.length === 0) {
+                timeline.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;">还没有心情记录，开始记录您的心情吧！</div>';
+                return;
+            }
+            
+            const moodEmojis = {
+                'terrible': '😭', 'bad': '😢', 'poor': '😕', 'neutral': '😐', 'okay': '🙂',
+                'good': '😊', 'great': '😄', 'excellent': '🤗', 'amazing': '😆', 'euphoric': '🥳'
+            };
+            
+            timeline.innerHTML = moodHistory.map(record => {
+                const date = new Date(record.date);
+                const emoji = moodEmojis[record.mood] || '😐';
+                const note = record.note ? record.note.substring(0, 100) + (record.note.length > 100 ? '...' : '') : '无备注';
+                
+                return `
+                    <div class="timeline-item">
+                        <div class="timeline-emoji">${emoji}</div>
+                        <div class="timeline-content">
+                            <div style="font-weight: 600; margin-bottom: 4px;">
+                                ${date.toLocaleDateString('zh-CN')} - ${record.value}/10分
+                            </div>
+                            <div style="color: #666; font-size: 0.9em;">${note}</div>
+                        </div>
+                        <div class="timeline-time">
+                            ${new Date(record.timestamp).toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'})}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function drawMoodChart() {
+            const canvas = document.getElementById('mood-chart-canvas');
+            const ctx = canvas.getContext('2d');
+            const moodHistory = getMoodHistory().slice(0, 30).reverse(); // 最近30天，倒序显示
+            
+            if (moodHistory.length === 0) {
+                ctx.fillStyle = '#999';
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('暂无数据', canvas.width / 2, canvas.height / 2);
+                return;
+            }
+            
+            // 清空画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 设置图表参数
+            const padding = 40;
+            const chartWidth = canvas.width - 2 * padding;
+            const chartHeight = canvas.height - 2 * padding;
+            const maxValue = 10;
+            const minValue = 0;
+            
+            // 绘制网格
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = 1;
+            
+            // 水平网格线
+            for (let i = 0; i <= 5; i++) {
+                const y = padding + (chartHeight / 5) * i;
+                ctx.beginPath();
+                ctx.moveTo(padding, y);
+                ctx.lineTo(canvas.width - padding, y);
+                ctx.stroke();
+                
+                // Y轴标签
+                ctx.fillStyle = '#666';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'right';
+                ctx.fillText(maxValue - (maxValue / 5) * i, padding - 5, y + 4);
+            }
+            
+            // 绘制心情曲线
+            if (moodHistory.length > 1) {
+                ctx.strokeStyle = '#ff9800';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                
+                moodHistory.forEach((record, index) => {
+                    const x = padding + (chartWidth / (moodHistory.length - 1)) * index;
+                    const y = padding + chartHeight - ((record.value / maxValue) * chartHeight);
+                    
+                    if (index === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                });
+                
+                ctx.stroke();
+                
+                // 绘制数据点
+                ctx.fillStyle = '#ff9800';
+                moodHistory.forEach((record, index) => {
+                    const x = padding + (chartWidth / (moodHistory.length - 1)) * index;
+                    const y = padding + chartHeight - ((record.value / maxValue) * chartHeight);
+                    
+                    ctx.beginPath();
+                    ctx.arc(x, y, 4, 0, 2 * Math.PI);
+                    ctx.fill();
+                });
+            }
+        }
+
+        // 保存按钮
+        document.getElementById('save-mood-btn')?.addEventListener('click', function() {
+            if (!currentMoodData.mood) {
+                MessageUtils.warning('请先选择您的心情');
+                return;
+            }
+            
+            autoSaveMood();
+            updateMoodStats();
+            loadRecentMoods();
+            drawMoodChart();
+            updateMoodInsights();
+            
+            MessageUtils.success('心情记录保存成功！');
+        });
+
+        // 导出按钮
+        document.getElementById('export-mood-btn')?.addEventListener('click', function() {
+            const moodHistory = getMoodHistory();
+            
+            if (moodHistory.length === 0) {
+                MessageUtils.warning('暂无数据可导出');
+                return;
+            }
+            
+            const csvContent = "日期,心情评分,心情描述,备注\n" + 
+                moodHistory.map(record => {
+                    const moodLabels = {
+                        'terrible': '非常糟糕', 'bad': '不太好', 'poor': '有点低落', 'neutral': '一般般', 'okay': '还可以',
+                        'good': '不错', 'great': '很好', 'excellent': '很棒', 'amazing': '超棒', 'euphoric': '超级棒'
+                    };
+                    const note = record.note ? record.note.replace(/\n/g, ' ').replace(/,/g, '，') : '';
+                    return `${record.date},${record.value},${moodLabels[record.mood] || ''},${note}`;
+                }).join('\n');
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `mood_tracker_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            MessageUtils.success('心情数据导出成功！');
+        });
+    </script>
+    <!-- 同步服务 -->
+    <script src="sync-service.js"></script>
+    <script src="sync-providers.js"></script>
+    <!-- 通用自动同步功能 -->
+    <script src="universal-auto-sync.js"></script>
+</body>
+
+</html>
+
