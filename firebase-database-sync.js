@@ -1,12 +1,12 @@
 /**
- * Firebase数据库同步系统
- * 使用您的Firebase配置实现真正的跨设备数据同步
+ * Firebase数据库同步系统 - 修复版
+ * 解决跨设备同步问题：使用固定的用户标识
  */
 
 (function() {
     'use strict';
     
-    console.log('🔥 加载Firebase数据库同步系统...');
+    console.log('🔥 加载Firebase数据库同步系统（修复版）...');
     
     // Firebase配置 - 从配置文件获取
     const firebaseConfig = window.firebaseConfig || {
@@ -27,6 +27,7 @@
             this.isInitialized = false;
             this.isEnabled = false;
             this.userId = null;
+            this.sharedUserId = 'shared-plan-web-user'; // 固定的共享用户ID
             this.lastSync = null;
             this.syncInProgress = false;
             
@@ -110,6 +111,7 @@
                 this.userId = userCredential.user.uid;
                 
                 console.log('✅ 匿名登录成功，用户ID:', this.userId.substring(0, 8) + '...');
+                console.log('📌 使用共享ID进行跨设备同步:', this.sharedUserId);
                 
                 // 监听认证状态变化
                 this.auth.onAuthStateChanged((user) => {
@@ -124,34 +126,15 @@
                 
             } catch (error) {
                 console.error('❌ 匿名登录失败:', error);
-                // 生成本地用户ID作为备用
-                this.userId = 'local_' + this.generateLocalUserId();
+                // 仍然使用共享ID
+                this.userId = 'local_' + this.sharedUserId;
             }
-        }
-        
-        generateLocalUserId() {
-            const components = [
-                navigator.userAgent,
-                navigator.language,
-                screen.width + 'x' + screen.height,
-                new Date().getTimezoneOffset()
-            ].join('|');
-            
-            // 简单哈希函数
-            let hash = 0;
-            for (let i = 0; i < components.length; i++) {
-                const char = components.charCodeAt(i);
-                hash = ((hash << 5) - hash) + char;
-                hash = hash & hash; // 转换为32位整数
-            }
-            
-            return Math.abs(hash).toString(16);
         }
         
         setupAutoSync() {
             console.log('⚙️ 设置自动同步监听器...');
             
-            // 监听localStorage变化（防止重复绑定）
+            // 监听localStorage变化
             if (!window.firebaseStorageListenerBound) {
                 const originalSetItem = localStorage.setItem;
                 localStorage.setItem = function(key, value) {
@@ -184,7 +167,6 @@
             // 页面卸载前同步
             window.addEventListener('beforeunload', () => {
                 if (this.isEnabled && navigator.onLine) {
-                    // 同步执行最后一次同步
                     this.syncToDatabase(true);
                 }
             });
@@ -195,6 +177,13 @@
                     this.syncToDatabase();
                 }
             }, 30000); // 每30秒同步一次
+            
+            // 页面加载时同步
+            setTimeout(() => {
+                if (this.isEnabled) {
+                    this.restoreFromDatabase();
+                }
+            }, 2000);
         }
         
         debounceSync() {
@@ -211,11 +200,11 @@
                 
                 const planData = this.collectAllPlanData();
                 const syncPackage = {
-                    userId: this.userId,
+                    userId: this.sharedUserId, // 使用固定的共享ID
                     data: planData,
                     timestamp: window.firebase.firestore.FieldValue.serverTimestamp(),
                     lastModified: new Date().toISOString(),
-                    version: '1.0',
+                    version: '2.0',
                     deviceInfo: {
                         userAgent: navigator.userAgent.substring(0, 100),
                         language: navigator.language,
@@ -223,22 +212,16 @@
                     }
                 };
                 
-                // 保存到Firestore
-                const docRef = this.db.collection('planData').doc(this.userId);
+                // 保存到Firestore - 使用固定的共享ID
+                const docRef = this.db.collection('planData').doc(this.sharedUserId);
                 
                 if (isSync) {
-                    // 同步操作，不等待结果
-                    docRef.set(syncPackage, { merge: true });
+                    docRef.set(syncPackage);
                 } else {
-                    // 异步操作，等待结果
-                    await docRef.set(syncPackage, { merge: true });
+                    await docRef.set(syncPackage);
+                    console.log('✅ 数据已同步到Firebase云端');
+                    this.lastSync = new Date();
                 }
-                
-                this.lastSync = new Date().toISOString();
-                localStorage.setItem('lastFirebaseSync', this.lastSync);
-                
-                console.log('✅ Firebase数据库同步成功');
-                this.showNotification('🔥 数据已同步到Firebase', 'success');
                 
             } catch (error) {
                 console.error('❌ Firebase同步失败:', error);
@@ -249,20 +232,20 @@
         }
         
         collectAllPlanData() {
-            const planData = {};
-            
+            const allData = {};
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
-                if (key && key.startsWith('planData_')) {
+                if (key && (key.startsWith('planData_') || key.startsWith('habitData_') || 
+                           key.startsWith('moodData_') || key.startsWith('reflectionData_'))) {
                     try {
-                        planData[key] = JSON.parse(localStorage.getItem(key));
-                    } catch (error) {
-                        console.warn(`数据解析失败: ${key}`, error);
+                        const value = localStorage.getItem(key);
+                        allData[key] = JSON.parse(value);
+                    } catch (e) {
+                        allData[key] = localStorage.getItem(key);
                     }
                 }
             }
-            
-            return planData;
+            return allData;
         }
         
         async restoreFromDatabase() {
@@ -271,7 +254,8 @@
             try {
                 console.log('🔍 从Firebase数据库恢复数据...');
                 
-                const docRef = this.db.collection('planData').doc(this.userId);
+                // 使用固定的共享ID
+                const docRef = this.db.collection('planData').doc(this.sharedUserId);
                 const doc = await docRef.get();
                 
                 if (doc.exists) {
@@ -280,8 +264,13 @@
                     
                     await this.mergeCloudData(cloudData);
                     this.showNotification('📥 已从Firebase恢复数据', 'success');
+                    
+                    // 触发页面刷新
+                    window.location.reload();
                 } else {
                     console.log('☁️ Firebase中暂无数据，使用本地数据');
+                    // 首次使用，将本地数据同步到云端
+                    await this.syncToDatabase();
                 }
                 
             } catch (error) {
@@ -292,32 +281,27 @@
         async mergeCloudData(cloudData) {
             if (!cloudData.data) return;
             
-            const localTimestamp = new Date(localStorage.getItem('lastDataUpdate') || 0);
-            const cloudTimestamp = new Date(cloudData.lastModified || 0);
+            console.log('📥 合并Firebase云端数据...');
             
-            // 如果云端数据更新，则合并
-            if (cloudTimestamp > localTimestamp) {
-                console.log('📥 合并Firebase云端数据...');
-                
-                let mergedCount = 0;
-                for (const [key, value] of Object.entries(cloudData.data)) {
-                    localStorage.setItem(key, JSON.stringify(value));
-                    mergedCount++;
-                }
-                
-                localStorage.setItem('lastDataUpdate', cloudData.lastModified);
-                
-                console.log(`✅ 已合并 ${mergedCount} 项数据`);
-                
-                // 通知页面刷新数据
-                window.dispatchEvent(new CustomEvent('firebaseDataRestored', {
-                    detail: { 
-                        timestamp: cloudData.lastModified,
-                        count: mergedCount,
-                        source: 'firebase'
-                    }
-                }));
+            let mergedCount = 0;
+            for (const [key, value] of Object.entries(cloudData.data)) {
+                localStorage.setItem(key, JSON.stringify(value));
+                mergedCount++;
             }
+            
+            localStorage.setItem('lastDataUpdate', cloudData.lastModified);
+            localStorage.setItem('lastCloudSync', new Date().toISOString());
+            
+            console.log(`✅ 已合并 ${mergedCount} 项数据`);
+            
+            // 通知页面刷新数据
+            window.dispatchEvent(new CustomEvent('firebaseDataRestored', {
+                detail: { 
+                    timestamp: cloudData.lastModified,
+                    count: mergedCount,
+                    source: 'firebase'
+                }
+            }));
         }
         
         handleSyncError(error) {
@@ -325,112 +309,40 @@
                 console.warn('Firebase权限被拒绝，可能需要重新认证');
                 this.signInAnonymously();
             } else if (error.code === 'unavailable') {
-                console.warn('Firebase服务暂时不可用，稍后重试');
-                setTimeout(() => this.syncToDatabase(), 10000);
-            } else {
-                console.warn('Firebase同步错误:', error.message);
+                console.warn('Firebase服务暂时不可用');
             }
-        }
-        
-        fallbackToLocal() {
-            console.log('⚠️ Firebase不可用，降级到本地存储');
-            this.isEnabled = false;
-            this.showNotification('⚠️ Firebase暂时不可用，使用本地存储', 'warning');
-        }
-        
-        showNotification(message, type = 'info') {
-            if (window.DISABLE_ALL_NOTIFICATIONS) {
-                console.log(`[Firebase通知] ${message}`);
-                return;
-            }
-            
-            const notification = document.createElement('div');
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: ${type === 'success' ? '#4caf50' : type === 'warning' ? '#ff9800' : '#2196f3'};
-                color: white;
-                padding: 12px 16px;
-                border-radius: 6px;
-                font-size: 14px;
-                z-index: 9999;
-                opacity: 0;
-                transform: translateX(100%);
-                transition: all 0.3s ease;
-                max-width: 300px;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            `;
-            
-            notification.textContent = message;
-            document.body.appendChild(notification);
-            
-            requestAnimationFrame(() => {
-                notification.style.opacity = '1';
-                notification.style.transform = 'translateX(0)';
-            });
-            
-            setTimeout(() => {
-                notification.style.opacity = '0';
-                notification.style.transform = 'translateX(100%)';
-                setTimeout(() => notification.remove(), 300);
-            }, 4000);
-        }
-        
-        // 公共API
-        getStatus() {
-            return {
-                initialized: this.isInitialized,
-                enabled: this.isEnabled,
-                userId: this.userId?.substring(0, 8) + '...',
-                lastSync: this.lastSync,
-                syncInProgress: this.syncInProgress
-            };
         }
         
         async forceSync() {
-            console.log('🔄 执行强制Firebase同步...');
+            console.log('🔄 执行强制同步...');
             await this.syncToDatabase();
-        }
-        
-        async forceRestore() {
-            console.log('📥 执行强制数据恢复...');
             await this.restoreFromDatabase();
         }
         
-        disable() {
+        fallbackToLocal() {
+            console.log('📱 回退到本地存储模式');
             this.isEnabled = false;
-            if (this.syncTimer) clearTimeout(this.syncTimer);
-            console.log('🛑 Firebase数据库同步已禁用');
+            this.showNotification('使用本地存储模式', 'info');
         }
         
-        // 清除所有云端数据（谨慎使用）
-        async clearCloudData() {
-            if (!this.userId || !confirm('确定要清除所有云端数据吗？此操作不可恢复！')) {
+        showNotification(message, type = 'info') {
+            if (window.DISABLE_ALL_NOTIFICATIONS || window.DISABLE_SYNC_NOTIFICATIONS) {
+                console.log(`[通知-${type}]:`, message);
                 return;
             }
-            
-            try {
-                await this.db.collection('planData').doc(this.userId).delete();
-                console.log('✅ 云端数据已清除');
-                this.showNotification('🗑️ 云端数据已清除', 'warning');
-            } catch (error) {
-                console.error('清除云端数据失败:', error);
-            }
+            console.log(`📢 ${message}`);
         }
     }
     
-    // 初始化Firebase数据库同步
+    // 全局初始化
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
             window.firebaseSync = new FirebaseDatabaseSync();
         });
     } else {
-        setTimeout(() => {
-            window.firebaseSync = new FirebaseDatabaseSync();
-        }, 1000);
+        window.firebaseSync = new FirebaseDatabaseSync();
     }
     
-    console.log('✅ Firebase数据库同步模块加载完成');
-    
 })();
+
+console.log('✅ Firebase数据库同步系统（修复版）已加载');
