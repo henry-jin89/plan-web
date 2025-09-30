@@ -281,27 +281,27 @@
         async mergeCloudData(cloudData) {
             if (!cloudData.data) return;
             
-            console.log('📥 合并Firebase云端数据...');
-            
-            let mergedCount = 0;
-            for (const [key, value] of Object.entries(cloudData.data)) {
-                localStorage.setItem(key, JSON.stringify(value));
-                mergedCount++;
-            }
-            
-            localStorage.setItem('lastDataUpdate', cloudData.lastModified);
-            localStorage.setItem('lastCloudSync', new Date().toISOString());
-            
-            console.log(`✅ 已合并 ${mergedCount} 项数据`);
-            
-            // 通知页面刷新数据
-            window.dispatchEvent(new CustomEvent('firebaseDataRestored', {
-                detail: { 
-                    timestamp: cloudData.lastModified,
-                    count: mergedCount,
-                    source: 'firebase'
+                console.log('📥 合并Firebase云端数据...');
+                
+                let mergedCount = 0;
+                for (const [key, value] of Object.entries(cloudData.data)) {
+                    localStorage.setItem(key, JSON.stringify(value));
+                    mergedCount++;
                 }
-            }));
+                
+                localStorage.setItem('lastDataUpdate', cloudData.lastModified);
+            localStorage.setItem('lastCloudSync', new Date().toISOString());
+                
+                console.log(`✅ 已合并 ${mergedCount} 项数据`);
+                
+                // 通知页面刷新数据
+                window.dispatchEvent(new CustomEvent('firebaseDataRestored', {
+                    detail: { 
+                        timestamp: cloudData.lastModified,
+                        count: mergedCount,
+                        source: 'firebase'
+                    }
+                }));
         }
         
         handleSyncError(error) {
@@ -340,7 +340,7 @@
             window.firebaseSync = new FirebaseDatabaseSync();
         });
     } else {
-        window.firebaseSync = new FirebaseDatabaseSync();
+            window.firebaseSync = new FirebaseDatabaseSync();
     }
     
 })();
