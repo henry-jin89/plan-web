@@ -50,8 +50,12 @@ window.DISABLE_ALL_NOTIFICATIONS = true;
 window.DISABLE_SYNC_NOTIFICATIONS = true;
 
 // 重写alert、confirm等函数以避免弹窗
-const originalAlert = window.alert;
-const originalConfirm = window.confirm;
+if (!window.originalAlert) {
+    window.originalAlert = window.alert;
+    window.originalConfirm = window.confirm;
+}
+const originalAlert = window.originalAlert;
+const originalConfirm = window.originalConfirm;
 
 window.alert = function(message) {
     console.log('[ALERT BLOCKED]:', message);
