@@ -262,11 +262,18 @@
                     const cloudData = doc.data();
                     console.log('📥 发现云端数据，正在恢复...');
                     
-                    await this.mergeCloudData(cloudData);
-                    this.showNotification('📥 已从Firebase恢复数据', 'success');
+                    // 检查是否需要恢复数据
+                    const lastLocalUpdate = localStorage.getItem('lastDataUpdate');
+                    const cloudLastModified = cloudData.lastModified;
                     
-                    // 触发页面刷新
-                    window.location.reload();
+                    // 只有云端数据更新时才恢复，避免重复刷新
+                    if (!lastLocalUpdate || cloudLastModified > lastLocalUpdate) {
+                        await this.mergeCloudData(cloudData);
+                        this.showNotification('📥 已从Firebase恢复数据', 'success');
+                        console.log('✅ 数据恢复完成，无需刷新页面');
+                    } else {
+                        console.log('✅ 本地数据已是最新，无需恢复');
+                    }
                 } else {
                     console.log('☁️ Firebase中暂无数据，使用本地数据');
                     // 首次使用，将本地数据同步到云端
