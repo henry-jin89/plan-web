@@ -268,8 +268,8 @@
                     
                     // 只有云端数据更新时才恢复，避免重复刷新
                     if (!lastLocalUpdate || cloudLastModified > lastLocalUpdate) {
-                        await this.mergeCloudData(cloudData);
-                        this.showNotification('📥 已从Firebase恢复数据', 'success');
+                    await this.mergeCloudData(cloudData);
+                    this.showNotification('📥 已从Firebase恢复数据', 'success');
                         console.log('✅ 数据恢复完成，无需刷新页面');
                     } else {
                         console.log('✅ 本地数据已是最新，无需恢复');

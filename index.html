@@ -6,6 +6,7 @@
     <title>多层级计划表 - 主页</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="mobile-styles.css">
+    <link rel="stylesheet" href="ai-assistant-styles.css">
     <link rel="manifest" href="manifest.json">
     
     <!-- Firebase配置 -->
@@ -458,7 +459,10 @@
             
             <!-- 快捷操作 -->
             <div class="quick-actions">
-                <a href="day_plan.html" class="quick-action-btn primary">
+                <button class="quick-action-btn primary" onclick="startAIAnalysis()" style="cursor: pointer;">
+                    🤖 AI智能分析
+                </button>
+                <a href="day_plan.html" class="quick-action-btn">
                     📅 今日计划
                 </a>
                 <a href="week_plan.html" class="quick-action-btn">
@@ -567,6 +571,7 @@
         <div class="footer">
             <p>💡 智能化计划管理，让目标触手可及</p>
             <p>🔥 Firebase云端同步，跨设备数据自动保存</p>
+            <p>🤖 AI智能助手，提供个性化计划建议</p>
             <p>📱 支持桌面端与移动端无缝切换</p>
             <p>
                 <a href="firebase-status.html">🔥 Firebase状态</a> | 
@@ -578,6 +583,11 @@
             </p>
         </div>
     </div>
+
+    <!-- AI 助手悬浮按钮 -->
+    <button class="ai-assistant-btn" onclick="startAIAnalysis()" title="AI 智能分析">
+        🤖
+    </button>
 
     <!-- 基础JavaScript - 内联以确保加载 -->
     <script>
@@ -734,6 +744,7 @@
         // 只加载必要的脚本，避免冲突
         const scriptsToLoad = [
             'firebase-database-sync.js',  // Firebase数据库同步（最高优先级）
+            'gemini-ai-assistant.js',     // Gemini AI 助手
             // 'universal-cloud-sync.js',   // 已禁用
             // 'auto-cloud-sync.js',        // 已禁用
             'common.js',                 // 通用工具函数
@@ -753,6 +764,85 @@
         
         // 延迟加载外部脚本，确保页面首先可见
         setTimeout(loadNextScript, 1000);
+        
+        // AI 分析功能
+        async function startAIAnalysis() {
+            const btn = document.querySelector('.ai-assistant-btn');
+            
+            // 检查 AI 助手是否已加载
+            if (typeof geminiAssistant === 'undefined') {
+                alert('AI 助手正在加载中，请稍后再试...');
+                return;
+            }
+            
+            // 显示加载状态
+            if (btn) {
+                btn.classList.add('analyzing');
+                btn.innerHTML = '⏳';
+            }
+            
+            // 创建加载提示
+            const loadingModal = document.createElement('div');
+            loadingModal.id = 'ai-suggestion-modal';
+            loadingModal.innerHTML = `
+                <div class="ai-modal-overlay">
+                    <div class="ai-modal-content">
+                        <div class="ai-modal-header">
+                            <h2>🤖 AI 智能分析中...</h2>
+                        </div>
+                        <div class="ai-modal-body">
+                            <div class="ai-loading">
+                                <div class="ai-loading-spinner"></div>
+                                <div class="ai-loading-text">正在收集您的计划数据...</div>
+                                <div class="ai-loading-text" style="margin-top: 10px; font-size: 0.9em; color: #999;">
+                                    这可能需要10-20秒，请耐心等待
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(loadingModal);
+            
+            try {
+                // 执行 AI 分析
+                const result = await geminiAssistant.analyzeAndSuggest();
+                
+                // 移除加载提示
+                loadingModal.remove();
+                
+                if (result.success) {
+                    // 显示结果
+                    geminiAssistant.showSuggestionModal(result);
+                } else {
+                    // 显示错误
+                    alert(result.message || `分析失败: ${result.error}\n\n请确保您已经在计划页面中添加了一些内容。`);
+                }
+            } catch (error) {
+                console.error('AI 分析出错:', error);
+                loadingModal.remove();
+                alert('AI 分析过程中出现错误，请稍后再试。');
+            } finally {
+                // 恢复按钮状态
+                if (btn) {
+                    btn.classList.remove('analyzing');
+                    btn.innerHTML = '🤖';
+                }
+            }
+        }
+        
+        // 页面加载完成后显示 AI 助手提示
+        document.addEventListener('DOMContentLoaded', function() {
+            // 检查是否有历史建议
+            setTimeout(() => {
+                if (typeof geminiAssistant !== 'undefined') {
+                    const latest = geminiAssistant.getLatestSuggestion();
+                    if (latest) {
+                        console.log('💡 发现历史AI建议，可点击右下角按钮查看');
+                    }
+                }
+            }, 2000);
+        });
     </script>
 </body>
 </html>
