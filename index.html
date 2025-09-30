@@ -86,6 +86,8 @@
             visibility: visible !important;
             opacity: 1 !important;
             display: block !important;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
         }
         
         /* 加载动画 */
@@ -96,8 +98,8 @@
             transform: translate(-50%, -50%);
             width: 50px;
             height: 50px;
-            border: 4px solid rgba(25, 118, 210, 0.3);
-            border-top: 4px solid #1976d2;
+            border: 4px solid rgba(102, 126, 234, 0.3);
+            border-top: 4px solid #667eea;
             border-radius: 50%;
             animation: spin 1s linear infinite;
             z-index: 9999;
@@ -127,143 +129,313 @@
         /* 主页特有样式 */
         .welcome-section {
             text-align: center;
-            padding: 40px 20px;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 252, 0.8));
-            border-radius: 20px;
-            margin-bottom: 32px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            padding: 60px 30px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 24px;
+            margin-bottom: 48px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .welcome-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, 
+                rgba(102, 126, 234, 0.1) 0%, 
+                rgba(118, 75, 162, 0.1) 50%, 
+                rgba(240, 147, 251, 0.1) 100%);
+            animation: gradientShift 15s ease infinite;
+            z-index: -1;
+        }
+        
+        @keyframes gradientShift {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            50% { transform: translate(10%, 10%) rotate(180deg); }
         }
 
         .welcome-title {
-            font-size: 3em;
-            font-weight: bold;
-            margin-bottom: 16px;
-            background: linear-gradient(45deg, #667eea, #764ba2, #f093fb);
+            font-size: 3.5em;
+            font-weight: 800;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
-            animation: titleGlow 3s ease-in-out infinite alternate;
+            animation: titlePulse 3s ease-in-out infinite;
+            letter-spacing: -1px;
+            text-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+        }
+        
+        @keyframes titlePulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
         }
 
         .welcome-subtitle {
-            font-size: 1.2em;
-            color: #666;
-            margin-bottom: 32px;
-            line-height: 1.6;
+            font-size: 1.3em;
+            color: #555;
+            margin-bottom: 40px;
+            line-height: 1.8;
+            font-weight: 400;
+        }
+        
+        .welcome-subtitle strong {
+            color: #667eea;
+            font-weight: 600;
         }
 
         .features-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 24px;
-            margin-bottom: 32px;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 32px;
+            margin-bottom: 48px;
         }
 
         .feature-card {
-            background: rgba(255, 255, 255, 0.9);
-            border-radius: 16px;
-            padding: 24px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 32px 24px;
             text-align: center;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid transparent;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+        
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            transform: scaleX(0);
+            transition: transform 0.4s ease;
+        }
+        
+        .feature-card:hover::before {
+            transform: scaleX(1);
         }
 
         .feature-card:hover {
-            transform: translateY(-8px) scale(1.02);
-            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.15);
+            transform: translateY(-12px) scale(1.03);
+            box-shadow: 0 20px 50px rgba(102, 126, 234, 0.25);
+            border-color: rgba(102, 126, 234, 0.3);
         }
 
         .feature-icon {
-            font-size: 3em;
-            margin-bottom: 16px;
-            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+            font-size: 3.5em;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
+            transition: transform 0.4s ease;
+        }
+        
+        .feature-card:hover .feature-icon {
+            transform: scale(1.1) rotate(5deg);
         }
 
         .feature-title {
-            font-size: 1.3em;
-            font-weight: 600;
-            color: #1976d2;
-            margin-bottom: 12px;
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
         }
 
         .feature-description {
             color: #666;
-            line-height: 1.6;
-            margin-bottom: 20px;
+            line-height: 1.8;
+            margin-bottom: 24px;
+            font-size: 1.05em;
         }
 
         .feature-link {
-            background: linear-gradient(135deg, #1976d2, #1565c0);
+            background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
             text-decoration: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-weight: 500;
+            padding: 14px 32px;
+            border-radius: 12px;
+            font-weight: 600;
             transition: all 0.3s ease;
             display: inline-block;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .feature-link::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.2);
+            transition: left 0.5s ease;
+        }
+        
+        .feature-link:hover::before {
+            left: 100%;
         }
 
         .feature-link:hover {
-            background: linear-gradient(135deg, #1565c0, #0d47a1);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+            background: linear-gradient(135deg, #764ba2, #f093fb);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
         }
 
         .quick-actions {
-            display: flex;
-            justify-content: center;
-            gap: 16px;
-            flex-wrap: wrap;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+            margin-top: 40px;
         }
 
         .quick-action-btn {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 248, 248, 0.8));
-            border: 2px solid #e0e0e0;
-            border-radius: 12px;
-            padding: 16px 24px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid rgba(102, 126, 234, 0.2);
+            border-radius: 16px;
+            padding: 20px 28px;
             cursor: pointer;
-            font-size: 1em;
-            font-weight: 500;
+            font-size: 1.05em;
+            font-weight: 600;
             color: #555;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             text-decoration: none;
             display: flex;
             align-items: center;
-            gap: 8px;
-            min-width: 160px;
+            gap: 10px;
             justify-content: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
         }
 
         .quick-action-btn:hover {
-            background: linear-gradient(135deg, #e3f2fd, rgba(25, 118, 210, 0.1));
-            border-color: #1976d2;
-            color: #1976d2;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-color: transparent;
+            color: white;
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+        
+        .quick-action-btn.primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            font-weight: 700;
+            font-size: 1.15em;
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .quick-action-btn.primary:hover {
+            background: linear-gradient(135deg, #764ba2, #f093fb);
+            transform: translateY(-4px) scale(1.05);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.5);
+        }
+
+        /* 标签栏优化 */
+        .tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 48px;
+            justify-content: center;
+        }
+        
+        .tab {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid rgba(102, 126, 234, 0.2);
+            border-radius: 12px;
+            padding: 12px 24px;
+            font-weight: 600;
+            color: #555;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+        
+        .tab:hover {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-color: transparent;
             transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(25, 118, 210, 0.2);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        /* 页脚优化 */
+        .footer {
+            text-align: center;
+            padding: 40px 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            margin-top: 48px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+        }
+        
+        .footer p {
+            margin: 12px 0;
+            color: #666;
+            font-size: 1.05em;
+            line-height: 1.8;
+        }
+        
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+        
+        .footer a:hover {
+            background: rgba(102, 126, 234, 0.1);
+            color: #764ba2;
         }
 
         @media (max-width: 768px) {
             .welcome-title {
-                font-size: 2.2em;
+                font-size: 2.5em;
+            }
+            
+            .welcome-subtitle {
+                font-size: 1.1em;
             }
             
             .features-grid {
                 grid-template-columns: 1fr;
-                gap: 16px;
+                gap: 24px;
             }
             
             .quick-actions {
-                flex-direction: column;
-                align-items: center;
+                grid-template-columns: 1fr;
             }
             
-            .quick-action-btn {
-                width: 100%;
-                max-width: 300px;
+            .tabs {
+                flex-direction: column;
             }
+            
+            .tab {
+                width: 100%;
+                text-align: center;
+            }
+        }
+        
+        /* 容器优化 */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
         }
     </style>
 </head>
@@ -277,16 +449,13 @@
         <div class="welcome-section">
             <h1 class="welcome-title">学习工作生活计划表</h1>
             <p class="welcome-subtitle">
-                智能化多层级计划管理系统<br>
+                <strong>智能化多层级计划管理系统</strong><br>
                 让每一天都充满意义，让每个目标都触手可及
             </p>
             
             <!-- 快捷操作 -->
             <div class="quick-actions">
-                <a href="one-click-sync.html" class="quick-action-btn" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; font-weight: 600;">
-                    🌟 一键启用云同步
-                </a>
-                <a href="day_plan.html" class="quick-action-btn">
+                <a href="day_plan.html" class="quick-action-btn primary">
                     📅 今日计划
                 </a>
                 <a href="week_plan.html" class="quick-action-btn">
@@ -300,6 +469,9 @@
                 </a>
                 <a href="reflection_template.html" class="quick-action-btn">
                     🧠 反思模板
+                </a>
+                <a href="gratitude_diary.html" class="quick-action-btn">
+                    🙏 感恩日记
                 </a>
             </div>
         </div>
@@ -389,11 +561,18 @@
         </div>
 
         <!-- 页脚信息 -->
-        <div style="text-align: center; padding: 20px; color: #666; font-size: 0.9em;">
+        <div class="footer">
             <p>💡 智能化计划管理，让目标触手可及</p>
-            <p>🔥 Firebase数据库同步，跨设备数据自动保存</p>
-            <p><a href="firebase-status.html" style="color: #1976d2;">🔥 Firebase状态</a> | 
-               <a href="sync-settings.html" style="color: #1976d2;">⚙️ 同步设置</a></p>
+            <p>🔥 Firebase云端同步，跨设备数据自动保存</p>
+            <p>📱 支持桌面端与移动端无缝切换</p>
+            <p>
+                <a href="firebase-status.html">🔥 Firebase状态</a> | 
+                <a href="sync-settings.html">⚙️ 同步设置</a> | 
+                <a href="sync-test.html">🧪 测试同步</a>
+            </p>
+            <p style="margin-top: 20px; font-size: 0.95em; color: #999;">
+                © 2025 计划管理器 · 让每一天都充满意义
+            </p>
         </div>
     </div>
 
