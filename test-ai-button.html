@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI按钮测试</title>
+    <script src="firebase-config.js"></script>
+    <script src="firebase-database-sync.js"></script>
+    <script src="gemini-ai-assistant.js"></script>
+    <link rel="stylesheet" href="ai-assistant-styles.css">
+</head>
+<body>
+    <div style="padding: 50px;">
+        <h1>AI按钮测试页面</h1>
+        
+        <!-- 测试按钮1：使用onclick属性 -->
+        <button onclick="testClick1()" style="padding: 20px; font-size: 18px; margin: 10px;">
+            测试1：onclick属性
+        </button>
+        
+        <!-- 测试按钮2：使用事件监听器 -->
+        <button id="testBtn2" style="padding: 20px; font-size: 18px; margin: 10px;">
+            测试2：事件监听器
+        </button>
+        
+        <!-- 测试按钮3：AI分析按钮 -->
+        <button onclick="startAIAnalysis()" style="padding: 20px; font-size: 18px; margin: 10px;">
+            测试3：AI分析（原函数）
+        </button>
+        
+        <!-- 测试按钮4：直接调用 -->
+        <button onclick="directAICall()" style="padding: 20px; font-size: 18px; margin: 10px;">
+            测试4：直接调用AI
+        </button>
+        
+        <div id="output" style="margin-top: 30px; padding: 20px; background: #f5f5f5; border-radius: 8px;">
+            <h3>输出信息：</h3>
+            <div id="log"></div>
+        </div>
+    </div>
+    
+    <script>
+        const log = (msg) => {
+            const logDiv = document.getElementById('log');
+            logDiv.innerHTML += `<p>${new Date().toLocaleTimeString()}: ${msg}</p>`;
+            console.log(msg);
+        };
+        
+        // 测试函数1
+        function testClick1() {
+            log('✅ 测试1成功：onclick属性正常工作');
+            alert('测试1成功！');
+        }
+        
+        // 测试函数2
+        document.addEventListener('DOMContentLoaded', () => {
+            const btn2 = document.getElementById('testBtn2');
+            if (btn2) {
+                btn2.addEventListener('click', () => {
+                    log('✅ 测试2成功：事件监听器正常工作');
+                    alert('测试2成功！');
+                });
+            }
+        });
+        
+        // 测试函数3：定义startAIAnalysis
+        window.startAIAnalysis = async function() {
+            log('🚀 startAIAnalysis函数被调用');
+            
+            if (typeof geminiAssistant === 'undefined') {
+                log('❌ geminiAssistant未定义');
+                alert('geminiAssistant未加载');
+                return;
+            }
+            
+            log('✅ geminiAssistant已加载');
+            alert('AI助手已准备好！');
+        };
+        
+        // 测试函数4：直接调用
+        async function directAICall() {
+            log('🔍 直接调用AI分析');
+            
+            log('检查geminiAssistant: ' + typeof geminiAssistant);
+            log('检查startAIAnalysis: ' + typeof startAIAnalysis);
+            
+            if (typeof geminiAssistant !== 'undefined') {
+                try {
+                    log('开始AI分析...');
+                    const result = await geminiAssistant.analyzeAndSuggest();
+                    log('AI分析结果: ' + JSON.stringify(result));
+                } catch (error) {
+                    log('AI分析错误: ' + error.message);
+                }
+            } else {
+                log('❌ geminiAssistant未加载');
+            }
+        }
+        
+        // 页面加载完成后的检查
+        window.addEventListener('load', () => {
+            log('页面加载完成');
+            log('geminiAssistant类型: ' + typeof geminiAssistant);
+            log('startAIAnalysis类型: ' + typeof startAIAnalysis);
+        });
+    </script>
+</body>
+</html>
+
