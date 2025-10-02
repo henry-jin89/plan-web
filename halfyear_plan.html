@@ -270,10 +270,26 @@
             </div>
         </div>
 
+        <!-- AI智能分析区域 - 放在最顶部 -->
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px; padding: 24px; margin-bottom: 24px; box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 20px;">
+                <div style="flex: 1;">
+                    <h3 style="color: white; margin: 0 0 8px 0; font-size: 1.4em; display: flex; align-items: center; gap: 10px;">
+                        🤖 AI 智能分析
+                        <span style="font-size: 0.5em; background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 12px;">Gemini 2.5 Pro</span>
+                    </h3>
+                    <p style="color: rgba(255,255,255,0.95); margin: 0; font-size: 1em; line-height: 1.6;">
+                        让 AI 分析您的半年计划，提供专业建议和优化方案
+                    </p>
+                </div>
+                <button type="button" onclick="startAIAnalysis()" style="background: white; color: #667eea; border: none; padding: 16px 40px; border-radius: 12px; font-size: 1.1em; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: all 0.3s ease; white-space: nowrap;">
+                    🚀 开始分析
+                </button>
+            </div>
+        </div>
+
         <!-- 智能控制栏 -->
         <div class="plan-smartbar">
-            <button type="button" class="ai-assistant-btn">🤖 AI助手</button>
-            
             <!-- 智能分析功能 -->
             <div class="smart-analysis-group" style="display: flex; gap: 8px; margin-left: 16px;">
                 <button type="button" id="growth-analysis-btn" class="smart-btn growth-btn" style="background: #00897b; color: white; border: none; border-radius: 20px; padding: 6px 16px; font-size: 0.9em; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;">
