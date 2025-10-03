@@ -13,13 +13,51 @@ class GeminiAIAssistant {
     }
 
     /**
-     * 收集所有页面的计划数据
+     * 获取当前页面类型
+     */
+    getCurrentPageType() {
+        const path = window.location.pathname;
+        const filename = path.substring(path.lastIndexOf('/') + 1);
+        
+        // 页面映射表
+        const pageMap = {
+            'index.html': 'all',           // 首页分析全部
+            'day_plan.html': 'day',
+            'week_plan.html': 'week',
+            'month_plan.html': 'month',
+            'quarter_plan.html': 'quarter',
+            'halfyear_plan.html': 'halfyear',
+            'year_plan.html': 'year',
+            'habit_tracker.html': 'habit',
+            'mood_tracker.html': 'mood',
+            'gratitude_diary.html': 'gratitude',
+            'reflection_template.html': 'reflection',
+            'monthly_schedule.html': 'schedule'
+        };
+        
+        return pageMap[filename] || 'all';
+    }
+
+    /**
+     * 收集所有页面的计划数据（仅用于index.html）
      */
     collectAllPlanData() {
+        const currentPage = this.getCurrentPageType();
+        
+        // 如果不是index.html，只收集当前页面数据
+        if (currentPage !== 'all') {
+            console.log(`📊 [AI分析] 当前页面: ${currentPage}，只分析本页数据`);
+            return this.collectCurrentPageData(currentPage);
+        }
+        
+        // index.html 收集所有数据
+        console.log('📊 [AI分析] 当前页面: index.html，分析全部数据');
+        
         const allData = {
             timestamp: new Date().toISOString(),
             plans: {},
-            summary: {}
+            summary: {},
+            pageType: 'all'
         };
 
         // 收集各类计划数据
@@ -72,6 +110,56 @@ class GeminiAIAssistant {
 
         return allData;
     }
+    
+    /**
+     * 收集当前页面的数据（仅分析本页内容）
+     */
+    collectCurrentPageData(pageType) {
+        const allData = {
+            timestamp: new Date().toISOString(),
+            plans: {},
+            summary: {},
+            pageType: pageType
+        };
+        
+        // 根据页面类型收集对应数据
+        const dataKey = `planData_${pageType}`;
+        const data = this.getPlanData(dataKey);
+        
+        if (data && Object.keys(data).length > 0) {
+            const pageNames = {
+                'day': '日计划',
+                'week': '周计划',
+                'month': '月计划',
+                'quarter': '季度计划',
+                'halfyear': '半年计划',
+                'year': '年计划',
+                'habit': '习惯追踪',
+                'mood': '心情记录',
+                'gratitude': '感恩日记',
+                'reflection': '反思模板',
+                'schedule': '月度日程'
+            };
+            
+            allData.plans[pageType] = {
+                name: pageNames[pageType] || pageType,
+                data: data,
+                count: Object.keys(data).length
+            };
+        }
+        
+        // 统计摘要
+        allData.summary = {
+            totalPlans: Object.keys(allData.plans).length,
+            totalEntries: Object.values(allData.plans).reduce((sum, p) => sum + p.count, 0),
+            hasData: Object.keys(allData.plans).length > 0,
+            currentPage: pageType
+        };
+        
+        console.log(`📊 [AI分析] ${allData.plans[pageType]?.name || pageType} 数据:`, allData);
+        
+        return allData;
+    }
 
     /**
      * 获取指定类型的计划数据
@@ -90,11 +178,90 @@ class GeminiAIAssistant {
      * 构建发送给 Gemini 的提示词
      */
     buildPrompt(planData) {
-        let prompt = `你是一位专业的生活规划和时间管理专家。请分析以下用户的计划数据，并提供个性化的建议和洞察。
+        const pageType = planData.pageType || 'all';
+        const isCurrentPageOnly = pageType !== 'all';
+        
+        // 根据页面类型自定义分析重点
+        const pageAnalysisFocus = {
+            'day': {
+                title: '日计划分析',
+                focus: '今日任务安排、时间管理、优先级设定',
+                tips: '时间块规划、任务分类、能量管理'
+            },
+            'week': {
+                title: '周计划分析',
+                focus: '周目标达成、工作生活平衡、周回顾质量',
+                tips: '周目标设定、负载均衡、复盘总结'
+            },
+            'month': {
+                title: '月计划分析',
+                focus: '月度目标、里程碑设定、长期规划',
+                tips: '月度主题、关键成果、进度追踪'
+            },
+            'quarter': {
+                title: '季度计划分析',
+                focus: 'OKR设定、季度目标、战略规划',
+                tips: 'OKR方法、关键结果、季度复盘'
+            },
+            'halfyear': {
+                title: '半年计划分析',
+                focus: '半年目标、重大项目、方向调整',
+                tips: '中期目标、项目管理、战略调整'
+            },
+            'year': {
+                title: '年度计划分析',
+                focus: '年度愿景、长期目标、人生规划',
+                tips: '年度主题、长期愿景、价值观对齐'
+            },
+            'habit': {
+                title: '习惯追踪分析',
+                focus: '习惯养成、坚持度、习惯叠加',
+                tips: '习惯养成技巧、打卡系统、习惯链'
+            },
+            'mood': {
+                title: '心情记录分析',
+                focus: '情绪模式、压力管理、心理健康',
+                tips: '情绪觉察、压力应对、积极心理'
+            },
+            'gratitude': {
+                title: '感恩日记分析',
+                focus: '积极心态、幸福感、感恩习惯',
+                tips: '感恩练习、幸福感提升、正念生活'
+            },
+            'reflection': {
+                title: '反思模板分析',
+                focus: '深度反思、自我成长、经验总结',
+                tips: '反思方法、成长记录、经验提炼'
+            },
+            'schedule': {
+                title: '月度日程分析',
+                focus: '日程安排、时间分配、活动平衡',
+                tips: '日程管理、时间分配、生活平衡'
+            }
+        };
+        
+        const currentFocus = pageAnalysisFocus[pageType] || {
+            title: '综合计划分析',
+            focus: '整体规划、多维度平衡、系统性思考',
+            tips: '全局视角、系统规划、综合优化'
+        };
+        
+        let prompt = isCurrentPageOnly 
+            ? `你是一位专业的生活规划和时间管理专家。请专门分析用户的【${currentFocus.title}】数据，提供针对性的建议。
 
-📊 **用户计划数据概览**：
+📊 **${currentFocus.title}数据概览**：
+- 页面类型: ${currentFocus.title}
+- 分析重点: ${currentFocus.focus}
+- 记录数: ${planData.summary.totalEntries}
+- 分析时间: ${new Date().toLocaleString('zh-CN')}
+
+`
+            : `你是一位专业的生活规划和时间管理专家。请分析用户的【全部计划数据】，提供综合性的个性化建议和洞察。
+
+📊 **用户全部计划数据概览**：
 - 总计划类型: ${planData.summary.totalPlans}
 - 总记录数: ${planData.summary.totalEntries}
+- 分析范围: 所有计划页面
 - 分析时间: ${new Date().toLocaleString('zh-CN')}
 
 `;
@@ -111,31 +278,62 @@ class GeminiAIAssistant {
             });
         });
 
-        prompt += `
+        prompt += isCurrentPageOnly
+            ? `
 
-请基于以上数据，提供以下分析：
+请基于以上【${currentFocus.title}】数据，提供以下分析：
+
+1. **${currentFocus.title}评估** (2-3句话)
+   - 当前${currentFocus.title}的完成度和质量如何？
+   - 在${currentFocus.focus}方面做得如何？
+
+2. **关键洞察** (3-5点)
+   - 针对${currentFocus.title}的模式和趋势
+   - 发现的优势和待改进之处
+   - ${currentFocus.focus}的分析
+
+3. **具体建议** (5-7条)
+   - 如何优化${currentFocus.title}
+   - ${currentFocus.tips}相关建议
+   - 提高${currentFocus.title}质量的方法
+   - 针对性的改进建议
+
+4. **行动计划** (3-5条)
+   - 针对${currentFocus.title}立即可采取的具体行动
+   - 优先级排序
+   - 下一步建议
+
+请用中文回答，语言温暖、专业且富有激励性。使用 Markdown 格式，包含适当的表情符号。
+重要：只分析【${currentFocus.title}】的内容，不要涉及其他计划页面。`
+            : `
+
+请基于以上【全部计划数据】，提供以下综合分析：
 
 1. **整体评估** (2-3句话)
-   - 用户的计划习惯如何？
+   - 用户的整体规划习惯如何？
+   - 各个维度的平衡性如何？
    - 哪些方面做得好？
 
 2. **关键洞察** (3-5点)
-   - 发现的模式和趋势
+   - 跨页面的模式和趋势
+   - 不同计划层级的一致性
    - 潜在的问题或改进空间
-   - 目标与行动的一致性
+   - 目标与行动的系统性分析
 
 3. **具体建议** (5-7条)
-   - 如何优化时间管理
-   - 如何提高执行力
-   - 如何平衡不同维度的计划
-   - 习惯培养建议
-   - 目标设定建议
+   - 如何优化整体时间管理系统
+   - 如何提高多维度执行力
+   - 如何平衡短期与长期计划
+   - 如何实现计划层级的联动
+   - 习惯培养与目标达成的结合
 
-4. **行动计划** (3-5条)
-   - 立即可以采取的具体行动
+4. **综合行动计划** (3-5条)
+   - 系统性改进的具体行动
    - 优先级排序
+   - 跨页面的协同建议
 
-请用中文回答，语言温暖、专业且富有激励性。使用 Markdown 格式，包含适当的表情符号。`;
+请用中文回答，语言温暖、专业且富有激励性。使用 Markdown 格式，包含适当的表情符号。
+重要：这是全局分析，请从系统性角度给出综合建议。`;
 
         return prompt;
     }
