@@ -166,6 +166,170 @@
             };
         }
         
+        // 9. 修复习惯分析按钮
+        const habitAnalyticsBtn = document.getElementById('habit-analytics-btn');
+        if (habitAnalyticsBtn) {
+            console.log('✅ [强制修复] 找到习惯分析按钮，添加事件');
+            habitAnalyticsBtn.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('📊 习惯分析按钮被点击');
+                if (typeof handleHabitAnalytics === 'function') {
+                    handleHabitAnalytics();
+                } else if (typeof showHabitAnalytics === 'function') {
+                    showHabitAnalytics();
+                } else {
+                    alert('习惯分析功能正在加载中...');
+                }
+            };
+        }
+        
+        // 10. 修复智能提醒按钮
+        const habitReminderBtn = document.getElementById('habit-reminder-btn');
+        if (habitReminderBtn) {
+            console.log('✅ [强制修复] 找到智能提醒按钮，添加事件');
+            habitReminderBtn.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🔔 智能提醒按钮被点击');
+                if (typeof handleHabitReminder === 'function') {
+                    handleHabitReminder();
+                } else if (typeof showHabitReminder === 'function') {
+                    showHabitReminder();
+                } else {
+                    alert('智能提醒功能正在加载中...');
+                }
+            };
+        }
+        
+        // 11. 修复智能分类按钮
+        const autoCategorizeBtn = document.getElementById('auto-categorize-btn');
+        if (autoCategorizeBtn) {
+            console.log('✅ [强制修复] 找到智能分类按钮，添加事件');
+            autoCategorizeBtn.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🏷️ 智能分类按钮被点击');
+                if (typeof handleAutoCategorize === 'function') {
+                    handleAutoCategorize();
+                } else if (typeof showAutoCategorize === 'function') {
+                    showAutoCategorize();
+                } else {
+                    alert('智能分类功能正在加载中...');
+                }
+            };
+        }
+        
+        // 12. 修复难度评估按钮
+        const difficultyEstimatorBtn = document.getElementById('difficulty-estimator-btn');
+        if (difficultyEstimatorBtn) {
+            console.log('✅ [强制修复] 找到难度评估按钮，添加事件');
+            difficultyEstimatorBtn.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🎯 难度评估按钮被点击');
+                if (typeof showDifficultyEstimator === 'function') {
+                    showDifficultyEstimator();
+                } else {
+                    alert('难度评估功能正在加载中...');
+                }
+            };
+        }
+        
+        // 13. 修复优先级分析按钮
+        const priorityAnalyticsBtn = document.getElementById('priority-analytics-btn');
+        if (priorityAnalyticsBtn) {
+            console.log('✅ [强制修复] 找到优先级分析按钮，添加事件');
+            priorityAnalyticsBtn.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('📊 优先级分析按钮被点击');
+                if (typeof handlePriorityAnalytics === 'function') {
+                    handlePriorityAnalytics();
+                } else if (typeof showPriorityAnalytics === 'function') {
+                    showPriorityAnalytics();
+                } else {
+                    alert('优先级分析功能正在加载中...');
+                }
+            };
+        }
+        
+        // 14. 修复时间块相关按钮
+        const timeblockTemplatesBtn = document.getElementById('timeblock-templates');
+        if (timeblockTemplatesBtn) {
+            console.log('✅ [强制修复] 找到时间块模板按钮，添加事件');
+            timeblockTemplatesBtn.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🧠 时间块模板按钮被点击');
+                if (typeof showTimeblockTemplates === 'function') {
+                    showTimeblockTemplates();
+                } else {
+                    alert('时间块模板功能正在加载中...');
+                }
+            };
+        }
+        
+        const timeblockSuggestBtn = document.getElementById('timeblock-suggest');
+        if (timeblockSuggestBtn) {
+            console.log('✅ [强制修复] 找到时间块建议按钮，添加事件');
+            timeblockSuggestBtn.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('💡 时间块建议按钮被点击');
+                if (typeof suggestTimeblocks === 'function') {
+                    suggestTimeblocks();
+                } else {
+                    alert('时间块建议功能正在加载中...');
+                }
+            };
+        }
+        
+        const timeblockCheckBtn = document.getElementById('timeblock-check');
+        if (timeblockCheckBtn) {
+            console.log('✅ [强制修复] 找到时间块冲突检测按钮，添加事件');
+            timeblockCheckBtn.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('⚠️ 时间块冲突检测按钮被点击');
+                if (typeof checkTimeblockConflicts === 'function') {
+                    checkTimeblockConflicts();
+                } else {
+                    alert('时间块冲突检测功能正在加载中...');
+                }
+            };
+        }
+        
+        const energyOptimizationBtn = document.getElementById('energy-optimization-btn');
+        if (energyOptimizationBtn) {
+            console.log('✅ [强制修复] 找到能量优化按钮，添加事件');
+            energyOptimizationBtn.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('⚡ 能量优化按钮被点击');
+                if (typeof showEnergyOptimization === 'function') {
+                    showEnergyOptimization();
+                } else {
+                    alert('能量优化功能正在加载中...');
+                }
+            };
+        }
+        
+        const breakSchedulerBtn = document.getElementById('break-scheduler-btn');
+        if (breakSchedulerBtn) {
+            console.log('✅ [强制修复] 找到休息安排按钮，添加事件');
+            breakSchedulerBtn.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🧘 休息安排按钮被点击');
+                if (typeof showBreakScheduler === 'function') {
+                    showBreakScheduler();
+                } else {
+                    alert('休息安排功能正在加载中...');
+                }
+            };
+        }
+        
         // 9. 修复保存按钮
         const saveBtn = document.querySelector('.save-btn');
         if (saveBtn) {
