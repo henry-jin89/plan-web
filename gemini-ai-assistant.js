@@ -37,6 +37,27 @@ class GeminiAIAssistant {
         
         return pageMap[filename] || 'all';
     }
+    
+    /**
+     * 获取页面中文名称
+     */
+    getPageName(pageType) {
+        const pageNames = {
+            'day': '日计划',
+            'week': '周计划',
+            'month': '月计划',
+            'quarter': '季度计划',
+            'halfyear': '半年计划',
+            'year': '年计划',
+            'habit': '习惯追踪',
+            'mood': '心情记录',
+            'gratitude': '感恩日记',
+            'reflection': '反思模板',
+            'schedule': '月度日程',
+            'all': '全部计划'
+        };
+        return pageNames[pageType] || pageType;
+    }
 
     /**
      * 收集所有页面的计划数据（仅用于index.html）
@@ -457,12 +478,24 @@ class GeminiAIAssistant {
             console.log('📊 正在收集计划数据...');
             const planData = this.collectAllPlanData();
             
+            // 详细调试日志
+            console.log('📊 [AI分析调试] 收集到的数据:', planData);
+            console.log('📊 [AI分析调试] plans对象:', planData.plans);
+            console.log('📊 [AI分析调试] summary:', planData.summary);
+            console.log('📊 [AI分析调试] hasData:', planData.summary.hasData);
+            
             if (!planData.summary.hasData) {
                 this.isAnalyzing = false;
+                const pageType = planData.pageType || 'all';
+                const errorMessage = pageType === 'all' 
+                    ? '请先在各个计划页面中添加一些内容，然后再使用 AI 分析功能。'
+                    : `请先在${this.getPageName(pageType)}页面中添加一些内容，然后再使用 AI 分析功能。\n\n当前页面暂无保存的${this.getPageName(pageType)}数据。`;
+                
+                console.warn('⚠️ [AI分析] 没有检测到数据');
                 return {
                     success: false,
                     error: '暂无计划数据',
-                    message: '请先在各个计划页面中添加一些内容，然后再使用 AI 分析功能。'
+                    message: errorMessage
                 };
             }
 
