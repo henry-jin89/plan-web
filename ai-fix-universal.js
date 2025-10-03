@@ -1,16 +1,19 @@
 /**
  * AI分析功能通用修复脚本
  * 确保所有页面的 startAIAnalysis 函数都能正常工作
+ * 注意：此脚本不会干扰其他页面功能
  */
 
 (function() {
     'use strict';
     
     console.log('🔧 [AI-FIX] 加载AI分析功能修复脚本...');
+    console.log('🔧 [AI-FIX] 注意：此脚本仅处理AI分析功能，不影响其他按钮');
     
     // 强制定义全局函数（立即执行，不等待DOM）
-    console.log('✅ [AI-FIX] 强制定义全局 startAIAnalysis 函数');
+    console.log('✅ [AI-FIX] 定义全局 startAIAnalysis 函数');
     
+    // 只定义AI分析函数，不干扰其他事件
     window.startAIAnalysis = async function() {
         console.log('🚀 [AI-FIX] startAIAnalysis 函数被调用');
         
