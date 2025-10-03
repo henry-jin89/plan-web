@@ -305,14 +305,101 @@
             }
         });
         
-        // 15. 修复周计划/年计划特有的回顾相关按钮
-        const reviewButtons = [
+        // 15. 修复周计划特有的按钮
+        const weekButtons = [
+            { id: 'week-analysis-btn', name: '周分析', func: 'showWeekAnalysis', emoji: '📈' },
+            { id: 'week-review-btn', name: '周回顾', func: 'showWeekReview', emoji: '🔍' },
+            { id: 'week-template-btn', name: '周计划模板', func: 'showWeekTemplate', emoji: '📋' },
+            { id: 'week-insights-btn', name: '智能洞察', func: 'showWeekInsights', emoji: '🧠' },
+            { id: 'week-optimization-btn', name: '效率优化', func: 'showWeekOptimization', emoji: '⚡' },
+            { id: 'generate-review-btn', name: '生成周报', func: 'generateWeeklyReview', emoji: '📋' },
+            { id: 'ai-suggest-goals-btn', name: 'AI建议目标', func: 'aiSuggestGoals', emoji: '💡' },
+            { id: 'goal-tracker-btn', name: '进度追踪', func: 'showGoalTracker', emoji: '📊' },
+            { id: 'auto-schedule-btn', name: '智能排期', func: 'autoScheduleTasks', emoji: '🤖' },
+            { id: 'workload-balance-btn', name: '负载均衡', func: 'showWorkloadBalance', emoji: '⚖️' },
             { id: 'review-template-btn', name: '回顾模板', func: 'showReviewTemplate', emoji: '📋' },
             { id: 'achievement-tracker-btn', name: '成就记录', func: 'showAchievementTracker', emoji: '🏆' },
-            { id: 'reflection-growth-btn', name: '复盘成长', func: 'showReflectionGrowth', emoji: '📈' }
+            { id: 'next-week-ai-btn', name: 'AI规划下周', func: 'generateNextWeekPlan', emoji: '💡' },
+            { id: 'carry-over-btn', name: '结转任务', func: 'carryOverTasks', emoji: '📋' }
         ];
         
-        reviewButtons.forEach(btnInfo => {
+        weekButtons.forEach(btnInfo => {
+            const btn = document.getElementById(btnInfo.id);
+            if (btn && !btn.getAttribute('data-fixed')) {
+                btn.onclick = function(e) {
+                    e && e.preventDefault && e.preventDefault();
+                    e && e.stopPropagation && e.stopPropagation();
+                    console.log(`${btnInfo.emoji} [通用修复] ${btnInfo.name}按钮被点击`);
+                    if (typeof window[btnInfo.func] === 'function') {
+                        window[btnInfo.func]();
+                    } else {
+                        console.warn(`${btnInfo.name}函数未定义`);
+                    }
+                };
+                btn.setAttribute('data-fixed', 'true');
+                fixCount++;
+                console.log(`✅ [通用修复] ${btnInfo.name}按钮已修复`);
+            }
+        });
+        
+        // 16. 修复月计划特有的按钮
+        const monthButtons = [
+            { id: 'month-analytics-btn', name: '月度分析', func: 'showMonthAnalytics', emoji: '📊' },
+            { id: 'month-template-btn', name: '模板插入', func: 'showMonthTemplate', emoji: '📋' },
+            { id: 'month-carry-over-btn', name: '月结转任务', func: 'carryOverMonthTasks', emoji: '📋' }
+        ];
+        
+        monthButtons.forEach(btnInfo => {
+            const btn = document.getElementById(btnInfo.id);
+            if (btn && !btn.getAttribute('data-fixed')) {
+                btn.onclick = function(e) {
+                    e && e.preventDefault && e.preventDefault();
+                    e && e.stopPropagation && e.stopPropagation();
+                    console.log(`${btnInfo.emoji} [通用修复] ${btnInfo.name}按钮被点击`);
+                    if (typeof window[btnInfo.func] === 'function') {
+                        window[btnInfo.func]();
+                    } else {
+                        console.warn(`${btnInfo.name}函数未定义`);
+                    }
+                };
+                btn.setAttribute('data-fixed', 'true');
+                fixCount++;
+                console.log(`✅ [通用修复] ${btnInfo.name}按钮已修复`);
+            }
+        });
+        
+        // 17. 修复季度计划特有的按钮
+        const quarterButtons = [
+            { id: 'quarter-template-btn', name: '季度模板', func: 'showQuarterTemplate', emoji: '📋' },
+            { id: 'okr-assistant-btn', name: 'OKR助手', func: 'showOKRAssistant', emoji: '🎯' }
+        ];
+        
+        quarterButtons.forEach(btnInfo => {
+            const btn = document.getElementById(btnInfo.id);
+            if (btn && !btn.getAttribute('data-fixed')) {
+                btn.onclick = function(e) {
+                    e && e.preventDefault && e.preventDefault();
+                    e && e.stopPropagation && e.stopPropagation();
+                    console.log(`${btnInfo.emoji} [通用修复] ${btnInfo.name}按钮被点击`);
+                    if (typeof window[btnInfo.func] === 'function') {
+                        window[btnInfo.func]();
+                    } else {
+                        console.warn(`${btnInfo.name}函数未定义`);
+                    }
+                };
+                btn.setAttribute('data-fixed', 'true');
+                fixCount++;
+                console.log(`✅ [通用修复] ${btnInfo.name}按钮已修复`);
+            }
+        });
+        
+        // 18. 修复年计划特有的按钮
+        const yearButtons = [
+            { id: 'template-btn', name: '年度模板', func: 'showYearTemplate', emoji: '📋' },
+            { id: 'year-summary-btn', name: '年度总结', func: 'showYearSummary', emoji: '📊' }
+        ];
+        
+        yearButtons.forEach(btnInfo => {
             const btn = document.getElementById(btnInfo.id);
             if (btn && !btn.getAttribute('data-fixed')) {
                 btn.onclick = function(e) {
