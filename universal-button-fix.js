@@ -305,6 +305,32 @@
             }
         });
         
+        // 15. 修复周计划/年计划特有的回顾相关按钮
+        const reviewButtons = [
+            { id: 'review-template-btn', name: '回顾模板', func: 'showReviewTemplate', emoji: '📋' },
+            { id: 'achievement-tracker-btn', name: '成就记录', func: 'showAchievementTracker', emoji: '🏆' },
+            { id: 'reflection-growth-btn', name: '复盘成长', func: 'showReflectionGrowth', emoji: '📈' }
+        ];
+        
+        reviewButtons.forEach(btnInfo => {
+            const btn = document.getElementById(btnInfo.id);
+            if (btn && !btn.getAttribute('data-fixed')) {
+                btn.onclick = function(e) {
+                    e && e.preventDefault && e.preventDefault();
+                    e && e.stopPropagation && e.stopPropagation();
+                    console.log(`${btnInfo.emoji} [通用修复] ${btnInfo.name}按钮被点击`);
+                    if (typeof window[btnInfo.func] === 'function') {
+                        window[btnInfo.func]();
+                    } else {
+                        console.warn(`${btnInfo.name}函数未定义`);
+                    }
+                };
+                btn.setAttribute('data-fixed', 'true');
+                fixCount++;
+                console.log(`✅ [通用修复] ${btnInfo.name}按钮已修复`);
+            }
+        });
+        
         console.log(`✅ [通用修复] 按钮修复完成！共修复 ${fixCount} 个按钮`);
         
         // 返回修复数量
