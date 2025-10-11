@@ -1,0 +1,27 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 允许所有认证用户（包括匿名用户）读写自己的数据
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // 允许共享用户访问（用于跨设备同步）
+    match /users/shared-plan-web-user/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // 允许调试测试
+    match /debug_test/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // 其他路径默认拒绝
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
