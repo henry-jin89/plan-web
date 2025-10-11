@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>移动端Firebase调试</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 10px;
+            font-size: 14px;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            font-size: 20px;
+            margin: 10px 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            color: rgba(255,255,255,0.9);
+            text-align: center;
+            font-size: 12px;
+            margin-bottom: 15px;
+        }
+
+        .debug-section {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .log-item {
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 5px;
+            font-size: 12px;
+            word-break: break-all;
+            border-left: 3px solid #ccc;
+        }
+
+        .log-info {
+            background: #e3f2fd;
+            border-left-color: #2196F3;
+        }
+
+        .log-success {
+            background: #e8f5e9;
+            border-left-color: #4CAF50;
+        }
+
+        .log-error {
+            background: #ffebee;
+            border-left-color: #f44336;
+        }
+
+        .log-warn {
+            background: #fff3e0;
+            border-left-color: #ff9800;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .status-item {
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+
+        .status-item strong {
+            display: block;
+            color: #666;
+            margin-bottom: 3px;
+        }
+
+        .status-item span {
+            color: #333;
+            font-weight: 500;
+        }
+
+        .test-button {
+            width: 100%;
+            padding: 12px;
+            margin: 5px 0;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-test {
+            background: #2196F3;
+            color: white;
+        }
+
+        .btn-clear {
+            background: #ff9800;
+            color: white;
+        }
+
+        .btn-test:active {
+            transform: scale(0.98);
+        }
+
+        #logContainer {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .timestamp {
+            color: #999;
+            font-size: 11px;
+            margin-right: 5px;
+        }
+
+        .progress {
+            width: 100%;
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 移动端Firebase调试</h1>
+        <p class="subtitle">专为移动设备设计的诊断工具</p>
+
+        <!-- 设备信息 -->
+        <div class="debug-section">
+            <div class="section-title">📱 设备信息</div>
+            <div class="status-grid" id="deviceInfo">
+                <div class="status-item">
+                    <strong>加载中...</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- 测试进度 -->
+        <div class="debug-section" id="progressSection" style="display: none;">
+            <div class="section-title">⏳ 测试进度</div>
+            <div class="progress">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <div id="progressText" style="text-align: center; font-size: 12px; color: #666; margin-top: 5px;">
+                准备开始...
+            </div>
+        </div>
+
+        <!-- 控制按钮 -->
+        <div class="debug-section">
+            <button class="test-button btn-test" onclick="runDiagnostics()">
+                🚀 开始Firebase诊断测试
+            </button>
+            <button class="test-button btn-clear" onclick="clearLogs()">
+                🗑️ 清除日志
+            </button>
+        </div>
+
+        <!-- 实时日志 -->
+        <div class="debug-section">
+            <div class="section-title">📋 实时日志</div>
+            <div id="logContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        // 日志系统
+        const logs = [];
+        
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+            const log = { message, type, timestamp };
+            logs.push(log);
+            
+            const container = document.getElementById('logContainer');
+            const logDiv = document.createElement('div');
+            logDiv.className = `log-item log-${type}`;
+            logDiv.innerHTML = `<span class="timestamp">${timestamp}</span>${message}`;
+            container.appendChild(logDiv);
+            container.scrollTop = container.scrollHeight;
+            
+            console.log(`[${type.toUpperCase()}]`, message);
+        }
+
+        function clearLogs() {
+            logs.length = 0;
+            document.getElementById('logContainer').innerHTML = '';
+            addLog('日志已清除', 'info');
+        }
+
+        function updateProgress(percent, text) {
+            document.getElementById('progressSection').style.display = 'block';
+            document.getElementById('progressBar').style.width = percent + '%';
+            document.getElementById('progressText').textContent = text;
+        }
+
+        // 收集设备信息
+        function collectDeviceInfo() {
+            const info = {
+                'User Agent': navigator.userAgent,
+                '平台': navigator.platform,
+                '在线状态': navigator.onLine ? '✅ 在线' : '❌ 离线',
+                '语言': navigator.language,
+                '屏幕尺寸': `${window.screen.width}×${window.screen.height}`,
+                '视口尺寸': `${window.innerWidth}×${window.innerHeight}`,
+                'Cookie启用': navigator.cookieEnabled ? '✅ 是' : '❌ 否',
+                'LocalStorage': typeof(Storage) !== 'undefined' ? '✅ 支持' : '❌ 不支持',
+                '连接类型': navigator.connection?.effectiveType || '未知',
+                '时区': Intl.DateTimeFormat().resolvedOptions().timeZone
+            };
+
+            const container = document.getElementById('deviceInfo');
+            container.innerHTML = '';
+            
+            for (const [key, value] of Object.entries(info)) {
+                const div = document.createElement('div');
+                div.className = 'status-item';
+                div.innerHTML = `<strong>${key}:</strong><span>${value}</span>`;
+                container.appendChild(div);
+            }
+
+            return info;
+        }
+
+        // Firebase诊断测试
+        async function runDiagnostics() {
+            addLog('🚀 开始Firebase诊断测试...', 'info');
+            updateProgress(0, '准备开始...');
+
+            try {
+                // 1. 检查网络
+                updateProgress(10, '检查网络连接...');
+                addLog('1️⃣ 检查网络连接...', 'info');
+                if (!navigator.onLine) {
+                    throw new Error('设备处于离线状态');
+                }
+                addLog('✅ 网络连接正常', 'success');
+
+                // 2. 测试Google CDN连接
+                updateProgress(20, '测试Google CDN连接...');
+                addLog('2️⃣ 测试Google CDN连接...', 'info');
+                const cdnTest = await fetch('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js', {
+                    method: 'HEAD',
+                    mode: 'no-cors'
+                }).catch(e => {
+                    addLog('⚠️ CDN连接测试失败: ' + e.message, 'warn');
+                    return null;
+                });
+                if (cdnTest) {
+                    addLog('✅ Google CDN可访问', 'success');
+                } else {
+                    addLog('⚠️ 无法验证CDN连接（这可能是正常的）', 'warn');
+                }
+
+                // 3. 加载Firebase SDK
+                updateProgress(30, '加载Firebase App SDK...');
+                addLog('3️⃣ 加载Firebase SDK...', 'info');
+                
+                if (window.firebase) {
+                    addLog('✅ Firebase SDK已存在', 'success');
+                } else {
+                    addLog('📦 开始加载Firebase App...', 'info');
+                    await loadScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js');
+                    addLog('✅ Firebase App加载成功', 'success');
+
+                    updateProgress(50, '加载Firestore SDK...');
+                    addLog('📦 开始加载Firestore...', 'info');
+                    await loadScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js');
+                    addLog('✅ Firestore加载成功', 'success');
+
+                    updateProgress(70, '加载Auth SDK...');
+                    addLog('📦 开始加载Auth...', 'info');
+                    await loadScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js');
+                    addLog('✅ Auth加载成功', 'success');
+                }
+
+                // 4. 初始化Firebase
+                updateProgress(80, '初始化Firebase应用...');
+                addLog('4️⃣ 初始化Firebase应用...', 'info');
+                
+                const firebaseConfig = {
+                    apiKey: "AIzaSyCDJRRK83dXaGsUiBtpgN5M0REJtV-3Uc0",
+                    authDomain: "plan-web-b0c39.firebaseapp.com",
+                    projectId: "plan-web-b0c39",
+                    storageBucket: "plan-web-b0c39.firebasestorage.app",
+                    messagingSenderId: "1087929904929",
+                    appId: "1:1087929904929:web:aa8790a7ee424fce3b1860"
+                };
+
+                let app;
+                try {
+                    app = firebase.app();
+                    addLog('✅ Firebase应用已存在', 'success');
+                } catch (e) {
+                    app = firebase.initializeApp(firebaseConfig);
+                    addLog('✅ Firebase应用初始化成功', 'success');
+                }
+
+                // 5. 测试Firestore连接
+                updateProgress(85, '测试Firestore连接...');
+                addLog('5️⃣ 测试Firestore连接...', 'info');
+                const db = firebase.firestore();
+                addLog('✅ Firestore实例创建成功', 'success');
+
+                // 6. 测试认证
+                updateProgress(90, '测试匿名认证...');
+                addLog('6️⃣ 测试匿名认证...', 'info');
+                const auth = firebase.auth();
+                
+                addLog('🔐 执行匿名登录...', 'info');
+                const userCredential = await auth.signInAnonymously();
+                addLog('✅ 匿名登录成功！', 'success');
+                addLog(`👤 用户ID: ${userCredential.user.uid.substring(0, 16)}...`, 'info');
+
+                // 7. 测试数据库写入
+                updateProgress(95, '测试数据库写入...');
+                addLog('7️⃣ 测试数据库写入...', 'info');
+                const testDoc = db.collection('debug_test').doc('mobile_test_' + Date.now());
+                await testDoc.set({
+                    timestamp: new Date().toISOString(),
+                    device: navigator.userAgent.substring(0, 50),
+                    test: 'mobile-debug'
+                });
+                addLog('✅ 数据写入成功', 'success');
+
+                // 完成
+                updateProgress(100, '✅ 所有测试完成！');
+                addLog('🎉 Firebase完全正常工作！', 'success');
+                addLog('━━━━━━━━━━━━━━━━━━━━', 'info');
+                addLog('结论: Firebase在您的设备上可以正常使用', 'success');
+
+            } catch (error) {
+                updateProgress(100, '❌ 测试失败');
+                addLog('❌ 测试失败: ' + error.message, 'error');
+                addLog('错误详情: ' + JSON.stringify(error, null, 2), 'error');
+                addLog('━━━━━━━━━━━━━━━━━━━━', 'info');
+                addLog('结论: Firebase在您的设备上无法正常工作', 'error');
+                addLog('可能原因:', 'warn');
+                addLog('• 网络防火墙或代理拦截', 'warn');
+                addLog('• 移动运营商限制访问Google服务', 'warn');
+                addLog('• 浏览器安全设置阻止', 'warn');
+                addLog('• DNS解析问题', 'warn');
+            }
+        }
+
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.async = true;
+                script.crossOrigin = 'anonymous';
+                
+                const timeout = setTimeout(() => {
+                    reject(new Error(`脚本加载超时: ${src}`));
+                }, 30000);
+                
+                script.onload = () => {
+                    clearTimeout(timeout);
+                    resolve();
+                };
+                
+                script.onerror = (error) => {
+                    clearTimeout(timeout);
+                    reject(new Error(`脚本加载失败: ${src}`));
+                };
+                
+                document.head.appendChild(script);
+            });
+        }
+
+        // 页面加载时收集设备信息
+        window.addEventListener('DOMContentLoaded', () => {
+            addLog('📱 移动端Firebase调试工具已加载', 'info');
+            collectDeviceInfo();
+            addLog('设备信息收集完成', 'success');
+            addLog('点击"开始Firebase诊断测试"按钮进行测试', 'info');
+        });
+    </script>
+</body>
+</html>
+
