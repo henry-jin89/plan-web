@@ -378,7 +378,7 @@
             const card = document.getElementById('connection-status');
             const valueElement = card.querySelector('.status-value');
             
-            if (status.initialized) {
+            if (status.isInitialized) {
                 card.className = 'status-card online';
                 valueElement.textContent = '✅ 已连接';
             } else {
@@ -404,7 +404,7 @@
             const card = document.getElementById('sync-status');
             const valueElement = card.querySelector('.status-value');
             
-            if (status.enabled) {
+            if (status.isEnabled) {
                 if (status.syncInProgress) {
                     card.className = 'status-card warning';
                     valueElement.textContent = '🔄 同步中...';
