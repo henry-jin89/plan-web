@@ -13,6 +13,11 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
     
+    // 允许计划数据同步（主要的数据存储路径）
+    match /planData/{userId} {
+      allow read, write: if request.auth != null;
+    }
+    
     // 允许调试测试
     match /debug_test/{document=**} {
       allow read, write: if request.auth != null;
