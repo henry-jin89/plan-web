@@ -57,36 +57,64 @@
                 
                 // 初始化Firestore数据库
                 this.db = window.firebase.firestore();
+                
+                // 启用离线持久化（重要！提高可靠性）
+                try {
+                    await this.db.enablePersistence({ synchronizeTabs: true });
+                    console.log('✅ Firestore离线持久化已启用');
+                } catch (err) {
+                    if (err.code === 'failed-precondition') {
+                        console.warn('⚠️ 多个标签页打开，无法启用持久化');
+                    } else if (err.code === 'unimplemented') {
+                        console.warn('⚠️ 浏览器不支持离线持久化');
+                    } else {
+                        console.warn('⚠️ 持久化启用失败:', err);
+                    }
+                }
+                
                 console.log('✅ Firestore数据库连接成功');
                 
                 // 初始化认证
                 this.auth = window.firebase.auth();
                 
-                // 匿名登录（增加超时控制和重试）
-                let authSuccess = false;
-                let lastError;
+                // 启用持久化认证（重要！）
+                await this.auth.setPersistence(window.firebase.auth.Auth.Persistence.LOCAL);
+                console.log('✅ 已启用认证持久化');
                 
-                for (let attempt = 1; attempt <= 3; attempt++) {
-                    try {
-                        console.log(`🔐 尝试匿名登录 (第${attempt}次)...`);
-                        await Promise.race([
-                            this.signInAnonymously(),
-                            new Promise((_, reject) => setTimeout(() => reject(new Error('认证超时')), 30000))
-                        ]);
-                        authSuccess = true;
-                        break;
-                    } catch (error) {
-                        lastError = error;
-                        console.warn(`⚠️ 第${attempt}次认证失败:`, error.message);
-                        if (attempt < 3) {
-                            console.log(`⏳ 等待${attempt * 2}秒后重试...`);
-                            await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+                // 检查是否已有登录状态
+                const currentUser = this.auth.currentUser;
+                if (currentUser) {
+                    console.log('✅ 检测到已登录用户，跳过认证');
+                    this.userId = currentUser.uid;
+                    console.log('📌 用户ID:', this.userId.substring(0, 8) + '...');
+                } else {
+                    // 匿名登录（增加超时控制和重试）
+                    let authSuccess = false;
+                    let lastError;
+                    
+                    for (let attempt = 1; attempt <= 3; attempt++) {
+                        try {
+                            console.log(`🔐 尝试匿名登录 (第${attempt}次)...`);
+                            await Promise.race([
+                                this.signInAnonymously(),
+                                new Promise((_, reject) => setTimeout(() => reject(new Error('认证超时')), 30000))
+                            ]);
+                            authSuccess = true;
+                            break;
+                        } catch (error) {
+                            lastError = error;
+                            console.warn(`⚠️ 第${attempt}次认证失败:`, error.message);
+                            if (attempt < 3) {
+                                const waitTime = attempt * 2;
+                                console.log(`⏳ 等待${waitTime}秒后重试...`);
+                                await new Promise(resolve => setTimeout(resolve, waitTime * 1000));
+                            }
                         }
                     }
-                }
-                
-                if (!authSuccess) {
-                    throw lastError || new Error('认证失败');
+                    
+                    if (!authSuccess) {
+                        throw lastError || new Error('认证失败');
+                    }
                 }
                 
                 // 设置自动同步
@@ -100,6 +128,9 @@
                 this.isInitialized = true;
                 this.isEnabled = true;
                 
+                // 监听网络状态变化，网络恢复时重新尝试同步
+                this.setupNetworkListener();
+                
                 console.log('✅ Firebase数据库同步初始化完成');
                 this.showNotification('🔥 Firebase数据库同步已启用', 'success');
                 
@@ -111,6 +142,47 @@
                     stack: error.stack?.substring(0, 200)
                 });
                 this.fallbackToLocal(error);
+                
+                // 即使初始化失败，也监听网络恢复
+                this.setupNetworkListener();
+            }
+        }
+        
+        setupNetworkListener() {
+            // 监听网络恢复
+            window.addEventListener('online', () => {
+                console.log('🌐 网络已恢复，尝试重新连接Firebase...');
+                if (!this.isEnabled && !this.isInitialized) {
+                    // 如果之前失败了，重新尝试初始化
+                    setTimeout(() => this.retryInit(), 2000);
+                } else if (this.isEnabled) {
+                    // 如果已连接，立即同步
+                    this.syncToDatabase();
+                }
+            });
+            
+            window.addEventListener('offline', () => {
+                console.log('📡 网络已断开');
+            });
+        }
+        
+        async retryInit() {
+            console.log('🔄 重新尝试初始化Firebase...');
+            try {
+                if (!this.auth) {
+                    // 如果完全没初始化，从头开始
+                    await this.init();
+                } else {
+                    // 如果只是认证失败，只重试认证
+                    await this.auth.signInAnonymously();
+                    this.isInitialized = true;
+                    this.isEnabled = true;
+                    this.setupAutoSync();
+                    console.log('✅ Firebase重新连接成功');
+                    this.showNotification('✅ Firebase已重新连接', 'success');
+                }
+            } catch (error) {
+                console.warn('⚠️ 重新连接失败:', error.message);
             }
         }
         
