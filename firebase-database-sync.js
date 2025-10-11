@@ -326,6 +326,52 @@
             await this.restoreFromDatabase();
         }
         
+        /**
+         * 获取同步状态 - 用于状态页面显示
+         */
+        getStatus() {
+            return {
+                isInitialized: this.isInitialized,
+                isEnabled: this.isEnabled,
+                userId: this.userId,
+                sharedUserId: this.sharedUserId,
+                lastSync: this.lastSync,
+                syncInProgress: this.syncInProgress,
+                hasFirebase: !!window.firebase,
+                hasDb: !!this.db,
+                hasAuth: !!this.auth,
+                timestamp: new Date().toISOString()
+            };
+        }
+        
+        /**
+         * 获取本地数据统计
+         */
+        getLocalDataStats() {
+            const allData = this.collectAllPlanData();
+            return {
+                totalKeys: Object.keys(allData).length,
+                dataSize: JSON.stringify(allData).length,
+                keys: Object.keys(allData),
+                lastUpdate: localStorage.getItem('lastDataUpdate'),
+                lastSync: localStorage.getItem('lastCloudSync')
+            };
+        }
+        
+        /**
+         * 获取完整的同步信息 - 用于调试
+         */
+        getSyncInfo() {
+            return {
+                status: this.getStatus(),
+                localData: this.getLocalDataStats(),
+                config: {
+                    projectId: firebaseConfig.projectId,
+                    authDomain: firebaseConfig.authDomain
+                }
+            };
+        }
+        
         fallbackToLocal() {
             console.log('📱 回退到本地存储模式');
             this.isEnabled = false;
