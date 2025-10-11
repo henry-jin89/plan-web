@@ -101,24 +101,62 @@
                 return;
             }
             
-            // 加载Firebase核心 - 更新到最新版本12.3.0
-            await this.loadScript('https://www.gstatic.com/firebasejs/12.3.0/firebase-app-compat.js');
-            
-            // 加载Firestore
-            await this.loadScript('https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore-compat.js');
-            
-            // 加载认证
-            await this.loadScript('https://www.gstatic.com/firebasejs/12.3.0/firebase-auth-compat.js');
-            
-            console.log('✅ Firebase SDK加载完成');
+            try {
+                // 使用更稳定的版本 9.23.0（移动端兼容性更好）
+                const version = '9.23.0';
+                console.log(`📦 使用Firebase SDK版本: ${version}`);
+                
+                // 加载Firebase核心
+                console.log('📦 加载 firebase-app...');
+                await this.loadScript(`https://www.gstatic.com/firebasejs/${version}/firebase-app-compat.js`);
+                console.log('✅ firebase-app 加载完成');
+                
+                // 加载Firestore
+                console.log('📦 加载 firebase-firestore...');
+                await this.loadScript(`https://www.gstatic.com/firebasejs/${version}/firebase-firestore-compat.js`);
+                console.log('✅ firebase-firestore 加载完成');
+                
+                // 加载认证
+                console.log('📦 加载 firebase-auth...');
+                await this.loadScript(`https://www.gstatic.com/firebasejs/${version}/firebase-auth-compat.js`);
+                console.log('✅ firebase-auth 加载完成');
+                
+                console.log('✅ Firebase SDK全部加载完成');
+                
+            } catch (error) {
+                console.error('❌ Firebase SDK加载失败:', error);
+                throw new Error(`SDK加载失败: ${error.message}`);
+            }
         }
         
         loadScript(src) {
             return new Promise((resolve, reject) => {
+                console.log(`⏳ 开始加载脚本: ${src}`);
+                
                 const script = document.createElement('script');
                 script.src = src;
-                script.onload = resolve;
-                script.onerror = reject;
+                script.async = true;
+                script.crossOrigin = 'anonymous';
+                
+                // 添加超时控制
+                const timeout = setTimeout(() => {
+                    script.onerror = null;
+                    script.onload = null;
+                    reject(new Error(`脚本加载超时: ${src}`));
+                }, 30000); // 30秒超时
+                
+                script.onload = () => {
+                    clearTimeout(timeout);
+                    console.log(`✅ 脚本加载成功: ${src}`);
+                    resolve();
+                };
+                
+                script.onerror = (error) => {
+                    clearTimeout(timeout);
+                    console.error(`❌ 脚本加载失败: ${src}`, error);
+                    reject(new Error(`脚本加载失败: ${src}`));
+                };
+                
                 document.head.appendChild(script);
             });
         }
