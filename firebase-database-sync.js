@@ -62,11 +62,32 @@
                 // 初始化认证
                 this.auth = window.firebase.auth();
                 
-                // 匿名登录（增加超时控制）
-                await Promise.race([
-                    this.signInAnonymously(),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('认证超时')), 15000))
-                ]);
+                // 匿名登录（增加超时控制和重试）
+                let authSuccess = false;
+                let lastError;
+                
+                for (let attempt = 1; attempt <= 3; attempt++) {
+                    try {
+                        console.log(`🔐 尝试匿名登录 (第${attempt}次)...`);
+                        await Promise.race([
+                            this.signInAnonymously(),
+                            new Promise((_, reject) => setTimeout(() => reject(new Error('认证超时')), 30000))
+                        ]);
+                        authSuccess = true;
+                        break;
+                    } catch (error) {
+                        lastError = error;
+                        console.warn(`⚠️ 第${attempt}次认证失败:`, error.message);
+                        if (attempt < 3) {
+                            console.log(`⏳ 等待${attempt * 2}秒后重试...`);
+                            await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+                        }
+                    }
+                }
+                
+                if (!authSuccess) {
+                    throw lastError || new Error('认证失败');
+                }
                 
                 // 设置自动同步
                 this.setupAutoSync();
@@ -106,8 +127,8 @@
                 const version = '9.23.0';
                 const baseUrl = 'https://www.gstatic.com/firebasejs';
                 console.log(`📦 使用Firebase SDK版本: ${version}`);
-                
-                // 加载Firebase核心
+            
+            // 加载Firebase核心
                 console.log('📦 加载 firebase-app...');
                 await this.loadScript(`${baseUrl}/${version}/firebase-app-compat.js`);
                 console.log('✅ firebase-app 加载完成');
@@ -116,13 +137,13 @@
                 if (!window.firebase) {
                     throw new Error('Firebase对象未创建');
                 }
-                
-                // 加载Firestore
+            
+            // 加载Firestore
                 console.log('📦 加载 firebase-firestore...');
                 await this.loadScript(`${baseUrl}/${version}/firebase-firestore-compat.js`);
                 console.log('✅ firebase-firestore 加载完成');
-                
-                // 加载认证
+            
+            // 加载认证
                 console.log('📦 加载 firebase-auth...');
                 await this.loadScript(`${baseUrl}/${version}/firebase-auth-compat.js`);
                 console.log('✅ firebase-auth 加载完成');
