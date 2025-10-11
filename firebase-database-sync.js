@@ -107,18 +107,6 @@
                 const baseUrl = 'https://www.gstatic.com/firebasejs';
                 console.log(`📦 使用Firebase SDK版本: ${version}`);
                 
-                // 先测试CDN连通性
-                console.log('🔍 测试Firebase CDN连通性...');
-                try {
-                    await this.testCDNConnectivity(baseUrl);
-                    console.log('✅ Firebase CDN可访问');
-                } catch (cdnError) {
-                    console.warn('⚠️ Firebase CDN连接测试失败:', cdnError.message);
-                    console.warn('⚠️ 这可能表示Firebase服务在当前网络环境下不可用');
-                    console.warn('💡 如果您在中国大陆，Firebase可能被防火墙屏蔽');
-                    throw new Error('Firebase CDN不可访问，可能是网络限制');
-                }
-                
                 // 加载Firebase核心
                 console.log('📦 加载 firebase-app...');
                 await this.loadScript(`${baseUrl}/${version}/firebase-app-compat.js`);
@@ -145,30 +133,6 @@
                 console.error('❌ Firebase SDK加载失败:', error);
                 throw new Error(`SDK加载失败: ${error.message}`);
             }
-        }
-        
-        async testCDNConnectivity(baseUrl) {
-            return new Promise((resolve, reject) => {
-                const img = new Image();
-                const timeout = setTimeout(() => {
-                    img.onerror = null;
-                    img.onload = null;
-                    reject(new Error('CDN连接超时'));
-                }, 5000);
-                
-                img.onload = () => {
-                    clearTimeout(timeout);
-                    resolve();
-                };
-                
-                img.onerror = () => {
-                    clearTimeout(timeout);
-                    reject(new Error('CDN不可访问'));
-                };
-                
-                // 尝试加载一个小文件来测试连接
-                img.src = baseUrl + '/9.23.0/firebase-app-compat.js';
-            });
         }
         
         loadScript(src) {
