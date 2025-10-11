@@ -383,7 +383,14 @@
                 valueElement.textContent = '✅ 已连接';
             } else {
                 card.className = 'status-card offline';
-                valueElement.textContent = '❌ 未连接';
+                let message = '❌ 未连接';
+                if (status.lastError) {
+                    message += `\n${status.lastError.message}`;
+                }
+                if (!status.online) {
+                    message += '\n设备离线';
+                }
+                valueElement.textContent = message;
             }
         }
 

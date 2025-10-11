@@ -37,6 +37,16 @@
         async init() {
             try {
                 console.log('🚀 初始化Firebase数据库同步...');
+                console.log('📱 设备信息:', {
+                    userAgent: navigator.userAgent.substring(0, 50),
+                    platform: navigator.platform,
+                    online: navigator.onLine
+                });
+                
+                // 检查网络连接
+                if (!navigator.onLine) {
+                    throw new Error('设备处于离线状态');
+                }
                 
                 // 动态加载Firebase SDK
                 await this.loadFirebaseSDK();
@@ -52,14 +62,19 @@
                 // 初始化认证
                 this.auth = window.firebase.auth();
                 
-                // 匿名登录
-                await this.signInAnonymously();
+                // 匿名登录（增加超时控制）
+                await Promise.race([
+                    this.signInAnonymously(),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('认证超时')), 15000))
+                ]);
                 
                 // 设置自动同步
                 this.setupAutoSync();
                 
-                // 尝试恢复云端数据
-                await this.restoreFromDatabase();
+                // 尝试恢复云端数据（不阻塞初始化）
+                this.restoreFromDatabase().catch(err => {
+                    console.warn('恢复数据失败，将使用本地数据:', err);
+                });
                 
                 this.isInitialized = true;
                 this.isEnabled = true;
@@ -69,7 +84,12 @@
                 
             } catch (error) {
                 console.error('❌ Firebase初始化失败:', error);
-                this.fallbackToLocal();
+                console.error('错误详情:', {
+                    message: error.message,
+                    code: error.code,
+                    stack: error.stack?.substring(0, 200)
+                });
+                this.fallbackToLocal(error);
             }
         }
         
@@ -340,6 +360,8 @@
                 hasFirebase: !!window.firebase,
                 hasDb: !!this.db,
                 hasAuth: !!this.auth,
+                lastError: this.lastError,
+                online: navigator.onLine,
                 timestamp: new Date().toISOString()
             };
         }
@@ -372,10 +394,20 @@
             };
         }
         
-        fallbackToLocal() {
+        fallbackToLocal(error) {
             console.log('📱 回退到本地存储模式');
+            console.log('原因:', error?.message || '未知错误');
             this.isEnabled = false;
-            this.showNotification('使用本地存储模式', 'info');
+            this.isInitialized = false;
+            
+            // 保存错误信息供状态页面显示
+            this.lastError = {
+                message: error?.message || '初始化失败',
+                code: error?.code,
+                timestamp: new Date().toISOString()
+            };
+            
+            this.showNotification('Firebase不可用，使用本地存储模式', 'info');
         }
         
         showNotification(message, type = 'info') {
