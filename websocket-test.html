@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket 实时同步测试</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 16px;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .status-label {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .status-value {
+            color: #666;
+            font-family: monospace;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .log-container {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border-radius: 8px;
+            padding: 16px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 4px 0;
+        }
+
+        .log-time {
+            color: #858585;
+        }
+
+        .log-success {
+            color: #4ec9b0;
+        }
+
+        .log-error {
+            color: #f48771;
+        }
+
+        .log-warning {
+            color: #dcdcaa;
+        }
+
+        .log-info {
+            color: #9cdcfe;
+        }
+
+        .test-area {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-top: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 16px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .input-group input,
+        .input-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-group input:focus,
+        .input-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .device-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .device-item {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .device-item.current {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            margin-bottom: 20px;
+            transition: opacity 0.3s ease;
+        }
+
+        .back-link:hover {
+            opacity: 0.8;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-link">← 返回主页</a>
+        
+        <div class="header">
+            <h1>⚡ WebSocket 实时同步测试</h1>
+            <p>测试跨设备实时数据同步功能</p>
+        </div>
+
+        <div class="grid">
+            <!-- 连接状态 -->
+            <div class="card">
+                <h2>🔗 连接状态</h2>
+                <div class="status-item">
+                    <span class="status-label">连接状态</span>
+                    <span id="connection-status" class="status-badge badge-danger">未连接</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">用户ID</span>
+                    <span id="user-id" class="status-value">-</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">设备类型</span>
+                    <span id="device-type" class="status-value">-</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">重连次数</span>
+                    <span id="reconnect-attempts" class="status-value">0</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">队列大小</span>
+                    <span id="queue-size" class="status-value">0</span>
+                </div>
+            </div>
+
+            <!-- 服务器配置 -->
+            <div class="card">
+                <h2>⚙️ 服务器配置</h2>
+                <div class="input-group">
+                    <label for="server-url">服务器地址</label>
+                    <input type="text" id="server-url" value="http://localhost:3000" placeholder="http://localhost:3000">
+                </div>
+                <button class="btn btn-primary" onclick="connectToServer()">🔌 连接服务器</button>
+                <button class="btn btn-danger" onclick="disconnectFromServer()">🔌 断开连接</button>
+                <button class="btn btn-warning" onclick="testHeartbeat()">💓 测试心跳</button>
+            </div>
+
+            <!-- 在线设备 -->
+            <div class="card">
+                <h2>📱 在线设备</h2>
+                <div id="devices-list" class="device-list">
+                    <p style="color: #999; text-align: center;">暂无设备信息</p>
+                </div>
+                <button class="btn btn-primary" onclick="refreshDevices()" style="margin-top: 16px;">🔄 刷新设备列表</button>
+            </div>
+        </div>
+
+        <!-- 数据同步测试 -->
+        <div class="test-area">
+            <h2 style="color: #667eea; margin-bottom: 20px;">🧪 数据同步测试</h2>
+            
+            <div class="input-group">
+                <label for="test-key">数据键名</label>
+                <input type="text" id="test-key" value="planData_test" placeholder="例如: planData_day">
+            </div>
+
+            <div class="input-group">
+                <label for="test-value">数据内容（JSON格式）</label>
+                <textarea id="test-value" rows="4" placeholder='{"title": "测试数据", "content": "这是一条测试数据"}'></textarea>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                <button class="btn btn-success" onclick="testSyncData()">📤 发送数据</button>
+                <button class="btn btn-primary" onclick="testBatchSync()">📦 批量同步</button>
+                <button class="btn btn-warning" onclick="testFullSync()">🔄 全量同步</button>
+                <button class="btn btn-danger" onclick="clearLogs()">🗑️ 清空日志</button>
+            </div>
+        </div>
+
+        <!-- 实时日志 -->
+        <div class="card" style="margin-top: 20px;">
+            <h2>📋 实时日志</h2>
+            <div id="log-container" class="log-container">
+                <div class="log-entry log-info">
+                    <span class="log-time">[等待中]</span> 等待 WebSocket 客户端加载...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载 WebSocket 同步客户端 -->
+    <script src="websocket-sync.js"></script>
+
+    <script>
+        // 日志函数
+        function addLog(message, type = 'info') {
+            const logContainer = document.getElementById('log-container');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            
+            const time = new Date().toLocaleTimeString();
+            entry.innerHTML = `<span class="log-time">[${time}]</span> ${message}`;
+            
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+
+            // 限制日志数量
+            while (logContainer.children.length > 100) {
+                logContainer.removeChild(logContainer.firstChild);
+            }
+        }
+
+        // 更新状态显示
+        function updateStatus() {
+            if (!window.websocketSync) {
+                setTimeout(updateStatus, 500);
+                return;
+            }
+
+            const status = window.websocketSync.getStatus();
+            
+            // 连接状态
+            const connectionBadge = document.getElementById('connection-status');
+            if (status.isConnected) {
+                connectionBadge.textContent = '✅ 已连接';
+                connectionBadge.className = 'status-badge badge-success';
+            } else {
+                connectionBadge.textContent = '❌ 未连接';
+                connectionBadge.className = 'status-badge badge-danger';
+            }
+
+            // 用户ID
+            document.getElementById('user-id').textContent = status.userId || '-';
+
+            // 设备类型
+            document.getElementById('device-type').textContent = 
+                status.deviceInfo ? status.deviceInfo.type : '-';
+
+            // 重连次数
+            document.getElementById('reconnect-attempts').textContent = status.reconnectAttempts;
+
+            // 队列大小
+            document.getElementById('queue-size').textContent = status.queueSize;
+        }
+
+        // 连接到服务器
+        async function connectToServer() {
+            const serverUrl = document.getElementById('server-url').value;
+            
+            if (!serverUrl) {
+                addLog('❌ 请输入服务器地址', 'error');
+                return;
+            }
+
+            addLog(`🔌 正在连接到 ${serverUrl}...`, 'info');
+
+            try {
+                // 保存服务器地址
+                localStorage.setItem('websocket_server_url', serverUrl);
+                
+                await window.websocketSync.connect(serverUrl);
+                addLog('✅ 连接成功！', 'success');
+                updateStatus();
+            } catch (error) {
+                addLog(`❌ 连接失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 断开连接
+        function disconnectFromServer() {
+            if (!window.websocketSync) return;
+            
+            window.websocketSync.disconnect();
+            addLog('🔌 已断开连接', 'warning');
+            updateStatus();
+        }
+
+        // 测试心跳
+        function testHeartbeat() {
+            if (!window.websocketSync || !window.websocketSync.isConnected) {
+                addLog('❌ 未连接到服务器', 'error');
+                return;
+            }
+
+            addLog('💓 发送心跳...', 'info');
+            window.websocketSync.sendHeartbeat();
+        }
+
+        // 刷新设备列表
+        async function refreshDevices() {
+            if (!window.websocketSync || !window.websocketSync.isConnected) {
+                addLog('❌ 未连接到服务器', 'error');
+                return;
+            }
+
+            addLog('📱 获取设备列表...', 'info');
+            
+            try {
+                const devices = await window.websocketSync.getDevices();
+                
+                const devicesList = document.getElementById('devices-list');
+                devicesList.innerHTML = '';
+
+                if (devices.length === 0) {
+                    devicesList.innerHTML = '<p style="color: #999; text-align: center;">暂无在线设备</p>';
+                } else {
+                    devices.forEach(device => {
+                        const deviceItem = document.createElement('div');
+                        deviceItem.className = 'device-item' + (device.isCurrent ? ' current' : '');
+                        
+                        const connectedTime = new Date(device.connectedAt).toLocaleTimeString();
+                        
+                        deviceItem.innerHTML = `
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <strong>${device.deviceInfo.type === 'mobile' ? '📱' : '💻'} ${device.deviceInfo.type}</strong>
+                                    ${device.isCurrent ? '<span style="color: #28a745; font-weight: 600;"> (当前设备)</span>' : ''}
+                                    <div style="font-size: 0.85rem; color: #666; margin-top: 4px;">
+                                        连接时间: ${connectedTime}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        devicesList.appendChild(deviceItem);
+                    });
+
+                    addLog(`✅ 找到 ${devices.length} 个在线设备`, 'success');
+                }
+            } catch (error) {
+                addLog(`❌ 获取设备列表失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 测试同步数据
+        function testSyncData() {
+            if (!window.websocketSync || !window.websocketSync.isConnected) {
+                addLog('❌ 未连接到服务器', 'error');
+                return;
+            }
+
+            const key = document.getElementById('test-key').value;
+            const valueStr = document.getElementById('test-value').value;
+
+            if (!key || !valueStr) {
+                addLog('❌ 请输入数据键名和内容', 'error');
+                return;
+            }
+
+            try {
+                const value = JSON.parse(valueStr);
+                
+                addLog(`📤 同步数据: ${key}`, 'info');
+                window.websocketSync.syncData(key, value);
+                addLog('✅ 数据已发送', 'success');
+                
+                // 同时保存到本地
+                localStorage.setItem(key, valueStr);
+                addLog('💾 数据已保存到本地', 'success');
+                
+            } catch (error) {
+                addLog(`❌ JSON 解析失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 测试批量同步
+        function testBatchSync() {
+            if (!window.websocketSync || !window.websocketSync.isConnected) {
+                addLog('❌ 未连接到服务器', 'error');
+                return;
+            }
+
+            const items = [
+                { key: 'planData_test1', value: { title: '测试1', content: '批量测试数据1' } },
+                { key: 'planData_test2', value: { title: '测试2', content: '批量测试数据2' } },
+                { key: 'planData_test3', value: { title: '测试3', content: '批量测试数据3' } }
+            ];
+
+            addLog(`📦 批量同步 ${items.length} 项数据...`, 'info');
+            window.websocketSync.syncBatch(items);
+            addLog('✅ 批量数据已发送', 'success');
+        }
+
+        // 测试全量同步
+        function testFullSync() {
+            if (!window.websocketSync || !window.websocketSync.isConnected) {
+                addLog('❌ 未连接到服务器', 'error');
+                return;
+            }
+
+            addLog('🔄 请求全量同步...', 'info');
+            window.websocketSync.requestFullSync();
+        }
+
+        // 清空日志
+        function clearLogs() {
+            const logContainer = document.getElementById('log-container');
+            logContainer.innerHTML = '<div class="log-entry log-info"><span class="log-time">[已清空]</span> 日志已清空</div>';
+        }
+
+        // 监听 WebSocket 事件
+        window.addEventListener('websocket-connected', function(event) {
+            addLog('✅ WebSocket 已连接', 'success');
+            addLog(`👤 用户ID: ${event.detail.userId}`, 'info');
+            addLog(`📱 在线设备: ${event.detail.connectedDevices}`, 'info');
+            updateStatus();
+            refreshDevices();
+        });
+
+        window.addEventListener('websocket-disconnected', function(event) {
+            addLog(`⚠️ WebSocket 已断开: ${event.detail.reason}`, 'warning');
+            updateStatus();
+        });
+
+        window.addEventListener('device-connected', function(event) {
+            addLog(`📱 新设备连接: ${event.detail.deviceInfo.type}`, 'success');
+            addLog(`📊 当前在线设备: ${event.detail.totalDevices}`, 'info');
+            refreshDevices();
+        });
+
+        window.addEventListener('device-disconnected', function(event) {
+            addLog(`📴 设备断开: ${event.detail.socketId}`, 'warning');
+            refreshDevices();
+        });
+
+        window.addEventListener('remote-data-updated', function(event) {
+            addLog(`📥 收到远程数据: ${event.detail.key}`, 'success');
+            addLog(`📝 数据内容: ${JSON.stringify(event.detail.value).substring(0, 100)}...`, 'info');
+        });
+
+        window.addEventListener('remote-batch-updated', function(event) {
+            addLog(`📥 收到批量远程数据: ${event.detail.items.length} 项`, 'success');
+        });
+
+        window.addEventListener('full-sync-completed', function(event) {
+            addLog(`✅ 全量同步完成: ${event.detail.count} 项`, 'success');
+        });
+
+        // 页面加载完成
+        document.addEventListener('DOMContentLoaded', function() {
+            addLog('✅ 页面加载完成', 'success');
+            
+            // 等待 WebSocket 客户端加载
+            setTimeout(() => {
+                if (window.websocketSync) {
+                    addLog('✅ WebSocket 客户端已加载', 'success');
+                    updateStatus();
+                    
+                    // 定期更新状态
+                    setInterval(updateStatus, 2000);
+                } else {
+                    addLog('❌ WebSocket 客户端加载失败', 'error');
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
+
