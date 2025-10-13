@@ -169,25 +169,32 @@
             }
 
             try {
+                addLog(`使用共享ID: ${window.firebaseSync.sharedUserId}`);
                 const docRef = window.firebaseSync.db.collection('planData').doc(window.firebaseSync.sharedUserId);
                 const doc = await docRef.get();
                 
                 if (doc.exists) {
                     const data = doc.data();
                     addLog('✅ 云端有数据！', 'success');
+                    addLog(`共享用户ID: ${data.userId}`);
                     addLog(`数据项数: ${Object.keys(data.data || {}).length}`);
                     addLog(`最后修改: ${data.lastModified}`);
+                    addLog(`设备信息: ${data.deviceInfo?.platform || 'N/A'}`);
                     
-                    // 显示数据键
+                    // 显示数据键和内容
+                    addLog('--- 数据内容 ---');
                     Object.keys(data.data || {}).forEach(key => {
-                        addLog(`  - ${key}`);
+                        const value = JSON.stringify(data.data[key]).substring(0, 100);
+                        addLog(`  📄 ${key}: ${value}...`);
                     });
                 } else {
                     addLog('❌ 云端没有数据', 'warn');
                     addLog('可能原因: 数据从未同步到云端', 'warn');
+                    addLog(`查询路径: planData/${window.firebaseSync.sharedUserId}`, 'warn');
                 }
             } catch (error) {
                 addLog(`查询失败: ${error.message}`, 'error');
+                addLog(`错误代码: ${error.code || 'N/A'}`, 'error');
             }
         }
 
