@@ -746,7 +746,9 @@
         
         // 只加载必要的脚本，避免冲突
         const scriptsToLoad = [
-            'firebase-database-sync.js',  // Firebase数据库同步（最高优先级）
+            'leancloud-config.js',        // LeanCloud配置（国内云服务）
+            'leancloud-sync.js',          // LeanCloud同步（优先使用）
+            // 'firebase-database-sync.js',  // Firebase数据库同步（已替换为LeanCloud）
             'gemini-ai-assistant.js',     // Gemini AI 助手
             // 'universal-cloud-sync.js',   // 已禁用
             // 'auto-cloud-sync.js',        // 已禁用
