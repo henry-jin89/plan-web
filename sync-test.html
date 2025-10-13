@@ -2,286 +2,336 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>同步测试 - 智能计划管理系统</title>
-    <link rel="stylesheet" href="style.css">
-    
-    <!-- Firebase配置 -->
-    <script src="firebase-config.js"></script>
-    
-    <!-- 同步修复工具 -->
-    <script src="sync-fix.js"></script>
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>同步测试工具</title>
     <style>
-        .test-container {
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
             max-width: 800px;
-            margin: 20px auto;
-            padding: 20px;
+            margin: 0 auto;
             background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
         }
-        
-        .test-section {
-            margin: 20px 0;
-            padding: 20px;
-            border: 2px solid #e3f2fd;
-            border-radius: 8px;
+        h1 {
+            color: #667eea;
+            margin-bottom: 20px;
         }
-        
-        .test-button {
-            background: #1976d2;
+        .btn {
+            background: #667eea;
             color: white;
             border: none;
             padding: 12px 24px;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
-            margin: 10px 10px 10px 0;
+            font-size: 16px;
+            margin: 5px;
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            background: #5568d3;
+        }
+        .btn-success {
+            background: #28a745;
+        }
+        .btn-warning {
+            background: #ffc107;
+            color: #333;
+        }
+        .btn-danger {
+            background: #dc3545;
+        }
+        .info-box {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
             font-size: 14px;
         }
-        
-        .test-button:hover {
-            background: #1565c0;
+        .success-box {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
         }
-        
-        .test-result {
-            margin: 10px 0;
-            padding: 10px;
-            border-radius: 4px;
+        .error-box {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        #log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
             font-family: monospace;
-            font-size: 12px;
+            font-size: 13px;
+            white-space: pre-wrap;
         }
-        
-        .success {
-            background: #e8f5e8;
-            color: #2e7d32;
+        .step {
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
         }
-        
-        .error {
-            background: #ffebee;
-            color: #c62828;
-        }
-        
-        .info {
-            background: #e3f2fd;
-            color: #1976d2;
-        }
-        
-        .status-indicator {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            margin-right: 8px;
-        }
-        
-        .online { background: #4caf50; }
-        .offline { background: #f44336; }
-        .syncing { background: #ff9800; animation: pulse 1s infinite; }
-        
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
+        .step h3 {
+            color: #667eea;
+            margin-bottom: 10px;
         }
     </style>
 </head>
 <body>
-    <div class="test-container">
-        <h1>🔧 同步功能测试</h1>
-        <p>测试Firebase数据库同步和跨设备数据共享功能</p>
+    <div class="container">
+        <h1>🔄 同步测试工具</h1>
         
-        <!-- 状态显示 -->
-        <div class="test-section">
-            <h3>📊 系统状态</h3>
-            <div id="status-display">
-                <p><span class="status-indicator offline" id="firebase-status"></span>Firebase状态: <span id="firebase-text">检测中...</span></p>
-                <p><span class="status-indicator offline" id="sync-status"></span>同步状态: <span id="sync-text">检测中...</span></p>
-                <p>设备类型: <span id="device-type">检测中...</span></p>
-                <p>用户ID: <span id="user-id">检测中...</span></p>
-                <p>最后同步: <span id="last-sync">从未同步</span></p>
-            </div>
+        <div class="info-box">
+            <strong>💡 使用说明：</strong><br>
+            1. 在电脑上点击"保存测试数据"<br>
+            2. 在手机上点击"读取云端数据"<br>
+            3. 查看是否能看到相同的数据
         </div>
-        
-        <!-- 数据测试 -->
-        <div class="test-section">
-            <h3>💾 数据测试</h3>
-            <div>
-                <button class="test-button" onclick="saveTestData()">保存测试数据</button>
-                <button class="test-button" onclick="loadTestData()">加载测试数据</button>
-                <button class="test-button" onclick="forceSync()">强制同步</button>
-                <button class="test-button" onclick="clearTestData()">清除测试数据</button>
-            </div>
-            <div>
-                <input type="text" id="test-input" placeholder="输入测试内容..." style="padding: 8px; margin: 10px 0; width: 300px;">
-            </div>
-            <div id="data-results"></div>
+
+        <div class="step">
+            <h3>第1步：保存测试数据到云端</h3>
+            <button class="btn btn-success" onclick="saveTestData()">💾 保存测试数据</button>
+            <p id="save-result" style="margin-top: 10px; color: #666;"></p>
         </div>
-        
-        <!-- 日志显示 -->
-        <div class="test-section">
-            <h3>📝 操作日志</h3>
-            <button class="test-button" onclick="clearLogs()">清除日志</button>
-            <div id="test-logs" style="height: 200px; overflow-y: auto; background: #f5f5f5; padding: 10px; margin-top: 10px;"></div>
+
+        <div class="step">
+            <h3>第2步：读取云端数据</h3>
+            <button class="btn btn-warning" onclick="loadTestData()">📥 读取云端数据</button>
+            <p id="load-result" style="margin-top: 10px; color: #666;"></p>
         </div>
+
+        <div class="step">
+            <h3>第3步：查看同步标识</h3>
+            <button class="btn" onclick="checkUserId()">👤 查看用户ID</button>
+            <p id="user-result" style="margin-top: 10px; color: #666;"></p>
+        </div>
+
+        <div class="step">
+            <h3>工具</h3>
+            <button class="btn" onclick="forceSync()">🔄 强制同步所有数据</button>
+            <button class="btn btn-danger" onclick="clearLog()">🗑️ 清除日志</button>
+        </div>
+
+        <div id="log"></div>
     </div>
 
-    <!-- Firebase数据库同步 -->
-    <script src="firebase-database-sync.js"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    
+    <!-- Firebase配置 -->
+    <script src="firebase-config.js"></script>
 
     <script>
-        let testLogs = [];
+        let db, auth;
+        const SHARED_USER_ID = 'shared-plan-web-user';
         
-        function log(message, type = 'info') {
-            const timestamp = new Date().toLocaleTimeString();
-            const logEntry = `[${timestamp}] ${message}`;
-            testLogs.push(logEntry);
-            
-            const logsDiv = document.getElementById('test-logs');
-            const logElement = document.createElement('div');
-            logElement.className = `test-result ${type}`;
-            logElement.textContent = logEntry;
-            logsDiv.appendChild(logElement);
-            logsDiv.scrollTop = logsDiv.scrollHeight;
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${time}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
         }
-        
-        function updateStatus() {
-            // 更新Firebase状态
-            const firebaseStatus = document.getElementById('firebase-status');
-            const firebaseText = document.getElementById('firebase-text');
-            
-            if (window.firebaseSync && window.firebaseSync.isInitialized) {
-                firebaseStatus.className = 'status-indicator online';
-                firebaseText.textContent = '已连接';
-            } else {
-                firebaseStatus.className = 'status-indicator offline';
-                firebaseText.textContent = '未连接';
-            }
-            
-            // 更新同步状态
-            const syncStatus = document.getElementById('sync-status');
-            const syncText = document.getElementById('sync-text');
-            
-            if (window.firebaseSync && window.firebaseSync.isEnabled) {
-                syncStatus.className = 'status-indicator online';
-                syncText.textContent = '同步已启用';
-            } else {
-                syncStatus.className = 'status-indicator offline';
-                syncText.textContent = '同步未启用';
-            }
-            
-            // 更新设备类型
-            if (window.SyncFix) {
-                const deviceType = /Mobile|Android|iP(hone|od|ad)/.test(navigator.userAgent) ? '移动设备' : '桌面设备';
-                document.getElementById('device-type').textContent = deviceType;
-            }
-            
-            // 更新用户ID
-            if (window.firebaseSync && window.firebaseSync.userId) {
-                document.getElementById('user-id').textContent = window.firebaseSync.userId.substring(0, 8) + '...';
-            }
-            
-            // 更新最后同步时间
-            const lastSync = localStorage.getItem('lastSyncTime');
-            if (lastSync) {
-                const syncDate = new Date(parseInt(lastSync));
-                document.getElementById('last-sync').textContent = syncDate.toLocaleString();
-            }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
         }
-        
-        function saveTestData() {
-            const input = document.getElementById('test-input');
-            const testData = {
-                content: input.value || '测试数据 - ' + new Date().toLocaleString(),
-                timestamp: Date.now(),
-                device: navigator.userAgent.includes('Mobile') ? 'mobile' : 'desktop'
-            };
-            
-            // 保存到本地存储
-            localStorage.setItem('test-data', JSON.stringify(testData));
-            
-            // 如果Firebase可用，也保存到云端
-            if (window.firebaseSync && window.firebaseSync.isEnabled) {
-                window.firebaseSync.saveToDatabase('test-data', testData);
-                log('测试数据已保存到本地和云端', 'success');
-            } else {
-                log('测试数据已保存到本地存储', 'info');
-            }
-            
-            input.value = '';
-            loadTestData();
-        }
-        
-        function loadTestData() {
-            const resultsDiv = document.getElementById('data-results');
-            
-            // 从本地存储加载
-            const localData = localStorage.getItem('test-data');
-            let content = '<h4>本地数据:</h4>';
-            
-            if (localData) {
-                const data = JSON.parse(localData);
-                content += `<div class="test-result info">内容: ${data.content}<br>时间: ${new Date(data.timestamp).toLocaleString()}<br>设备: ${data.device}</div>`;
-            } else {
-                content += '<div class="test-result error">无本地数据</div>';
-            }
-            
-            resultsDiv.innerHTML = content;
-            log('已加载本地测试数据', 'info');
-        }
-        
-        async function forceSync() {
-            log('开始强制同步...', 'info');
-            
-            if (window.firebaseSync && window.firebaseSync.isEnabled) {
-                try {
-                    await window.firebaseSync.forceSync();
-                    log('强制同步完成', 'success');
-                } catch (error) {
-                    log('强制同步失败: ' + error.message, 'error');
+
+        // 初始化Firebase
+        async function initFirebase() {
+            try {
+                log('🚀 初始化Firebase...');
+                
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(window.firebaseConfig);
                 }
-            } else {
-                log('Firebase未启用，无法执行云端同步', 'error');
+                
+                db = firebase.firestore();
+                auth = firebase.auth();
+                
+                // 匿名登录
+                const userCredential = await auth.signInAnonymously();
+                log(`✅ Firebase初始化成功`);
+                log(`📌 认证用户ID: ${userCredential.user.uid.substring(0, 20)}...`);
+                log(`📌 共享同步ID: ${SHARED_USER_ID}`);
+                
+                return true;
+            } catch (error) {
+                log(`❌ 初始化失败: ${error.message}`);
+                return false;
             }
-            
-            updateStatus();
-            loadTestData();
         }
-        
-        function clearTestData() {
-            localStorage.removeItem('test-data');
+
+        // 保存测试数据
+        async function saveTestData() {
+            const resultDiv = document.getElementById('save-result');
+            resultDiv.textContent = '正在保存...';
             
-            if (window.firebaseSync && window.firebaseSync.isEnabled) {
-                window.firebaseSync.deleteFromDatabase('test-data');
-                log('已清除本地和云端测试数据', 'success');
-            } else {
-                log('已清除本地测试数据', 'info');
+            try {
+                if (!db) {
+                    await initFirebase();
+                }
+                
+                const testData = {
+                    message: '🎉 这是一条测试数据',
+                    createdAt: new Date().toISOString(),
+                    createdBy: navigator.userAgent.includes('Mobile') ? '手机' : '电脑',
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                log(`💾 保存数据到云端: ${JSON.stringify(testData, null, 2)}`);
+                
+                // 使用共享ID保存
+                await db.collection('planData').doc(SHARED_USER_ID).set({
+                    testData: testData,
+                    lastModified: new Date().toISOString()
+                }, { merge: true });
+                
+                log('✅ 数据保存成功！');
+                resultDiv.textContent = `✅ 保存成功！时间: ${new Date().toLocaleTimeString()}`;
+                resultDiv.style.color = 'green';
+                
+            } catch (error) {
+                log(`❌ 保存失败: ${error.message}`);
+                resultDiv.textContent = `❌ 保存失败: ${error.message}`;
+                resultDiv.style.color = 'red';
             }
-            
-            loadTestData();
         }
-        
-        function clearLogs() {
-            testLogs = [];
-            document.getElementById('test-logs').innerHTML = '';
+
+        // 读取测试数据
+        async function loadTestData() {
+            const resultDiv = document.getElementById('load-result');
+            resultDiv.textContent = '正在读取...';
+            
+            try {
+                if (!db) {
+                    await initFirebase();
+                }
+                
+                log(`📥 从云端读取数据 (使用ID: ${SHARED_USER_ID})...`);
+                
+                const doc = await db.collection('planData').doc(SHARED_USER_ID).get();
+                
+                if (doc.exists) {
+                    const data = doc.data();
+                    log(`✅ 读取成功！`);
+                    log(`📄 数据内容: ${JSON.stringify(data, null, 2)}`);
+                    
+                    if (data.testData) {
+                        resultDiv.innerHTML = `
+                            ✅ 读取成功！<br>
+                            消息: ${data.testData.message}<br>
+                            创建时间: ${data.testData.createdAt}<br>
+                            创建设备: ${data.testData.createdBy}
+                        `;
+                        resultDiv.style.color = 'green';
+                    } else {
+                        resultDiv.textContent = '⚠️ 云端没有测试数据';
+                        resultDiv.style.color = 'orange';
+                    }
+                } else {
+                    log('⚠️ 云端没有数据');
+                    resultDiv.textContent = '⚠️ 云端没有数据，请先在另一台设备保存';
+                    resultDiv.style.color = 'orange';
+                }
+                
+            } catch (error) {
+                log(`❌ 读取失败: ${error.message}`);
+                resultDiv.textContent = `❌ 读取失败: ${error.message}`;
+                resultDiv.style.color = 'red';
+            }
         }
-        
-        // 页面加载完成后初始化
-        document.addEventListener('DOMContentLoaded', function() {
-            log('同步测试页面已加载', 'info');
+
+        // 查看用户ID
+        async function checkUserId() {
+            const resultDiv = document.getElementById('user-result');
             
-            // 定期更新状态
-            setInterval(updateStatus, 2000);
-            updateStatus();
+            try {
+                if (!auth) {
+                    await initFirebase();
+                }
+                
+                const user = auth.currentUser;
+                if (user) {
+                    resultDiv.innerHTML = `
+                        Firebase认证ID: ${user.uid}<br>
+                        <strong>共享同步ID: ${SHARED_USER_ID}</strong> ← 所有设备使用此ID
+                    `;
+                    log(`👤 当前用户认证ID: ${user.uid}`);
+                    log(`🔗 共享同步ID: ${SHARED_USER_ID}`);
+                } else {
+                    resultDiv.textContent = '未登录';
+                }
+                
+            } catch (error) {
+                resultDiv.textContent = `错误: ${error.message}`;
+            }
+        }
+
+        // 强制同步所有数据
+        async function forceSync() {
+            log('🔄 开始强制同步所有计划数据...');
             
-            // 监听数据更新事件
-            window.addEventListener('dataUpdated', function(event) {
-                log('检测到数据更新事件', 'success');
-                loadTestData();
-            });
-            
-            // 初始加载数据
-            loadTestData();
+            try {
+                if (!db) {
+                    await initFirebase();
+                }
+                
+                // 收集所有本地数据
+                const allData = {};
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key.startsWith('planData_') || key.startsWith('habitData_')) {
+                        try {
+                            allData[key] = JSON.parse(localStorage.getItem(key));
+                        } catch (e) {
+                            allData[key] = localStorage.getItem(key);
+                        }
+                    }
+                }
+                
+                log(`📦 找到 ${Object.keys(allData).length} 项本地数据`);
+                
+                // 保存到云端
+                await db.collection('planData').doc(SHARED_USER_ID).set({
+                    data: allData,
+                    lastModified: new Date().toISOString(),
+                    deviceInfo: navigator.userAgent.substring(0, 50)
+                });
+                
+                log('✅ 同步完成！');
+                alert('✅ 数据已同步到云端！');
+                
+            } catch (error) {
+                log(`❌ 同步失败: ${error.message}`);
+                alert(`❌ 同步失败: ${error.message}`);
+            }
+        }
+
+        // 页面加载时初始化
+        window.addEventListener('load', () => {
+            log('📱 页面加载完成');
+            log('💡 提示: 点击上方按钮开始测试同步功能');
         });
     </script>
 </body>
