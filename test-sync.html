@@ -143,8 +143,8 @@
 
                 addLog(`找到 ${dataCount} 项本地数据，开始同步...`);
                 
-                // 调用同步方法
-                await window.firebaseSync.forceFullSync();
+                // 调用正确的同步方法
+                await window.firebaseSync.syncToDatabase();
                 
                 addLog('同步完成！', 'success');
                 addLog('请在手机上刷新页面查看', 'success');
