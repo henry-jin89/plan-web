@@ -483,6 +483,12 @@
             await this.restoreFromDatabase();
         }
         
+        async forceRestore() {
+            console.log('📥 执行强制恢复...');
+            await this.restoreFromDatabase();
+            console.log('✅ 强制恢复完成');
+        }
+        
         /**
          * 获取同步状态 - 用于状态页面显示
          */
