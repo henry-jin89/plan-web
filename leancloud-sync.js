@@ -235,11 +235,16 @@
                         console.log('ℹ️ 云端暂无数据');
                     }
                 } else {
-                    console.log('ℹ️ 云端暂无数据');
+                    console.log('ℹ️ 云端暂无数据（首次使用）');
                 }
                 
             } catch (error) {
-                console.error('❌ 恢复数据失败:', error);
+                // 如果是 404 错误（表不存在），这是正常的首次使用情况
+                if (error.code === 101 || error.message.includes('404') || error.message.includes("doesn't exist")) {
+                    console.log('ℹ️ 这是首次使用，云端数据表将在首次保存时自动创建');
+                } else {
+                    console.error('❌ 恢复数据失败:', error);
+                }
             }
         }
         
