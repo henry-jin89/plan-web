@@ -23,18 +23,28 @@
             });
         }
         
-        async waitForFirebase(maxWait = 10000) {
+        async waitForFirebase(maxWait = 30000) {
             const startTime = Date.now();
+            let lastLog = 0;
             
             while (Date.now() - startTime < maxWait) {
                 if (window.firebaseSync && window.firebaseSync.isInitialized) {
                     console.log('✅ Firebase已初始化，开始同步修复');
                     return true;
                 }
+                
+                // 每5秒输出一次等待状态
+                const elapsed = Date.now() - startTime;
+                if (elapsed - lastLog >= 5000) {
+                    console.log(`⏳ 等待Firebase初始化... (${Math.floor(elapsed/1000)}秒/${Math.floor(maxWait/1000)}秒)`);
+                    lastLog = elapsed;
+                }
+                
                 await new Promise(resolve => setTimeout(resolve, 500));
             }
             
-            console.warn('⚠️ Firebase初始化超时，使用本地存储');
+            console.warn('⚠️ Firebase初始化超时（30秒），使用本地存储');
+            console.warn('💡 提示：可能是网络问题或CDN被墙，请检查控制台错误信息');
             return false;
         }
         

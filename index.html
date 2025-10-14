@@ -448,6 +448,28 @@
 </head>
 
 <body>
+    <!-- 云同步状态指示器 -->
+    <div id="sync-status-indicator" style="
+        position: fixed;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(255, 255, 255, 0.95);
+        padding: 8px 20px;
+        border-radius: 20px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        z-index: 9999;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    ">
+        <span id="sync-status-icon" style="font-size: 16px;">🟡</span>
+        <span id="sync-status-text" style="font-weight: 500;">正在初始化...</span>
+    </div>
+    
     <!-- 加载指示器 -->
     <div class="loading-spinner" id="loadingSpinner"></div>
 
@@ -464,6 +486,9 @@
             <div class="quick-actions">
                 <button class="quick-action-btn primary" onclick="startAIAnalysis()" style="cursor: pointer;">
                     🤖 AI智能分析
+                </button>
+                <button class="quick-action-btn" onclick="restoreFromCloud()" style="cursor: pointer; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    ☁️ 从云端恢复
                 </button>
                 <a href="day_plan.html" class="quick-action-btn">
                     📅 今日计划
@@ -770,6 +795,69 @@
         // 延迟加载外部脚本，确保页面首先可见
         setTimeout(loadNextScript, 1000);
         
+        // 从云端恢复数据功能
+        async function restoreFromCloud() {
+            // 检查 Firebase 是否已初始化
+            if (!window.firebaseSync) {
+                alert('⚠️ 云同步功能尚未初始化，请稍后再试');
+                return;
+            }
+            
+            if (!window.firebaseSync.isInitialized) {
+                alert('⚠️ 云同步功能正在初始化中，请稍等片刻再试');
+                return;
+            }
+            
+            if (!navigator.onLine) {
+                alert('❌ 当前网络不可用，无法从云端恢复数据');
+                return;
+            }
+            
+            // 确认操作
+            const confirmed = confirm(
+                '🔄 即将从云端恢复数据\n\n' +
+                '如果云端有数据，将会覆盖本地数据。\n' +
+                '是否继续？'
+            );
+            
+            if (!confirmed) return;
+            
+            try {
+                // 显示加载提示
+                const loadingDiv = document.createElement('div');
+                loadingDiv.style.cssText = `
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: white;
+                    padding: 30px 40px;
+                    border-radius: 12px;
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+                    z-index: 10002;
+                    text-align: center;
+                `;
+                loadingDiv.innerHTML = `
+                    <div style="font-size: 48px; margin-bottom: 16px;">☁️</div>
+                    <div style="font-size: 18px; font-weight: bold; margin-bottom: 8px;">正在从云端恢复数据...</div>
+                    <div style="font-size: 14px; color: #666;">请稍候，不要关闭页面</div>
+                `;
+                document.body.appendChild(loadingDiv);
+                
+                // 执行强制恢复
+                await window.firebaseSync.restoreFromDatabase(true);
+                
+                // 移除加载提示
+                loadingDiv.remove();
+                
+                console.log('✅ 云端数据恢复完成');
+                
+            } catch (error) {
+                console.error('❌ 恢复失败:', error);
+                alert('❌ 从云端恢复失败:\n' + error.message);
+            }
+        }
+        
         // AI 分析功能
         async function startAIAnalysis() {
             const btn = document.querySelector('.ai-assistant-btn');
@@ -836,8 +924,72 @@
             }
         }
         
+        // 更新同步状态指示器
+        function updateSyncStatus() {
+            const indicator = document.getElementById('sync-status-indicator');
+            const icon = document.getElementById('sync-status-icon');
+            const text = document.getElementById('sync-status-text');
+            
+            if (!indicator || !icon || !text) return;
+            
+            if (window.firebaseSync && window.firebaseSync.isInitialized) {
+                // Firebase 已连接
+                icon.textContent = '🟢';
+                text.textContent = 'Firebase 已连接';
+                indicator.style.background = 'rgba(76, 175, 80, 0.95)';
+                indicator.style.color = 'white';
+                
+                // 显示详细信息（点击）
+                indicator.onclick = () => {
+                    const status = window.firebaseSync.getStatus();
+                    const localStats = window.firebaseSync.getLocalDataStats();
+                    alert(
+                        `☁️ Firebase 云同步状态\n\n` +
+                        `✅ 状态: 已连接\n` +
+                        `📊 本地数据: ${localStats.totalKeys} 条记录\n` +
+                        `🕒 最后同步: ${status.lastSync ? new Date(status.lastSync).toLocaleString('zh-CN') : '未同步'}\n` +
+                        `🌐 网络状态: ${navigator.onLine ? '在线' : '离线'}\n` +
+                        `💡 提示: 数据会自动同步到云端`
+                    );
+                };
+            } else if (window.firebaseSync) {
+                // Firebase 正在初始化
+                icon.textContent = '🟡';
+                text.textContent = 'Firebase 初始化中...';
+                indicator.style.background = 'rgba(255, 152, 0, 0.95)';
+                indicator.style.color = 'white';
+            } else {
+                // Firebase 未连接
+                icon.textContent = '🔴';
+                text.textContent = '仅本地存储';
+                indicator.style.background = 'rgba(244, 67, 54, 0.95)';
+                indicator.style.color = 'white';
+                
+                indicator.onclick = () => {
+                    alert(
+                        `⚠️ 云同步未连接\n\n` +
+                        `当前仅使用本地存储，数据未同步到云端。\n\n` +
+                        `可能原因:\n` +
+                        `• 网络连接问题\n` +
+                        `• Firebase SDK 加载失败\n` +
+                        `• 防火墙或广告拦截器阻止\n\n` +
+                        `建议: 刷新页面或检查网络连接`
+                    );
+                };
+            }
+        }
+        
+        // 定期更新状态
+        setInterval(updateSyncStatus, 2000);
+        
         // 页面加载完成后显示 AI 助手提示
         document.addEventListener('DOMContentLoaded', function() {
+            // 初始更新状态
+            setTimeout(updateSyncStatus, 1000);
+            
+            // 监听 Firebase 初始化完成事件
+            window.addEventListener('firebase-initialized', updateSyncStatus);
+            
             // 检查是否有历史建议
             setTimeout(() => {
                 if (typeof geminiAssistant !== 'undefined') {

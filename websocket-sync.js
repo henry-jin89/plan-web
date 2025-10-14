@@ -9,13 +9,22 @@ class WebSocketSync {
         this.isConnected = false;
         this.userId = null;
         this.reconnectAttempts = 0;
-        this.maxReconnectAttempts = 10;
+        this.maxReconnectAttempts = 3; // 减少重试次数
         this.reconnectDelay = 1000;
         this.deviceInfo = this.getDeviceInfo();
         this.syncQueue = [];
         this.isSyncing = false;
         
-        console.log('[WebSocket同步] 初始化客户端');
+        // 配置开关：默认禁用 WebSocket 自动连接
+        // 如果需要启用，在 localStorage 中设置 'websocket_enabled' = 'true'
+        this.enabled = localStorage.getItem('websocket_enabled') === 'true';
+        
+        if (this.enabled) {
+            console.log('[WebSocket同步] ✅ WebSocket已启用');
+        } else {
+            console.log('[WebSocket同步] ⚠️ WebSocket已禁用（需要单独的服务器）');
+            console.log('[WebSocket同步] 💡 如需启用，请运行: localStorage.setItem("websocket_enabled", "true")');
+        }
     }
     
     /**
@@ -250,6 +259,11 @@ class WebSocketSync {
      * 同步单个数据项
      */
     syncData(key, value) {
+        if (!this.enabled) {
+            // WebSocket未启用，静默跳过
+            return;
+        }
+        
         if (!this.isConnected) {
             console.warn('[WebSocket同步] ⚠️ 未连接，数据已加入队列');
             this.syncQueue.push({ key, value });
@@ -482,16 +496,29 @@ class WebSocketSync {
 // 创建全局实例
 window.websocketSync = new WebSocketSync();
 
-// 页面加载完成后自动连接
+// 页面加载完成后自动连接（仅在启用时）
 document.addEventListener('DOMContentLoaded', function() {
+    // 检查是否启用 WebSocket
+    if (!window.websocketSync.enabled) {
+        console.log('[WebSocket同步] ⏭️ WebSocket未启用，跳过连接');
+        console.log('[WebSocket同步] ℹ️ 系统将使用Firebase云同步作为主要同步方式');
+        return;
+    }
+    
     console.log('[WebSocket同步] 页面加载完成，准备连接...');
     
     // 从配置文件或环境变量读取服务器地址
     const serverUrl = localStorage.getItem('websocket_server_url') || 'http://localhost:3000';
     
-    // 自动连接
+    // 自动连接（带超时控制）
+    const connectTimeout = setTimeout(() => {
+        console.warn('[WebSocket同步] ⚠️ 连接超时（5秒），停止尝试');
+        window.websocketSync.disconnect();
+    }, 5000);
+    
     window.websocketSync.connect(serverUrl)
         .then(() => {
+            clearTimeout(connectTimeout);
             console.log('[WebSocket同步] ✅ 自动连接成功');
             
             // 开始心跳
@@ -500,8 +527,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 30000);
         })
         .catch((error) => {
-            console.error('[WebSocket同步] ❌ 自动连接失败:', error);
-            console.log('[WebSocket同步] ℹ️ 将在后台继续尝试重连...');
+            clearTimeout(connectTimeout);
+            console.warn('[WebSocket同步] ⚠️ 连接失败，将使用Firebase同步');
+            console.log('[WebSocket同步] 💡 提示：如不需要WebSocket，可运行: localStorage.setItem("websocket_enabled", "false")');
         });
 });
 

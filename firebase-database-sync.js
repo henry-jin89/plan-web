@@ -134,6 +134,11 @@
                 console.log('✅ Firebase数据库同步初始化完成');
                 this.showNotification('🔥 Firebase数据库同步已启用', 'success');
                 
+                // 触发初始化完成事件
+                window.dispatchEvent(new CustomEvent('firebase-initialized', {
+                    detail: { timestamp: new Date() }
+                }));
+                
             } catch (error) {
                 console.error('❌ Firebase初始化失败:', error);
                 console.error('错误详情:', {
@@ -194,38 +199,122 @@
                 return;
             }
             
-            try {
-                // 使用更稳定的版本 9.23.0（移动端兼容性更好）
-                const version = '9.23.0';
-                const baseUrl = 'https://www.gstatic.com/firebasejs';
-                console.log(`📦 使用Firebase SDK版本: ${version}`);
+            // 使用更稳定的版本 9.23.0（移动端兼容性更好）
+            const version = '9.23.0';
             
-            // 加载Firebase核心
-                console.log('📦 加载 firebase-app...');
-                await this.loadScript(`${baseUrl}/${version}/firebase-app-compat.js`);
-                console.log('✅ firebase-app 加载完成');
-                
-                // 验证firebase对象已创建
-                if (!window.firebase) {
-                    throw new Error('Firebase对象未创建');
+            // 多 CDN 备选方案
+            const cdnOptions = [
+                {
+                    name: 'Google官方CDN',
+                    baseUrl: 'https://www.gstatic.com/firebasejs',
+                    timeout: 15000 // 15秒超时（国内可能慢）
+                },
+                {
+                    name: 'jsDelivr CDN',
+                    baseUrl: 'https://cdn.jsdelivr.net/npm/firebase@9.23.0/firebase',
+                    timeout: 15000
+                },
+                {
+                    name: 'unpkg CDN',
+                    baseUrl: 'https://unpkg.com/firebase@9.23.0/firebase',
+                    timeout: 15000
                 }
+            ];
             
-            // 加载Firestore
-                console.log('📦 加载 firebase-firestore...');
-                await this.loadScript(`${baseUrl}/${version}/firebase-firestore-compat.js`);
-                console.log('✅ firebase-firestore 加载完成');
+            let lastError;
             
-            // 加载认证
-                console.log('📦 加载 firebase-auth...');
-                await this.loadScript(`${baseUrl}/${version}/firebase-auth-compat.js`);
-                console.log('✅ firebase-auth 加载完成');
+            // 尝试每个 CDN
+            for (const cdn of cdnOptions) {
+                try {
+                    console.log(`📦 尝试从 ${cdn.name} 加载 SDK...`);
+                    console.log(`📦 使用Firebase SDK版本: ${version}`);
+                    
+                    // 加载Firebase核心
+                    console.log('📦 加载 firebase-app...');
+                    await this.loadScriptWithTimeout(
+                        `${cdn.baseUrl}/${version}/firebase-app-compat.js`,
+                        cdn.timeout
+                    );
+                    console.log('✅ firebase-app 加载完成');
+                    
+                    // 验证firebase对象已创建
+                    if (!window.firebase) {
+                        throw new Error('Firebase对象未创建');
+                    }
                 
-                console.log('✅ Firebase SDK全部加载完成');
+                    // 加载Firestore
+                    console.log('📦 加载 firebase-firestore...');
+                    await this.loadScriptWithTimeout(
+                        `${cdn.baseUrl}/${version}/firebase-firestore-compat.js`,
+                        cdn.timeout
+                    );
+                    console.log('✅ firebase-firestore 加载完成');
                 
-            } catch (error) {
-                console.error('❌ Firebase SDK加载失败:', error);
-                throw new Error(`SDK加载失败: ${error.message}`);
+                    // 加载认证
+                    console.log('📦 加载 firebase-auth...');
+                    await this.loadScriptWithTimeout(
+                        `${cdn.baseUrl}/${version}/firebase-auth-compat.js`,
+                        cdn.timeout
+                    );
+                    console.log('✅ firebase-auth 加载完成');
+                    
+                    console.log(`✅ Firebase SDK从 ${cdn.name} 加载完成`);
+                    return; // 成功加载，退出
+                    
+                } catch (error) {
+                    lastError = error;
+                    console.warn(`⚠️ 从 ${cdn.name} 加载失败:`, error.message);
+                    
+                    // 清理可能部分加载的对象
+                    if (window.firebase) {
+                        delete window.firebase;
+                    }
+                    
+                    // 如果不是最后一个CDN，继续尝试下一个
+                    if (cdn !== cdnOptions[cdnOptions.length - 1]) {
+                        console.log('🔄 尝试下一个CDN...');
+                        await new Promise(resolve => setTimeout(resolve, 1000)); // 等待1秒
+                    }
+                }
             }
+            
+            // 所有CDN都失败
+            console.error('❌ 所有CDN加载失败');
+            throw new Error(`SDK加载失败（尝试了${cdnOptions.length}个CDN）: ${lastError?.message}`);
+        }
+        
+        loadScriptWithTimeout(src, timeout) {
+            return new Promise((resolve, reject) => {
+                console.log(`⏳ 开始加载脚本: ${src}`);
+                
+                const script = document.createElement('script');
+                script.src = src;
+                script.async = true;
+                script.crossOrigin = 'anonymous';
+                
+                // 超时控制
+                const timer = setTimeout(() => {
+                    script.onerror = null;
+                    script.onload = null;
+                    document.head.removeChild(script);
+                    reject(new Error(`加载超时（${timeout/1000}秒）`));
+                }, timeout);
+                
+                script.onload = () => {
+                    clearTimeout(timer);
+                    console.log(`✅ 脚本加载成功: ${src.split('/').pop()}`);
+                    resolve();
+                };
+                
+                script.onerror = (error) => {
+                    clearTimeout(timer);
+                    document.head.removeChild(script);
+                    console.error(`❌ 脚本加载失败: ${src.split('/').pop()}`);
+                    reject(new Error(`加载失败`));
+                };
+                
+                document.head.appendChild(script);
+            });
         }
         
         loadScript(src) {
@@ -405,11 +494,26 @@
             return allData;
         }
         
-        async restoreFromDatabase() {
-            if (!this.userId) return;
+        async restoreFromDatabase(force = false) {
+            if (!this.userId) {
+                console.warn('⚠️ 未登录，无法恢复数据');
+                return;
+            }
             
             try {
                 console.log('🔍 从Firebase数据库恢复数据...');
+                
+                // 检查本地数据状态
+                const localData = this.collectAllPlanData();
+                const localDataCount = Object.keys(localData).length;
+                const isLocalEmpty = localDataCount === 0;
+                
+                console.log(`📊 本地数据状态: ${localDataCount} 条记录`);
+                
+                if (isLocalEmpty) {
+                    console.log('🆕 检测到本地数据为空，将尝试从云端恢复');
+                    force = true; // 本地为空时强制恢复
+                }
                 
                 // 使用固定的共享ID
                 const docRef = this.db.collection('planData').doc(this.sharedUserId);
@@ -417,28 +521,65 @@
                 
                 if (doc.exists) {
                     const cloudData = doc.data();
-                    console.log('📥 发现云端数据，正在恢复...');
+                    const cloudDataCount = cloudData.data ? Object.keys(cloudData.data).length : 0;
+                    console.log(`☁️ 发现云端数据: ${cloudDataCount} 条记录`);
+                    console.log(`📅 云端最后更新: ${cloudData.lastModified || '未知'}`);
                     
                     // 检查是否需要恢复数据
                     const lastLocalUpdate = localStorage.getItem('lastDataUpdate');
                     const cloudLastModified = cloudData.lastModified;
                     
-                    // 只有云端数据更新时才恢复，避免重复刷新
-                    if (!lastLocalUpdate || cloudLastModified > lastLocalUpdate) {
-                    await this.mergeCloudData(cloudData);
-                    this.showNotification('📥 已从Firebase恢复数据', 'success');
-                        console.log('✅ 数据恢复完成，无需刷新页面');
+                    // 决定是否恢复数据
+                    const shouldRestore = force || 
+                                         isLocalEmpty || 
+                                         !lastLocalUpdate || 
+                                         cloudLastModified > lastLocalUpdate;
+                    
+                    if (shouldRestore) {
+                        console.log('📥 开始恢复数据...');
+                        await this.mergeCloudData(cloudData);
+                        
+                        if (isLocalEmpty && cloudDataCount > 0) {
+                            // 本地为空且成功恢复了数据
+                            this.showNotification(`✅ 已从云端恢复 ${cloudDataCount} 条数据`, 'success', 5000);
+                            console.log('✅ 数据恢复完成！建议刷新页面查看');
+                            
+                            // 触发页面刷新事件
+                            window.dispatchEvent(new CustomEvent('data-restored', {
+                                detail: { count: cloudDataCount, source: 'firebase' }
+                            }));
+                            
+                            // 3秒后自动刷新页面
+                            setTimeout(() => {
+                                if (confirm('数据已从云端恢复，是否刷新页面查看？')) {
+                                    window.location.reload();
+                                }
+                            }, 3000);
+                        } else {
+                            this.showNotification('📥 已从Firebase同步数据', 'success');
+                            console.log('✅ 数据同步完成');
+                        }
                     } else {
                         console.log('✅ 本地数据已是最新，无需恢复');
                     }
                 } else {
-                    console.log('☁️ Firebase中暂无数据，使用本地数据');
-                    // 首次使用，将本地数据同步到云端
-                    await this.syncToDatabase();
+                    console.log('☁️ Firebase中暂无数据');
+                    
+                    if (isLocalEmpty) {
+                        console.log('⚠️ 本地和云端都没有数据');
+                        this.showNotification('ℹ️ 暂无数据，请开始创建计划', 'info', 3000);
+                    } else {
+                        console.log('📤 将本地数据上传到云端...');
+                        // 首次使用，将本地数据同步到云端
+                        await this.syncToDatabase();
+                        this.showNotification(`✅ 已将 ${localDataCount} 条数据备份到云端`, 'success');
+                    }
                 }
                 
             } catch (error) {
-                console.warn('Firebase数据恢复失败:', error);
+                console.error('❌ Firebase数据恢复失败:', error);
+                this.showNotification('❌ 数据恢复失败: ' + error.message, 'error', 5000);
+                throw error; // 向上抛出错误
             }
         }
         
@@ -553,12 +694,55 @@
             this.showNotification('Firebase不可用，使用本地存储模式', 'info');
         }
         
-        showNotification(message, type = 'info') {
+        showNotification(message, type = 'info', duration = 3000) {
+            // 控制台始终输出
+            console.log(`📢 [${type.toUpperCase()}] ${message}`);
+            
+            // 如果禁用了通知，只输出到控制台
             if (window.DISABLE_ALL_NOTIFICATIONS || window.DISABLE_SYNC_NOTIFICATIONS) {
-                console.log(`[通知-${type}]:`, message);
                 return;
             }
-            console.log(`📢 ${message}`);
+            
+            // 创建通知元素
+            const notification = document.createElement('div');
+            notification.className = `firebase-notification firebase-notification-${type}`;
+            
+            // 根据类型选择颜色
+            const colors = {
+                success: '#4caf50',
+                error: '#f44336',
+                warning: '#ff9800',
+                info: '#2196f3'
+            };
+            
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${colors[type] || colors.info};
+                color: white;
+                padding: 16px 24px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                z-index: 10001;
+                font-size: 14px;
+                max-width: 400px;
+                animation: slideInRight 0.3s ease;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            `;
+            
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            // 自动移除
+            setTimeout(() => {
+                notification.style.animation = 'slideOutRight 0.3s ease';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, duration);
         }
     }
     
@@ -572,5 +756,35 @@
     }
     
 })();
+
+// 添加通知动画样式
+if (!document.getElementById('firebase-notification-styles')) {
+    const style = document.createElement('style');
+    style.id = 'firebase-notification-styles';
+    style.textContent = `
+        @keyframes slideInRight {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideOutRight {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+}
 
 console.log('✅ Firebase数据库同步系统（修复版）已加载');
