@@ -46,8 +46,8 @@
     <!-- WebSocket 实时同步 -->
     <script src="websocket-sync.js"></script>
     
-    <!-- Firebase数据库同步（备用） -->
-    <!-- <script src="firebase-database-sync.js"></script> -->
+    <!-- Firebase数据库同步（主要） -->
+    <script src="firebase-database-sync.js"></script>
     <script src="gemini-ai-assistant.js"></script>
     
     <meta charset="UTF-8">
@@ -1296,9 +1296,9 @@
     <script src="zero-config-direct-sync.js"></script>  <!-- 零配置GitHub同步 -->
     <script src="lenovo-cloud-sync.js"></script>  <!-- 零配置联想云同步 -->
     
-    <!-- LeanCloud 国内云同步（优先使用） -->
-    <script src="leancloud-config.js"></script>
-    <script src="leancloud-sync.js"></script>
+    <!-- LeanCloud 国内云同步（已禁用，使用 Firebase 替代） -->
+    <!-- <script src="leancloud-config.js"></script> -->
+    <!-- <script src="leancloud-sync.js"></script> -->
     
     <script src="github-pages-optimize.js"></script>
     <script src="add-ai-to-all-pages.js"></script>
