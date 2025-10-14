@@ -170,16 +170,28 @@
                     return;
                 }
                 
-                // 查询是否已存在数据
-                const query = new AV.Query('PlanData');
-                query.equalTo('userId', this.sharedUserId);
+                let planObject = null;
                 
-                let planObject = await query.first();
+                try {
+                    // 尝试查询是否已存在数据
+                    const query = new AV.Query('PlanData');
+                    query.equalTo('userId', this.sharedUserId);
+                    planObject = await query.first();
+                } catch (queryError) {
+                    // 如果是 404 或表不存在错误，这是首次使用，继续创建新对象
+                    if (queryError.code === 101 || queryError.message.includes('404') || queryError.message.includes("doesn't exist")) {
+                        console.log('ℹ️ 首次同步，正在创建数据表...');
+                        planObject = null;
+                    } else {
+                        throw queryError;
+                    }
+                }
                 
                 if (!planObject) {
                     // 创建新对象
                     planObject = new this.PlanData();
                     planObject.set('userId', this.sharedUserId);
+                    console.log('📝 创建新的数据记录...');
                 }
                 
                 // 更新数据
@@ -240,11 +252,16 @@
                 
             } catch (error) {
                 // 如果是 404 错误（表不存在），这是正常的首次使用情况
-                if (error.code === 101 || error.message.includes('404') || error.message.includes("doesn't exist")) {
-                    console.log('ℹ️ 这是首次使用，云端数据表将在首次保存时自动创建');
-                } else {
-                    console.error('❌ 恢复数据失败:', error);
+                if (error.code === 101 || error.code === 404 || 
+                    error.message?.includes('404') || 
+                    error.message?.includes("doesn't exist") ||
+                    error.message?.includes("Class or object")) {
+                    console.log('ℹ️ 云端暂无数据（首次使用），这是正常的');
+                    console.log('💡 开始创建计划后，数据会自动同步到云端');
+                    return; // 正常退出，不抛出错误
                 }
+                // 其他错误才记录
+                console.error('❌ 恢复数据失败:', error);
             }
         }
         

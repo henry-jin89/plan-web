@@ -771,9 +771,9 @@
         
         // 只加载必要的脚本，避免冲突
         const scriptsToLoad = [
-            // 'leancloud-config.js',        // LeanCloud配置（已禁用）
-            // 'leancloud-sync.js',          // LeanCloud同步（已禁用）
-            'firebase-database-sync.js',  // Firebase数据库同步（主要云同步）
+            'leancloud-config.js',        // LeanCloud配置（国内快速同步）
+            'leancloud-sync.js',          // LeanCloud同步（主要）
+            'firebase-database-sync.js',  // Firebase数据库同步（备用）
             'gemini-ai-assistant.js',     // Gemini AI 助手
             // 'universal-cloud-sync.js',   // 已禁用
             // 'auto-cloud-sync.js',        // 已禁用
@@ -932,14 +932,36 @@
             
             if (!indicator || !icon || !text) return;
             
-            if (window.firebaseSync && window.firebaseSync.isInitialized) {
+            // 检查 LeanCloud 和 Firebase 状态
+            const leanCloudReady = window.leanCloudSync && window.leanCloudSync.isEnabled;
+            const firebaseReady = window.firebaseSync && window.firebaseSync.isInitialized;
+            
+            if (leanCloudReady) {
+                // LeanCloud 已连接（优先显示）
+                icon.textContent = '🟢';
+                text.textContent = 'LeanCloud 已连接';
+                indicator.style.background = 'rgba(76, 175, 80, 0.95)';
+                indicator.style.color = 'white';
+                
+                indicator.onclick = () => {
+                    const syncInfo = [];
+                    syncInfo.push('☁️ 云同步状态\n');
+                    syncInfo.push('✅ LeanCloud: 已连接（主要）');
+                    if (firebaseReady) {
+                        syncInfo.push('✅ Firebase: 已连接（备用）');
+                    }
+                    syncInfo.push(`\n🕒 最后同步: ${window.leanCloudSync.lastSync ? new Date(window.leanCloudSync.lastSync).toLocaleString('zh-CN') : '未同步'}`);
+                    syncInfo.push(`🌐 网络状态: ${navigator.onLine ? '在线' : '离线'}`);
+                    syncInfo.push('\n💡 提示: 使用LeanCloud国内服务器，速度更快！');
+                    alert(syncInfo.join('\n'));
+                };
+            } else if (firebaseReady) {
                 // Firebase 已连接
                 icon.textContent = '🟢';
                 text.textContent = 'Firebase 已连接';
                 indicator.style.background = 'rgba(76, 175, 80, 0.95)';
                 indicator.style.color = 'white';
                 
-                // 显示详细信息（点击）
                 indicator.onclick = () => {
                     const status = window.firebaseSync.getStatus();
                     const localStats = window.firebaseSync.getLocalDataStats();
@@ -952,14 +974,14 @@
                         `💡 提示: 数据会自动同步到云端`
                     );
                 };
-            } else if (window.firebaseSync) {
-                // Firebase 正在初始化
+            } else if (window.leanCloudSync || window.firebaseSync) {
+                // 正在初始化
                 icon.textContent = '🟡';
-                text.textContent = 'Firebase 初始化中...';
+                text.textContent = '云同步初始化中...';
                 indicator.style.background = 'rgba(255, 152, 0, 0.95)';
                 indicator.style.color = 'white';
             } else {
-                // Firebase 未连接
+                // 未连接
                 icon.textContent = '🔴';
                 text.textContent = '仅本地存储';
                 indicator.style.background = 'rgba(244, 67, 54, 0.95)';
@@ -971,7 +993,7 @@
                         `当前仅使用本地存储，数据未同步到云端。\n\n` +
                         `可能原因:\n` +
                         `• 网络连接问题\n` +
-                        `• Firebase SDK 加载失败\n` +
+                        `• SDK 加载失败\n` +
                         `• 防火墙或广告拦截器阻止\n\n` +
                         `建议: 刷新页面或检查网络连接`
                     );

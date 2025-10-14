@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>LeanCloud 配置测试</title>
+    <script src="leancloud-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.15.0/dist/av-min.js"></script>
+</head>
+<body>
+    <h1>LeanCloud 配置测试</h1>
+    <div id="result" style="padding: 20px; font-family: monospace;"></div>
+
+    <script>
+        const resultDiv = document.getElementById('result');
+        
+        function log(message, type = 'info') {
+            const colors = {
+                info: '#2196f3',
+                success: '#4caf50',
+                error: '#f44336',
+                warning: '#ff9800'
+            };
+            resultDiv.innerHTML += `<div style="color: ${colors[type]}; margin: 5px 0;">${message}</div>`;
+            console.log(message);
+        }
+
+        async function testLeanCloud() {
+            try {
+                log('🚀 开始测试 LeanCloud 配置...', 'info');
+                
+                // 初始化
+                log('📦 配置信息:', 'info');
+                log(`  - AppID: ${leancloudConfig.appId}`, 'info');
+                log(`  - Server: ${leancloudConfig.serverURL}`, 'info');
+                
+                AV.init({
+                    appId: leancloudConfig.appId,
+                    appKey: leancloudConfig.appKey,
+                    serverURL: leancloudConfig.serverURL
+                });
+                
+                log('✅ LeanCloud 初始化成功', 'success');
+                
+                // 测试连接
+                log('🔍 测试数据库连接...', 'info');
+                
+                const TestObject = AV.Object.extend('TestConnection');
+                const testObj = new TestObject();
+                testObj.set('message', 'Hello LeanCloud');
+                testObj.set('timestamp', new Date());
+                
+                await testObj.save();
+                log('✅ 数据写入成功！ObjectId: ' + testObj.id, 'success');
+                
+                // 尝试读取
+                const query = new AV.Query('TestConnection');
+                const result = await query.first();
+                if (result) {
+                    log('✅ 数据读取成功！', 'success');
+                    log('  - Message: ' + result.get('message'), 'success');
+                }
+                
+                log('', 'info');
+                log('🎉 LeanCloud 配置完全正常，可以使用！', 'success');
+                log('', 'info');
+                log('📝 建议：启用 LeanCloud 同步，速度会更快', 'success');
+                
+            } catch (error) {
+                log('❌ LeanCloud 测试失败', 'error');
+                log('错误信息: ' + error.message, 'error');
+                log('错误代码: ' + error.code, 'error');
+                
+                if (error.code === 401) {
+                    log('', 'warning');
+                    log('⚠️ 认证失败，可能原因：', 'warning');
+                    log('  1. AppID 或 AppKey 不正确', 'warning');
+                    log('  2. 应用已被删除或禁用', 'warning');
+                } else if (error.code === 404) {
+                    log('', 'warning');
+                    log('⚠️ 找不到资源，可能原因：', 'warning');
+                    log('  1. 数据表不存在（第一次使用正常）', 'warning');
+                    log('  2. Server URL 配置错误', 'warning');
+                } else if (error.code === 403) {
+                    log('', 'warning');
+                    log('⚠️ 权限被拒绝，可能原因：', 'warning');
+                    log('  1. Class 权限设置过严', 'warning');
+                    log('  2. 需要在控制台开启公开读写权限', 'warning');
+                }
+                
+                log('', 'info');
+                log('📖 解决方法：', 'info');
+                log('1. 访问 LeanCloud 控制台：https://console.leancloud.cn/', 'info');
+                log('2. 检查应用是否存在且正常', 'info');
+                log('3. 检查数据存储 → Class 权限设置', 'info');
+            }
+        }
+
+        testLeanCloud();
+    </script>
+</body>
+</html>
+
