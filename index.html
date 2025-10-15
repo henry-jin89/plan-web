@@ -794,7 +794,18 @@
             document.head.appendChild(script);
         }
         
-        // 只加载必要的脚本
+        // 清除旧的缓存（Firebase相关）
+        if (typeof caches !== 'undefined') {
+            caches.keys().then(function(names) {
+                for (let name of names) {
+                    caches.delete(name);
+                }
+            });
+            console.log('🧹 清除旧缓存（移除Firebase相关文件）');
+        }
+        
+        // 只加载必要的脚本（添加版本号防止缓存）
+        const VERSION = '2.0.0'; // LeanCloud only 版本
         const scriptsToLoad = [
             'leancloud-sync.js',          // LeanCloud 云同步（主要）
             'gemini-ai-assistant.js',     // Gemini AI 助手
@@ -806,8 +817,8 @@
         function loadNextScript() {
             if (loadIndex < scriptsToLoad.length) {
                 const script = scriptsToLoad[loadIndex++];
-                console.log(`📦 异步加载: ${script}`);
-                loadScriptAsync(script, loadNextScript);
+                console.log(`📦 异步加载: ${script}?v=${VERSION}`);
+                loadScriptAsync(`${script}?v=${VERSION}`, loadNextScript);
             } else {
                 console.log('✅ 所有外部脚本加载完成');
             }

@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>清除缓存工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        h1 {
+            color: #667eea;
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+        .icon {
+            font-size: 80px;
+            margin: 20px 0;
+        }
+        .desc {
+            color: #666;
+            font-size: 1.1em;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 25px;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 10px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        .btn:active {
+            transform: translateY(0);
+        }
+        .status {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 12px;
+            font-size: 1em;
+            display: none;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+            display: block;
+        }
+        .instructions {
+            margin-top: 30px;
+            text-align: left;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+        }
+        .instructions h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        .instructions ol {
+            margin-left: 20px;
+        }
+        .instructions li {
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+        .instructions kbd {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #667eea;
+            text-decoration: none;
+            font-size: 1.1em;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">🧹</div>
+        <h1>清除缓存工具</h1>
+        
+        <div class="desc">
+            系统已升级到 LeanCloud 云同步方案！<br>
+            如果页面显示"初始化中..."或出现 Firebase 错误，<br>
+            请点击下方按钮清除旧缓存。
+        </div>
+        
+        <button class="btn" onclick="clearAllCache()">🚀 一键清除缓存</button>
+        
+        <div id="status" class="status"></div>
+        
+        <div class="instructions">
+            <h3>💡 手动清除缓存方法</h3>
+            <ol>
+                <li><strong>Chrome / Edge</strong>：按 <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Delete</kbd>（Windows）或 <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Delete</kbd>（Mac）</li>
+                <li><strong>Safari</strong>（Mac）：菜单栏 → Safari → 清除历史记录</li>
+                <li>选择时间范围：<strong>全部时间</strong></li>
+                <li>勾选：<strong>缓存的图片和文件</strong></li>
+                <li>点击 <strong>清除数据</strong></li>
+                <li><strong>强制刷新页面</strong>：<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>（Windows）或 <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>（Mac）</li>
+            </ol>
+        </div>
+        
+        <a href="index.html" class="back-link">← 返回主页</a>
+    </div>
+    
+    <script>
+        console.log('🧹 清除缓存工具已加载');
+        
+        async function clearAllCache() {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = 'status info';
+            statusDiv.innerHTML = '⏳ 正在清除缓存...';
+            
+            let cleared = false;
+            
+            try {
+                // 清除 Service Worker 缓存
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    console.log('📦 找到缓存:', cacheNames);
+                    
+                    for (let name of cacheNames) {
+                        await caches.delete(name);
+                        console.log('✅ 已删除缓存:', name);
+                    }
+                    cleared = true;
+                }
+                
+                // 清除 localStorage 中的旧数据标记
+                const oldKeys = ['firebase_init', 'firebase_user', 'websocket_enabled'];
+                for (let key of oldKeys) {
+                    if (localStorage.getItem(key)) {
+                        localStorage.removeItem(key);
+                        console.log('🗑️ 已移除旧数据:', key);
+                    }
+                }
+                
+                // 注销 Service Worker
+                if ('serviceWorker' in navigator) {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    for (let registration of registrations) {
+                        await registration.unregister();
+                        console.log('🔄 已注销 Service Worker');
+                    }
+                }
+                
+                statusDiv.className = 'status success';
+                statusDiv.innerHTML = `
+                    ✅ 缓存清除成功！<br><br>
+                    <strong>下一步：</strong><br>
+                    1. 点击下方"返回主页"链接<br>
+                    2. 或按 <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> 强制刷新页面<br>
+                    3. 页面应显示 <span style="color: #4caf50;">🟢 LeanCloud 已连接</span>
+                `;
+                
+                // 3秒后自动跳转
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 3000);
+                
+            } catch (error) {
+                console.error('❌ 清除缓存失败:', error);
+                statusDiv.className = 'status info';
+                statusDiv.innerHTML = `
+                    ⚠️ 自动清除失败<br><br>
+                    <strong>请手动清除：</strong><br>
+                    1. 按 <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Delete</kbd> 打开清除数据窗口<br>
+                    2. 选择"缓存的图片和文件"<br>
+                    3. 点击"清除数据"<br>
+                    4. 按 <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> 强制刷新
+                `;
+            }
+        }
+        
+        // 页面加载时显示当前缓存信息
+        if ('caches' in window) {
+            caches.keys().then(names => {
+                console.log('📦 当前缓存列表:', names);
+                if (names.length > 0) {
+                    console.log('💡 建议：点击"清除缓存"按钮清理旧文件');
+                }
+            });
+        }
+    </script>
+</body>
+</html>
+
+
