@@ -969,11 +969,13 @@
             // 只检查 LeanCloud 状态
             const leanCloudReady = window.leanCloudSync && window.leanCloudSync.isEnabled;
             
-            // 如果已等待超过3秒且 LeanCloud 准备好，显示已连接
-            const hasWaitedEnough = Date.now() - window.pageLoadTime > 3000;
+            // 页面加载后等待时间
+            const waitTime = Date.now() - window.pageLoadTime;
+            const hasWaitedEnough = waitTime > 5000; // 等待5秒
             
             if (leanCloudReady) {
-                // LeanCloud 已连接
+                // LeanCloud 已连接 - 显示指示器
+                indicator.style.display = 'flex';
                 icon.textContent = '🟢';
                 text.textContent = 'LeanCloud 已连接';
                 indicator.style.background = 'rgba(76, 175, 80, 0.95)';
@@ -991,33 +993,38 @@
                     );
                 };
             } else if (window.leanCloudSync) {
-                // 正在初始化
+                // 正在初始化 - 显示指示器
+                indicator.style.display = 'flex';
                 icon.textContent = '🟡';
-                text.textContent = 'LeanCloud 初始化中...';
+                text.textContent = '初始化中...';
                 indicator.style.background = 'rgba(255, 152, 0, 0.95)';
                 indicator.style.color = 'white';
             } else {
-                // 未连接
-                icon.textContent = '🔴';
-                text.textContent = '仅本地存储';
-                indicator.style.background = 'rgba(244, 67, 54, 0.95)';
-                indicator.style.color = 'white';
-                
-                indicator.onclick = () => {
-                    alert(
-                        `⚠️ 云同步未连接\n\n` +
-                        `当前仅使用本地存储，数据未同步到云端。\n\n` +
-                        `可能原因:\n` +
-                        `• 网络连接问题\n` +
-                        `• SDK 加载失败\n\n` +
-                        `建议: 刷新页面或检查网络连接`
-                    );
-                };
+                // 还在等待脚本加载
+                if (!hasWaitedEnough) {
+                    // 5秒内不显示任何状态，避免闪烁
+                    indicator.style.display = 'none';
+                } else {
+                    // 超过5秒还没加载，隐藏指示器（不显示错误状态）
+                    indicator.style.display = 'none';
+                    console.log('⚠️ LeanCloud 加载超时，已隐藏状态指示器');
+                }
             }
         }
         
-        // 定期更新状态
-        setInterval(updateSyncStatus, 2000);
+        // 定期更新状态（前10秒每秒检查，之后每5秒检查）
+        let checkCount = 0;
+        const statusCheckInterval = setInterval(() => {
+            updateSyncStatus();
+            checkCount++;
+            
+            // 前10次检查（前10秒）
+            if (checkCount > 10) {
+                clearInterval(statusCheckInterval);
+                // 改为每5秒检查一次
+                setInterval(updateSyncStatus, 5000);
+            }
+        }, 1000);
         
         // 页面加载完成后显示 AI 助手提示
         document.addEventListener('DOMContentLoaded', function() {
