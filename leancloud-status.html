@@ -189,14 +189,14 @@
         }
 
         async function forceSync() {
-            if (!window.leancloudSync) {
+            if (!window.leanCloudSync) {
                 log('LeanCloud 同步系统未加载', 'error');
                 return;
             }
             
             try {
                 log('开始强制同步...', 'info');
-                await window.leancloudSync.forceSync();
+                await window.leanCloudSync.forceSync();
                 log('强制同步完成', 'success');
                 updateStatus();
             } catch (error) {
@@ -205,14 +205,14 @@
         }
 
         async function forceRestore() {
-            if (!window.leancloudSync) {
+            if (!window.leanCloudSync) {
                 log('LeanCloud 同步系统未加载', 'error');
                 return;
             }
             
             try {
                 log('开始强制恢复...', 'info');
-                await window.leancloudSync.forceRestore();
+                await window.leanCloudSync.forceRestore();
                 log('强制恢复完成', 'success');
                 updateStatus();
                 updateDataPreview();
@@ -226,14 +226,14 @@
                 return;
             }
             
-            if (!window.leancloudSync) {
+            if (!window.leanCloudSync) {
                 log('LeanCloud 同步系统未加载', 'error');
                 return;
             }
             
             try {
                 log('开始清除云端数据...', 'info');
-                await window.leancloudSync.clearCloudData();
+                await window.leanCloudSync.clearCloudData();
                 log('云端数据已清除', 'success');
                 updateStatus();
             } catch (error) {
@@ -249,13 +249,13 @@
         }
 
         function updateStatus() {
-            if (!window.leancloudSync) {
+            if (!window.leanCloudSync) {
                 log('等待 LeanCloud 初始化...', 'info');
                 setTimeout(updateStatus, 1000);
                 return;
             }
             
-            const status = window.leancloudSync.getStatus();
+            const status = window.leanCloudSync.getStatus();
             
             // 更新连接状态
             const connectionCard = document.getElementById('connection-status');

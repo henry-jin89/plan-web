@@ -370,8 +370,8 @@
         }
     }
     
-    // 创建全局实例
-    window.leancloudSync = new LeanCloudSync();
+    // 创建全局实例（注意：使用大写C以匹配index.html中的引用）
+    window.leanCloudSync = new LeanCloudSync();
     
     console.log('✅ LeanCloud 同步系统已加载');
     

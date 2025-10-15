@@ -49,23 +49,25 @@ window.APP_CONFIG = {
 window.DISABLE_ALL_NOTIFICATIONS = true;
 window.DISABLE_SYNC_NOTIFICATIONS = true;
 
-// 重写alert、confirm等函数以避免弹窗
-if (!window.originalAlert) {
-    window.originalAlert = window.alert;
-    window.originalConfirm = window.confirm;
+// 重写alert、confirm等函数以避免弹窗（仅在未重写时执行）
+if (!window._alertOverridden) {
+    window._alertOverridden = true;
+    
+    if (!window.originalAlert) {
+        window.originalAlert = window.alert;
+        window.originalConfirm = window.confirm;
+    }
+    
+    window.alert = function(message) {
+        console.log('[ALERT BLOCKED]:', message);
+        return true;
+    };
+    
+    window.confirm = function(message) {
+        console.log('[CONFIRM BLOCKED]:', message);
+        return true;
+    };
 }
-const originalAlert = window.originalAlert;
-const originalConfirm = window.originalConfirm;
-
-window.alert = function(message) {
-    console.log('[ALERT BLOCKED]:', message);
-    return true;
-};
-
-window.confirm = function(message) {
-    console.log('[CONFIRM BLOCKED]:', message);
-    return true;
-};
 
 // 阻止所有包含"同步"、"失败"等关键词的弹窗
 const blockKeywords = ['同步', '失败', '错误', 'sync', 'error', 'fail'];
