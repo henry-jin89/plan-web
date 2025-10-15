@@ -612,13 +612,13 @@
         <!-- 页脚信息 -->
         <div class="footer">
             <p>💡 智能化计划管理，让目标触手可及</p>
-            <p>🔥 Firebase云端同步，跨设备数据自动保存</p>
+            <p>☁️ LeanCloud 云端同步，国内服务器速度快</p>
             <p>🤖 AI智能助手，提供个性化计划建议</p>
             <p>📱 支持桌面端与移动端无缝切换</p>
             <p>
-                <a href="firebase-status.html">🔥 Firebase状态</a> | 
-                <a href="sync-settings.html">⚙️ 同步设置</a> | 
-                <a href="sync-test.html">🧪 测试同步</a>
+                <a href="leancloud-status.html">☁️ LeanCloud 状态</a> | 
+                <a href="clear-cache.html">🧹 清除缓存</a> | 
+                <a href="index.html" onclick="if(window.leanCloudSync) window.leanCloudSync.forceRestore(); return false;">🔄 从云端恢复</a>
             </p>
             <p style="margin-top: 20px; font-size: 0.95em; color: #999;">
                 © 2025 计划管理器 · 让每一天都充满意义
@@ -794,14 +794,14 @@
             document.head.appendChild(script);
         }
         
-        // 清除旧的缓存（Firebase相关）
+        // 清除旧的缓存（移除旧版本文件）
         if (typeof caches !== 'undefined') {
             caches.keys().then(function(names) {
                 for (let name of names) {
                     caches.delete(name);
                 }
             });
-            console.log('🧹 清除旧缓存（移除Firebase相关文件）');
+            console.log('🧹 清除旧缓存（确保使用最新版本）');
         }
         
         // 只加载必要的脚本（添加版本号防止缓存）
