@@ -9,14 +9,8 @@
     <link rel="stylesheet" href="ai-assistant-styles.css">
     <link rel="manifest" href="manifest.json">
     
-    <!-- Firebase配置 -->
-    <script src="firebase-config.js"></script>
-    
-    <!-- 同步修复工具 -->
-    <script src="sync-fix.js"></script>
-    
-    <!-- WebSocket 实时同步 -->
-    <script src="websocket-sync.js"></script>
+    <!-- LeanCloud 云同步 -->
+    <script src="leancloud-config.js"></script>
     
     <!-- 防缓存机制 -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -800,16 +794,12 @@
             document.head.appendChild(script);
         }
         
-        // 只加载必要的脚本，避免冲突
+        // 只加载必要的脚本
         const scriptsToLoad = [
-            'leancloud-config.js',        // LeanCloud配置（国内快速同步）
-            'leancloud-sync.js',          // LeanCloud同步（主要）
-            'firebase-database-sync.js',  // Firebase数据库同步（备用）
+            'leancloud-sync.js',          // LeanCloud 云同步（主要）
             'gemini-ai-assistant.js',     // Gemini AI 助手
-            // 'universal-cloud-sync.js',   // 已禁用
-            // 'auto-cloud-sync.js',        // 已禁用
-            'common.js',                 // 通用工具函数
-            'config-simple.js'           // 简化配置
+            'common.js',                  // 通用工具函数
+            'config-simple.js'            // 简化配置
         ];
         
         let loadIndex = 0;
@@ -828,13 +818,13 @@
         
         // 从云端恢复数据功能
         async function restoreFromCloud() {
-            // 检查 Firebase 是否已初始化
-            if (!window.firebaseSync) {
+            // 检查 LeanCloud 是否已初始化
+            if (!window.leanCloudSync) {
                 alert('⚠️ 云同步功能尚未初始化，请稍后再试');
                 return;
             }
             
-            if (!window.firebaseSync.isInitialized) {
+            if (!window.leanCloudSync.isEnabled) {
                 alert('⚠️ 云同步功能正在初始化中，请稍等片刻再试');
                 return;
             }
@@ -846,7 +836,7 @@
             
             // 确认操作
             const confirmed = confirm(
-                '🔄 即将从云端恢复数据\n\n' +
+                '🔄 即将从 LeanCloud 云端恢复数据\n\n' +
                 '如果云端有数据，将会覆盖本地数据。\n' +
                 '是否继续？'
             );
@@ -870,16 +860,18 @@
                 `;
                 loadingDiv.innerHTML = `
                     <div style="font-size: 48px; margin-bottom: 16px;">☁️</div>
-                    <div style="font-size: 18px; font-weight: bold; margin-bottom: 8px;">正在从云端恢复数据...</div>
+                    <div style="font-size: 18px; font-weight: bold; margin-bottom: 8px;">正在从 LeanCloud 恢复数据...</div>
                     <div style="font-size: 14px; color: #666;">请稍候，不要关闭页面</div>
                 `;
                 document.body.appendChild(loadingDiv);
                 
                 // 执行强制恢复
-                await window.firebaseSync.restoreFromDatabase(true);
+                await window.leanCloudSync.forceRestore();
                 
                 // 移除加载提示
                 loadingDiv.remove();
+                
+                alert('✅ 数据恢复成功！\n\n刷新页面查看恢复的数据。');
                 
                 console.log('✅ 云端数据恢复完成');
                 
@@ -955,7 +947,7 @@
             }
         }
         
-        // 更新同步状态指示器
+        // 更新同步状态指示器（只检查 LeanCloud）
         function updateSyncStatus() {
             const indicator = document.getElementById('sync-status-indicator');
             const icon = document.getElementById('sync-status-icon');
@@ -963,73 +955,36 @@
             
             if (!indicator || !icon || !text) return;
             
-            // 检查 LeanCloud 和 Firebase 状态
+            // 只检查 LeanCloud 状态
             const leanCloudReady = window.leanCloudSync && window.leanCloudSync.isEnabled;
-            const firebaseReady = window.firebaseSync && window.firebaseSync.isInitialized;
             
-            // 如果任一系统已就绪超过3秒，认为初始化完成
+            // 如果已等待超过3秒且 LeanCloud 准备好，显示已连接
             const hasWaitedEnough = Date.now() - window.pageLoadTime > 3000;
             
             if (leanCloudReady) {
-                // LeanCloud 已连接（优先显示）
+                // LeanCloud 已连接
                 icon.textContent = '🟢';
                 text.textContent = 'LeanCloud 已连接';
                 indicator.style.background = 'rgba(76, 175, 80, 0.95)';
                 indicator.style.color = 'white';
                 
                 indicator.onclick = () => {
-                    const syncInfo = [];
-                    syncInfo.push('☁️ 云同步状态\n');
-                    syncInfo.push('✅ LeanCloud: 已连接（主要）');
-                    if (firebaseReady) {
-                        syncInfo.push('✅ Firebase: 已连接（备用）');
-                    }
-                    syncInfo.push(`\n🕒 最后同步: ${window.leanCloudSync.lastSync ? new Date(window.leanCloudSync.lastSync).toLocaleString('zh-CN') : '未同步'}`);
-                    syncInfo.push(`🌐 网络状态: ${navigator.onLine ? '在线' : '离线'}`);
-                    syncInfo.push('\n💡 提示: 使用LeanCloud国内服务器，速度更快！');
-                    alert(syncInfo.join('\n'));
-                };
-            } else if (firebaseReady) {
-                // Firebase 已连接
-                icon.textContent = '🟢';
-                text.textContent = 'Firebase 已连接';
-                indicator.style.background = 'rgba(76, 175, 80, 0.95)';
-                indicator.style.color = 'white';
-                
-                indicator.onclick = () => {
-                    const status = window.firebaseSync.getStatus();
-                    const localStats = window.firebaseSync.getLocalDataStats();
+                    const lastSync = window.leanCloudSync.lastSync;
                     alert(
-                        `☁️ Firebase 云同步状态\n\n` +
+                        `☁️ LeanCloud 云同步状态\n\n` +
                         `✅ 状态: 已连接\n` +
-                        `📊 本地数据: ${localStats.totalKeys} 条记录\n` +
-                        `🕒 最后同步: ${status.lastSync ? new Date(status.lastSync).toLocaleString('zh-CN') : '未同步'}\n` +
-                        `🌐 网络状态: ${navigator.onLine ? '在线' : '离线'}\n` +
-                        `💡 提示: 数据会自动同步到云端`
+                        `📍 服务器: 国内服务器（速度快）\n` +
+                        `🕒 最后同步: ${lastSync ? new Date(lastSync).toLocaleString('zh-CN') : '未同步'}\n` +
+                        `🌐 网络状态: ${navigator.onLine ? '在线' : '离线'}\n\n` +
+                        `💡 提示: 数据会自动同步到 LeanCloud 云端`
                     );
                 };
-            } else if (window.leanCloudSync || window.firebaseSync) {
-                // 正在初始化（但如果已等待足够长时间且有一个系统准备好，就显示准备好的那个）
-                if (hasWaitedEnough && (leanCloudReady || firebaseReady)) {
-                    // 已等待3秒，至少一个系统可用
-                    if (leanCloudReady) {
-                        icon.textContent = '🟢';
-                        text.textContent = 'LeanCloud 已连接';
-                        indicator.style.background = 'rgba(76, 175, 80, 0.95)';
-                        indicator.style.color = 'white';
-                    } else if (firebaseReady) {
-                        icon.textContent = '🟢';
-                        text.textContent = 'Firebase 已连接';
-                        indicator.style.background = 'rgba(76, 175, 80, 0.95)';
-                        indicator.style.color = 'white';
-                    }
-                } else {
-                    // 仍在初始化
-                    icon.textContent = '🟡';
-                    text.textContent = '云同步初始化中...';
-                    indicator.style.background = 'rgba(255, 152, 0, 0.95)';
-                    indicator.style.color = 'white';
-                }
+            } else if (window.leanCloudSync) {
+                // 正在初始化
+                icon.textContent = '🟡';
+                text.textContent = 'LeanCloud 初始化中...';
+                indicator.style.background = 'rgba(255, 152, 0, 0.95)';
+                indicator.style.color = 'white';
             } else {
                 // 未连接
                 icon.textContent = '🔴';
@@ -1043,8 +998,7 @@
                         `当前仅使用本地存储，数据未同步到云端。\n\n` +
                         `可能原因:\n` +
                         `• 网络连接问题\n` +
-                        `• SDK 加载失败\n` +
-                        `• 防火墙或广告拦截器阻止\n\n` +
+                        `• SDK 加载失败\n\n` +
                         `建议: 刷新页面或检查网络连接`
                     );
                 };
@@ -1064,9 +1018,6 @@
             
             // 3秒后强制更新（超时检查）
             setTimeout(updateSyncStatus, 3000);
-            
-            // 监听 Firebase 初始化完成事件
-            window.addEventListener('firebase-initialized', updateSyncStatus);
             
             // 监听 LeanCloud 初始化完成事件
             window.addEventListener('leancloud-initialized', updateSyncStatus);

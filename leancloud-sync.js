@@ -224,6 +224,17 @@
             try {
                 console.log('📥 从 LeanCloud 恢复数据...');
                 
+                // 检查本地数据状态
+                const localData = this.collectAllPlanData();
+                const localDataCount = Object.keys(localData).length;
+                const isLocalEmpty = localDataCount === 0;
+                
+                console.log(`📊 本地数据状态: ${localDataCount} 条记录`);
+                
+                if (isLocalEmpty) {
+                    console.log('🆕 检测到本地数据为空，将尝试从云端恢复');
+                }
+                
                 const query = new AV.Query('PlanData');
                 query.equalTo('userId', this.sharedUserId);
                 
@@ -232,6 +243,10 @@
                 if (planObject) {
                     const cloudData = planObject.get('data');
                     const itemCount = planObject.get('itemCount') || 0;
+                    const lastModified = planObject.get('lastModified');
+                    
+                    console.log(`☁️ 发现云端数据: ${itemCount} 条记录`);
+                    console.log(`📅 云端最后更新: ${lastModified || '未知'}`);
                     
                     if (cloudData && typeof cloudData === 'object') {
                         let restoredCount = 0;
@@ -246,13 +261,41 @@
                         console.log(`✅ 恢复成功！共 ${restoredCount} 项数据`);
                         this.lastSync = new Date();
                         
-                        // 触发页面刷新（如果需要）
-                        window.dispatchEvent(new Event('storage'));
+                        // 如果本地为空且成功恢复了数据，触发通知
+                        if (isLocalEmpty && restoredCount > 0) {
+                            console.log('🎉 已从云端恢复数据到本地！');
+                            
+                            // 触发数据恢复事件
+                            window.dispatchEvent(new CustomEvent('data-restored', {
+                                detail: { count: restoredCount, source: 'leancloud' }
+                            }));
+                            
+                            // 触发页面刷新事件
+                            window.dispatchEvent(new Event('storage'));
+                            
+                            // 3秒后询问是否刷新页面
+                            setTimeout(() => {
+                                if (confirm(`✅ 已从 LeanCloud 恢复 ${restoredCount} 条数据！\n\n是否刷新页面查看？`)) {
+                                    window.location.reload();
+                                }
+                            }, 1000);
+                        } else {
+                            // 触发页面刷新事件
+                            window.dispatchEvent(new Event('storage'));
+                        }
                     } else {
                         console.log('ℹ️ 云端暂无数据');
                     }
                 } else {
                     console.log('ℹ️ 云端暂无数据（首次使用）');
+                    
+                    if (isLocalEmpty) {
+                        console.log('⚠️ 本地和云端都没有数据');
+                    } else {
+                        console.log('📤 将本地数据上传到云端...');
+                        // 首次使用，将本地数据同步到云端
+                        await this.syncToCloud();
+                    }
                 }
                 
             } catch (error) {
