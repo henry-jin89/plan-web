@@ -641,6 +641,9 @@
     <script>
         console.log('🚀 计划管理器启动');
         
+        // 记录页面加载时间
+        window.pageLoadTime = Date.now();
+        
         // 基础工具函数
         window.StorageUtils = {
             savePlan: function(type, date, data) {
@@ -964,6 +967,9 @@
             const leanCloudReady = window.leanCloudSync && window.leanCloudSync.isEnabled;
             const firebaseReady = window.firebaseSync && window.firebaseSync.isInitialized;
             
+            // 如果任一系统已就绪超过3秒，认为初始化完成
+            const hasWaitedEnough = Date.now() - window.pageLoadTime > 3000;
+            
             if (leanCloudReady) {
                 // LeanCloud 已连接（优先显示）
                 icon.textContent = '🟢';
@@ -1003,11 +1009,27 @@
                     );
                 };
             } else if (window.leanCloudSync || window.firebaseSync) {
-                // 正在初始化
-                icon.textContent = '🟡';
-                text.textContent = '云同步初始化中...';
-                indicator.style.background = 'rgba(255, 152, 0, 0.95)';
-                indicator.style.color = 'white';
+                // 正在初始化（但如果已等待足够长时间且有一个系统准备好，就显示准备好的那个）
+                if (hasWaitedEnough && (leanCloudReady || firebaseReady)) {
+                    // 已等待3秒，至少一个系统可用
+                    if (leanCloudReady) {
+                        icon.textContent = '🟢';
+                        text.textContent = 'LeanCloud 已连接';
+                        indicator.style.background = 'rgba(76, 175, 80, 0.95)';
+                        indicator.style.color = 'white';
+                    } else if (firebaseReady) {
+                        icon.textContent = '🟢';
+                        text.textContent = 'Firebase 已连接';
+                        indicator.style.background = 'rgba(76, 175, 80, 0.95)';
+                        indicator.style.color = 'white';
+                    }
+                } else {
+                    // 仍在初始化
+                    icon.textContent = '🟡';
+                    text.textContent = '云同步初始化中...';
+                    indicator.style.background = 'rgba(255, 152, 0, 0.95)';
+                    indicator.style.color = 'white';
+                }
             } else {
                 // 未连接
                 icon.textContent = '🔴';
@@ -1034,11 +1056,20 @@
         
         // 页面加载完成后显示 AI 助手提示
         document.addEventListener('DOMContentLoaded', function() {
-            // 初始更新状态
+            // 立即更新一次状态
+            updateSyncStatus();
+            
+            // 1秒后再更新（让脚本有时间加载）
             setTimeout(updateSyncStatus, 1000);
+            
+            // 3秒后强制更新（超时检查）
+            setTimeout(updateSyncStatus, 3000);
             
             // 监听 Firebase 初始化完成事件
             window.addEventListener('firebase-initialized', updateSyncStatus);
+            
+            // 监听 LeanCloud 初始化完成事件
+            window.addEventListener('leancloud-initialized', updateSyncStatus);
             
             // 检查是否有历史建议
             setTimeout(() => {

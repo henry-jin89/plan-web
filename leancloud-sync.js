@@ -63,6 +63,11 @@
                 
                 console.log('✅ LeanCloud 同步系统启动完成');
                 
+                // 触发初始化完成事件
+                window.dispatchEvent(new CustomEvent('leancloud-initialized', {
+                    detail: { timestamp: new Date() }
+                }));
+                
             } catch (error) {
                 console.error('❌ LeanCloud 初始化失败:', error);
                 this.isEnabled = false;
