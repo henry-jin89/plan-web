@@ -119,12 +119,21 @@
                 window.leancloudStorageListenerBound = true;
             }
             
-            // 定期同步（每5分钟）
+            // 定期上传本地数据到云端（每5分钟）
             setInterval(() => {
                 if (this.isEnabled && !this.syncInProgress) {
+                    console.log('⏰ 定期上传本地数据到云端...');
                     this.syncToCloud();
                 }
             }, 5 * 60 * 1000);
+            
+            // 定期从云端拉取最新数据（每2分钟）- 解决跨设备同步问题
+            setInterval(() => {
+                if (this.isEnabled && !this.syncInProgress) {
+                    console.log('🔄 检查云端是否有更新...');
+                    this.checkAndPullUpdates();
+                }
+            }, 2 * 60 * 1000); // 2分钟检查一次
             
             // 页面关闭前同步
             window.addEventListener('beforeunload', () => {
@@ -200,13 +209,16 @@
                 }
                 
                 // 更新数据
+                const now = new Date().toISOString();
                 planObject.set('data', planData);
-                planObject.set('lastModified', new Date().toISOString());
+                planObject.set('lastModified', now);
                 planObject.set('deviceInfo', navigator.userAgent.substring(0, 50));
                 planObject.set('itemCount', dataCount);
                 
                 await planObject.save();
                 
+                // 保存同步时间到本地（用于检测云端更新）
+                localStorage.setItem('leancloud_last_sync', now);
                 this.lastSync = new Date();
                 console.log(`✅ 同步成功！共 ${dataCount} 项数据`);
                 
@@ -311,6 +323,118 @@
                 // 其他错误才记录
                 console.error('❌ 恢复数据失败:', error);
             }
+        }
+        
+        /**
+         * 检查云端更新并拉取（用于跨设备同步）
+         */
+        async checkAndPullUpdates() {
+            if (!this.isEnabled) return;
+            
+            try {
+                console.log('🔍 检查云端是否有新数据...');
+                
+                const query = new AV.Query('PlanData');
+                query.equalTo('userId', this.sharedUserId);
+                
+                const planObject = await query.first();
+                
+                if (planObject) {
+                    const cloudLastModified = planObject.get('lastModified');
+                    const localLastSync = localStorage.getItem('leancloud_last_sync');
+                    
+                    console.log('☁️ 云端最后更新:', cloudLastModified);
+                    console.log('💾 本地最后同步:', localLastSync);
+                    
+                    // 如果云端数据更新时间晚于本地最后同步时间
+                    if (cloudLastModified && (!localLastSync || new Date(cloudLastModified) > new Date(localLastSync))) {
+                        console.log('🆕 发现云端有新数据！');
+                        
+                        const cloudData = planObject.get('data');
+                        const itemCount = planObject.get('itemCount') || 0;
+                        
+                        if (cloudData && typeof cloudData === 'object') {
+                            let updatedCount = 0;
+                            
+                            // 更新本地数据
+                            Object.keys(cloudData).forEach(key => {
+                                const value = cloudData[key];
+                                const jsonValue = typeof value === 'string' ? value : JSON.stringify(value);
+                                localStorage.setItem(key, jsonValue);
+                                updatedCount++;
+                            });
+                            
+                            // 更新最后同步时间
+                            localStorage.setItem('leancloud_last_sync', cloudLastModified);
+                            this.lastSync = new Date(cloudLastModified);
+                            
+                            console.log(`✅ 已拉取云端更新：${updatedCount} 条数据`);
+                            
+                            // 触发页面刷新事件，让UI更新
+                            window.dispatchEvent(new Event('storage'));
+                            
+                            // 显示通知（不阻塞）
+                            this.showUpdateNotification(updatedCount);
+                        }
+                    } else {
+                        console.log('✅ 本地数据已是最新');
+                    }
+                } else {
+                    console.log('ℹ️ 云端暂无数据');
+                }
+                
+            } catch (error) {
+                console.error('❌ 检查更新失败:', error);
+            }
+        }
+        
+        /**
+         * 显示更新通知
+         */
+        showUpdateNotification(count) {
+            // 创建一个不阻塞的通知
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 80px;
+                right: 20px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 15px 25px;
+                border-radius: 12px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+                z-index: 10000;
+                font-size: 14px;
+                animation: slideIn 0.3s ease-out;
+                cursor: pointer;
+            `;
+            notification.innerHTML = `
+                🔄 已同步其他设备的更新 (${count} 条数据)<br>
+                <small style="opacity: 0.9;">点击刷新页面查看</small>
+            `;
+            
+            // 添加动画
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes slideIn {
+                    from { transform: translateX(400px); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            // 点击刷新页面
+            notification.onclick = () => {
+                window.location.reload();
+            };
+            
+            document.body.appendChild(notification);
+            
+            // 5秒后自动消失
+            setTimeout(() => {
+                notification.style.animation = 'slideIn 0.3s ease-out reverse';
+                setTimeout(() => notification.remove(), 300);
+            }, 5000);
         }
         
         /**

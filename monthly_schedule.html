@@ -4043,25 +4043,40 @@
                 // 在保存前先进行最后一次清理
                 const hadCorruptedData = forceCleanSpecificDates();
 
-                const confirmed = confirm(
-
-                    '将强制保存当前数据到云端，覆盖云端的错误数据。\n\n' +
-
-                    '这将确保15号等日期的错误内容被彻底清除。\n\n' +
-
-                    '是否继续？'
-
-                );
-
+                // 检测是否有云同步服务
+                const hasCloudSync = window.syncService && window.syncService.getSyncStatus().enabled;
                 
-
-                if (!confirmed) {
-
-                    return;
-
+                // 智能判断是否需要显示确认对话框
+                if (hadCorruptedData) {
+                    // 检测到损坏数据时的特殊提示
+                    const confirmed = confirm(
+                        '⚠️ 检测到数据编码错误，将自动清理！\n\n' +
+                        (hasCloudSync ? '清理后会同步到云端。' : '清理后会保存到本地。') + '\n\n' +
+                        '是否继续？'
+                    );
+                    
+                    if (!confirmed) {
+                        return;
+                    }
+                } else {
+                    // 直接保存，不显示确认对话框（除非用户设置了总是确认）
+                    const alwaysConfirm = localStorage.getItem('alwaysConfirmSave') === 'true';
+                    
+                    if (alwaysConfirm) {
+                        const confirmed = confirm(
+                            '💾 保存数据\n\n' +
+                            (hasCloudSync ? '将强制保存当前数据到云端。' : '将保存数据到本地。') + '\n\n' +
+                            '是否继续？'
+                        );
+                        
+                        if (!confirmed) {
+                            return;
+                        }
+                    } else {
+                        // 直接保存，显示友好提示
+                        MessageUtils.info('正在保存数据...');
+                    }
                 }
-
-                
 
                 // 1. 首先清理当前数据
 
@@ -4153,7 +4168,7 @@
 
                                     console.log('✅ 同步验证通过，数据保存成功');
 
-                                    MessageUtils.success('数据已成功保存到云端！');
+                                    MessageUtils.success('✅ 保存成功！');
 
                                 }
 
@@ -4173,7 +4188,7 @@
 
                         console.log('💡 同步未启用，仅保存到本地');
 
-                        MessageUtils.success('数据已保存到本地！');
+                        MessageUtils.success('✅ 保存成功！');
 
                     }
 
@@ -4181,7 +4196,7 @@
 
                     console.log('💡 无同步服务，仅保存到本地');
 
-                    MessageUtils.success('数据已保存到本地！');
+                    MessageUtils.success('✅ 保存成功！');
 
                 }
 

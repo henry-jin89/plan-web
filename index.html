@@ -504,6 +504,9 @@
                 <button class="quick-action-btn" onclick="restoreFromCloud()" style="cursor: pointer; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
                     ☁️ 从云端恢复
                 </button>
+                <button class="quick-action-btn" onclick="checkCloudUpdates()" style="cursor: pointer; background: linear-gradient(135deg, #4caf50 0%, #45a049 100%); color: white;">
+                    🔄 检查更新
+                </button>
                 <a href="day_plan.html" class="quick-action-btn">
                     📅 今日计划
                 </a>
@@ -826,6 +829,39 @@
         
         // 延迟加载外部脚本，确保页面首先可见
         setTimeout(loadNextScript, 1000);
+        
+        // 检查云端更新功能
+        async function checkCloudUpdates() {
+            if (!window.leanCloudSync) {
+                alert('⚠️ 云同步功能尚未初始化，请稍后再试');
+                return;
+            }
+            
+            if (!window.leanCloudSync.isEnabled) {
+                alert('⚠️ 云同步功能正在初始化中，请稍等片刻再试');
+                return;
+            }
+            
+            if (!navigator.onLine) {
+                alert('❌ 当前网络不可用，无法检查更新');
+                return;
+            }
+            
+            try {
+                console.log('🔄 手动检查云端更新...');
+                await window.leanCloudSync.checkAndPullUpdates();
+                
+                // 如果没有弹出通知，说明已是最新
+                setTimeout(() => {
+                    const lastCheck = new Date().toLocaleTimeString('zh-CN');
+                    console.log(`✅ 检查完成 (${lastCheck})`);
+                }, 1000);
+                
+            } catch (error) {
+                console.error('❌ 检查更新失败:', error);
+                alert('❌ 检查更新失败:\n' + error.message);
+            }
+        }
         
         // 从云端恢复数据功能
         async function restoreFromCloud() {
