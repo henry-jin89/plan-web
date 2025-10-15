@@ -61,7 +61,7 @@
             return true;
         };
         
-        // 阻止创建同步相关的DOM元素
+        // 阻止创建同步相关的DOM元素（但允许状态指示器）
         const originalCreateElement = document.createElement;
         document.createElement = function(tagName) {
             const element = originalCreateElement.call(this, tagName);
@@ -71,6 +71,12 @@
             element.setAttribute = function(name, value) {
                 if (name === 'id' && typeof value === 'string' && 
                     (value.includes('sync') || value.includes('notification') || value.includes('indicator'))) {
+                    // 允许状态指示器相关的元素
+                    if (value === 'sync-status-indicator' || 
+                        value === 'sync-status-icon' || 
+                        value === 'sync-status-text') {
+                        return originalSetAttribute.call(this, name, value);
+                    }
                     console.log('[DOM元素创建已阻止]:', tagName, name, value);
                     return;
                 }
@@ -119,15 +125,29 @@
             display: none;
         }
         
-        /* 隐藏所有同步相关的通知和弹窗 */
-        [id*="sync"], [id*="notification"], [id*="indicator"], 
-        [class*="sync"], [class*="notification"], [class*="indicator"],
+        /* 隐藏所有同步相关的通知和弹窗（排除状态指示器） */
+        [id*="sync"]:not(#sync-status-indicator):not(#sync-status-icon):not(#sync-status-text), 
+        [id*="notification"]:not(#sync-status-indicator), 
+        [id*="indicator"]:not(#sync-status-indicator),
+        [class*="sync"]:not(#sync-status-indicator), 
+        [class*="notification"]:not(#sync-status-indicator), 
+        [class*="indicator"]:not(#sync-status-indicator),
         .sync-notification, .zero-config-notification, 
         #auto-sync-indicator, #universal-sync-badge {
             display: none !important;
             visibility: hidden !important;
             opacity: 0 !important;
             pointer-events: none !important;
+        }
+        
+        /* 确保状态指示器始终显示 */
+        #sync-status-indicator,
+        #sync-status-icon,
+        #sync-status-text {
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
         }
         
         /* 主页特有样式 */
@@ -720,7 +740,7 @@
             console.log('⏰ 超时保护：强制显示页面内容');
         }, 3000);
         
-        // 定期清理同步通知元素
+        // 定期清理同步通知元素（但保留状态指示器）
         function cleanupSyncNotifications() {
             const selectors = [
                 '[id*="sync"]', '[id*="notification"]', '[id*="indicator"]',
@@ -732,6 +752,14 @@
             selectors.forEach(selector => {
                 const elements = document.querySelectorAll(selector);
                 elements.forEach(element => {
+                    // 不要清理状态指示器及其子元素
+                    if (element.id === 'sync-status-indicator' || 
+                        element.id === 'sync-status-icon' ||
+                        element.id === 'sync-status-text' ||
+                        element.closest('#sync-status-indicator')) {
+                        return;
+                    }
+                    
                     if (element.textContent && (
                         element.textContent.includes('同步') ||
                         element.textContent.includes('失败') ||
