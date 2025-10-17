@@ -12,6 +12,16 @@
     <!-- LeanCloud 云同步 -->
     <script src="leancloud-config.js"></script>
     
+    <!-- Eruda 移动端调试工具 - 在手机上查看控制台 -->
+    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+    <script>
+        // 自动初始化 Eruda（仅在移动设备上）
+        if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+            eruda.init();
+            console.log('📱 Eruda 调试工具已启动！点击右下角图标打开控制台');
+        }
+    </script>
+    
     <!-- 防缓存机制 -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
@@ -808,7 +818,7 @@
         }
         
         // 只加载必要的脚本（添加版本号防止缓存）
-        const VERSION = '2.2.0'; // 双时间戳系统，彻底解决数据覆盖问题
+        const VERSION = '2.3.0'; // 添加Eruda调试工具+详细日志，追踪同步问题
         const scriptsToLoad = [
             'leancloud-sync.js',          // LeanCloud 云同步（主要）
             'gemini-ai-assistant.js',     // Gemini AI 助手

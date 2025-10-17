@@ -177,11 +177,20 @@
          * 同步到云端
          */
         async syncToCloud() {
-            if (!this.isEnabled || this.syncInProgress) return;
+            if (!this.isEnabled) {
+                console.warn('⚠️ LeanCloud 未启用，跳过同步');
+                return;
+            }
+            
+            if (this.syncInProgress) {
+                console.warn('⚠️ 同步进行中，跳过本次同步');
+                return;
+            }
             
             try {
                 this.syncInProgress = true;
                 console.log('💾 开始同步到 LeanCloud...');
+                console.log('📱 设备信息:', navigator.userAgent.substring(0, 50));
                 
                 const planData = this.collectAllPlanData();
                 const dataCount = Object.keys(planData).length;
@@ -228,7 +237,13 @@
                 // 上传成功后，更新最后同步时间（记录云端时间）
                 localStorage.setItem('leancloud_last_sync', now);
                 this.lastSync = new Date(now);
-                console.log(`✅ 同步成功！共 ${dataCount} 项数据，云端时间: ${now}`);
+                
+                console.log('=== 同步成功 ===');
+                console.log(`✅ 共同步 ${dataCount} 项数据`);
+                console.log(`☁️ 云端时间: ${now}`);
+                console.log(`💾 本地修改时间: ${localStorage.getItem('leancloud_local_modified')}`);
+                console.log(`💾 本地同步时间: ${localStorage.getItem('leancloud_last_sync')}`);
+                console.log('=============');
                 
             } catch (error) {
                 console.error('❌ 同步失败:', error);
@@ -250,14 +265,15 @@
             this.syncInProgress = true; // 设置锁，防止恢复时触发同步
             
             try {
-                console.log('📥 从 LeanCloud 恢复数据...');
+                console.log('=== 📥 开始检查云端数据 ===');
                 
                 // 检查本地数据状态
                 const localData = this.collectAllPlanData();
                 const localDataCount = Object.keys(localData).length;
                 const isLocalEmpty = localDataCount === 0;
                 
-                console.log(`📊 本地数据状态: ${localDataCount} 条记录`);
+                console.log(`📊 本地数据: ${localDataCount} 条记录`);
+                console.log(`🔄 强制恢复: ${forceRestore ? '是' : '否'}`);
                 
                 // 如果本地不为空且不是强制恢复，检查是否需要恢复
                 if (!isLocalEmpty && !forceRestore) {
@@ -283,12 +299,19 @@
                             if (compareTime && cloudLastModified) {
                                 const localTime = new Date(compareTime).getTime();
                                 const cloudTime = new Date(cloudLastModified).getTime();
+                                const diffSeconds = Math.round((cloudTime - localTime) / 1000);
+                                
+                                console.log(`⚖️ 时间戳比较:`);
+                                console.log(`   本地: ${new Date(localTime).toLocaleString()}`);
+                                console.log(`   云端: ${new Date(cloudTime).toLocaleString()}`);
+                                console.log(`   相差: ${diffSeconds} 秒`);
                                 
                                 if (localTime >= cloudTime) {
-                                    console.log('✅ 本地数据已是最新（本地有未上传或已同步的修改），跳过自动恢复');
+                                    console.log('✅ 本地数据已是最新（本地>=云端），跳过自动恢复');
+                                    console.log('=========================');
                                     return;
                                 } else {
-                                    console.log(`🆕 云端有更新（相差 ${Math.round((cloudTime - localTime) / 1000)} 秒），开始恢复...`);
+                                    console.log(`🆕 云端有更新（云端>${diffSeconds}秒），开始恢复...`);
                                 }
                             }
                         }
