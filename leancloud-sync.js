@@ -232,7 +232,15 @@
         /**
          * 从云端恢复数据
          */
-        async restoreFromCloud() {
+        async restoreFromCloud(forceRestore = false) {
+            if (this.syncInProgress && !forceRestore) {
+                console.log('⏸️ 同步进行中，跳过恢复');
+                return;
+            }
+            
+            const restoreInProgress = this.syncInProgress;
+            this.syncInProgress = true; // 设置锁，防止恢复时触发同步
+            
             try {
                 console.log('📥 从 LeanCloud 恢复数据...');
                 
@@ -243,8 +251,47 @@
                 
                 console.log(`📊 本地数据状态: ${localDataCount} 条记录`);
                 
+                // 如果本地不为空且不是强制恢复，检查是否需要恢复
+                if (!isLocalEmpty && !forceRestore) {
+                    const localLastSync = localStorage.getItem('leancloud_last_sync');
+                    console.log(`💾 本地最后同步时间: ${localLastSync || '未知'}`);
+                    
+                    // 先查询云端数据的更新时间
+                    const query = new AV.Query('PlanData');
+                    query.equalTo('userId', this.sharedUserId);
+                    
+                    try {
+                        const planObject = await query.first();
+                        
+                        if (planObject) {
+                            const cloudLastModified = planObject.get('lastModified');
+                            console.log(`☁️ 云端最后更新时间: ${cloudLastModified || '未知'}`);
+                            
+                            // 如果本地有同步时间，且不早于云端更新时间，则跳过恢复
+                            if (localLastSync && cloudLastModified) {
+                                const localTime = new Date(localLastSync).getTime();
+                                const cloudTime = new Date(cloudLastModified).getTime();
+                                
+                                if (localTime >= cloudTime) {
+                                    console.log('✅ 本地数据已是最新，跳过自动恢复');
+                                    return;
+                                } else {
+                                    console.log(`🆕 云端有更新（相差 ${Math.round((cloudTime - localTime) / 1000)} 秒），开始恢复...`);
+                                }
+                            }
+                        }
+                    } catch (queryError) {
+                        // 如果查询失败（如首次使用），继续正常流程
+                        console.log('ℹ️ 无法查询云端数据，继续正常流程');
+                    }
+                }
+                
                 if (isLocalEmpty) {
                     console.log('🆕 检测到本地数据为空，将尝试从云端恢复');
+                }
+                
+                if (forceRestore) {
+                    console.log('🔄 强制恢复模式');
                 }
                 
                 const query = new AV.Query('PlanData');
@@ -270,8 +317,14 @@
                             restoredCount++;
                         });
                         
+                        // 更新本地同步时间戳（关键：避免重复恢复）
+                        if (lastModified) {
+                            localStorage.setItem('leancloud_last_sync', lastModified);
+                            console.log(`⏰ 已更新本地同步时间: ${lastModified}`);
+                        }
+                        
                         console.log(`✅ 恢复成功！共 ${restoredCount} 项数据`);
-                        this.lastSync = new Date();
+                        this.lastSync = new Date(lastModified || Date.now());
                         
                         // 如果本地为空且成功恢复了数据，触发通知
                         if (isLocalEmpty && restoredCount > 0) {
@@ -322,6 +375,11 @@
                 }
                 // 其他错误才记录
                 console.error('❌ 恢复数据失败:', error);
+            } finally {
+                // 恢复同步锁状态
+                if (!restoreInProgress) {
+                    this.syncInProgress = false;
+                }
             }
         }
         
@@ -452,7 +510,7 @@
          */
         async forceRestore() {
             console.log('📥 执行强制恢复...');
-            await this.restoreFromCloud();
+            await this.restoreFromCloud(true); // 传入 true 强制恢复
             console.log('✅ 强制恢复完成');
         }
         
