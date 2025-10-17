@@ -114,10 +114,10 @@
                         key.startsWith('moodData_') || key.startsWith('gratitudeData_')) {
                         console.log(`📝 检测到数据变化: ${key}`);
                         
-                        // 立即更新本地时间戳（关键修复：防止刷新时丢失修改）
+                        // 立即更新本地修改时间戳（关键修复：防止刷新时丢失修改）
                         const now = new Date().toISOString();
-                        originalSetItem.call(localStorage, 'leancloud_last_sync', now);
-                        console.log(`⏰ 立即更新本地时间戳: ${now}`);
+                        originalSetItem.call(localStorage, 'leancloud_local_modified', now);
+                        console.log(`⏰ 立即更新本地修改时间: ${now}`);
                         
                         // 异步同步到云端
                         this.syncToCloud();
@@ -215,8 +215,9 @@
                     console.log('📝 创建新的数据记录...');
                 }
                 
-                // 更新数据
+                // 更新数据 - 每次上传都生成新的云端时间戳
                 const now = new Date().toISOString();
+                
                 planObject.set('data', planData);
                 planObject.set('lastModified', now);
                 planObject.set('deviceInfo', navigator.userAgent.substring(0, 50));
@@ -224,10 +225,10 @@
                 
                 await planObject.save();
                 
-                // 保存同步时间到本地（用于检测云端更新）
+                // 上传成功后，更新最后同步时间（记录云端时间）
                 localStorage.setItem('leancloud_last_sync', now);
-                this.lastSync = new Date();
-                console.log(`✅ 同步成功！共 ${dataCount} 项数据`);
+                this.lastSync = new Date(now);
+                console.log(`✅ 同步成功！共 ${dataCount} 项数据，云端时间: ${now}`);
                 
             } catch (error) {
                 console.error('❌ 同步失败:', error);
@@ -260,8 +261,10 @@
                 
                 // 如果本地不为空且不是强制恢复，检查是否需要恢复
                 if (!isLocalEmpty && !forceRestore) {
+                    const localModified = localStorage.getItem('leancloud_local_modified');
                     const localLastSync = localStorage.getItem('leancloud_last_sync');
-                    console.log(`💾 本地最后同步时间: ${localLastSync || '未知'}`);
+                    console.log(`💾 本地修改时间: ${localModified || '未知'}`);
+                    console.log(`💾 本地同步时间: ${localLastSync || '未知'}`);
                     
                     // 先查询云端数据的更新时间
                     const query = new AV.Query('PlanData');
@@ -274,13 +277,15 @@
                             const cloudLastModified = planObject.get('lastModified');
                             console.log(`☁️ 云端最后更新时间: ${cloudLastModified || '未知'}`);
                             
-                            // 如果本地有同步时间，且不早于云端更新时间，则跳过恢复
-                            if (localLastSync && cloudLastModified) {
-                                const localTime = new Date(localLastSync).getTime();
+                            // 使用本地修改时间来判断（如果存在）
+                            const compareTime = localModified || localLastSync;
+                            
+                            if (compareTime && cloudLastModified) {
+                                const localTime = new Date(compareTime).getTime();
                                 const cloudTime = new Date(cloudLastModified).getTime();
                                 
                                 if (localTime >= cloudTime) {
-                                    console.log('✅ 本地数据已是最新，跳过自动恢复');
+                                    console.log('✅ 本地数据已是最新（本地有未上传或已同步的修改），跳过自动恢复');
                                     return;
                                 } else {
                                     console.log(`🆕 云端有更新（相差 ${Math.round((cloudTime - localTime) / 1000)} 秒），开始恢复...`);
@@ -324,10 +329,11 @@
                             restoredCount++;
                         });
                         
-                        // 更新本地同步时间戳（关键：避免重复恢复）
+                        // 更新本地时间戳（关键：避免重复恢复和数据冲突）
                         if (lastModified) {
                             localStorage.setItem('leancloud_last_sync', lastModified);
-                            console.log(`⏰ 已更新本地同步时间: ${lastModified}`);
+                            localStorage.setItem('leancloud_local_modified', lastModified);
+                            console.log(`⏰ 已更新本地时间戳: ${lastModified}`);
                         }
                         
                         console.log(`✅ 恢复成功！共 ${restoredCount} 项数据`);
@@ -429,9 +435,11 @@
                                 updatedCount++;
                             });
                             
-                            // 更新最后同步时间
+                            // 更新本地时间戳（同步云端时间）
                             localStorage.setItem('leancloud_last_sync', cloudLastModified);
+                            localStorage.setItem('leancloud_local_modified', cloudLastModified);
                             this.lastSync = new Date(cloudLastModified);
+                            console.log(`⏰ 已更新本地时间戳为云端时间: ${cloudLastModified}`);
                             
                             console.log(`✅ 已拉取云端更新：${updatedCount} 条数据`);
                             
