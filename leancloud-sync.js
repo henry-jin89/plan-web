@@ -113,6 +113,13 @@
                     if (key.startsWith('planData_') || key.startsWith('habitData_') || 
                         key.startsWith('moodData_') || key.startsWith('gratitudeData_')) {
                         console.log(`📝 检测到数据变化: ${key}`);
+                        
+                        // 立即更新本地时间戳（关键修复：防止刷新时丢失修改）
+                        const now = new Date().toISOString();
+                        originalSetItem.call(localStorage, 'leancloud_last_sync', now);
+                        console.log(`⏰ 立即更新本地时间戳: ${now}`);
+                        
+                        // 异步同步到云端
                         this.syncToCloud();
                     }
                 };
