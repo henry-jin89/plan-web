@@ -19,6 +19,8 @@
             this.syncInProgress = false;
             this.PlanData = null; // LeanCloud 数据类
             this._syncDebounceTimer = null; // 同步防抖定时器
+            this._originalSetItem = null; // 保存原始的 localStorage.setItem 方法
+            this._isRestoringFromCloud = false; // 标记是否正在从云端恢复数据
             
             this.init();
         }
@@ -106,9 +108,18 @@
             
             // 监听 localStorage 变化
             if (!window.leancloudStorageListenerBound) {
-                const originalSetItem = localStorage.setItem;
+                // 保存原始方法
+                this._originalSetItem = localStorage.setItem;
+                const originalSetItem = this._originalSetItem;
+                
                 localStorage.setItem = (key, value) => {
                     originalSetItem.call(localStorage, key, value);
+                    
+                    // 如果正在从云端恢复数据，不触发同步（避免循环）
+                    if (this._isRestoringFromCloud) {
+                        console.log(`📥 从云端恢复数据中，跳过同步触发: ${key}`);
+                        return;
+                    }
                     
                     // 只同步计划相关数据
                     if (key.startsWith('planData_') || key.startsWith('habitData_') || 
@@ -259,7 +270,9 @@
                 await planObject.save();
                 
                 // 上传成功后，更新最后同步时间（记录云端时间）
-                localStorage.setItem('leancloud_last_sync', now);
+                // 使用原始方法避免触发监听器
+                const setItem = this._originalSetItem || localStorage.setItem.bind(localStorage);
+                setItem('leancloud_last_sync', now);
                 this.lastSync = new Date(now);
                 
                 console.log('=== 同步成功 ===');
@@ -374,18 +387,32 @@
                     if (cloudData && typeof cloudData === 'object') {
                         let restoredCount = 0;
                         
-                        Object.keys(cloudData).forEach(key => {
-                            const value = cloudData[key];
-                            const jsonValue = typeof value === 'string' ? value : JSON.stringify(value);
-                            localStorage.setItem(key, jsonValue);
-                            restoredCount++;
-                        });
+                        // 设置标志位，表示正在从云端恢复数据
+                        this._isRestoringFromCloud = true;
                         
-                        // 更新本地时间戳（关键：避免重复恢复和数据冲突）
-                        if (lastModified) {
-                            localStorage.setItem('leancloud_last_sync', lastModified);
-                            localStorage.setItem('leancloud_local_modified', lastModified);
-                            console.log(`⏰ 已更新本地时间戳: ${lastModified}`);
+                        try {
+                            Object.keys(cloudData).forEach(key => {
+                                const value = cloudData[key];
+                                const jsonValue = typeof value === 'string' ? value : JSON.stringify(value);
+                                // 使用原始方法保存数据，避免触发同步
+                                if (this._originalSetItem) {
+                                    this._originalSetItem.call(localStorage, key, jsonValue);
+                                } else {
+                                    localStorage.setItem(key, jsonValue);
+                                }
+                                restoredCount++;
+                            });
+                            
+                            // 更新本地时间戳（关键：避免重复恢复和数据冲突）
+                            if (lastModified) {
+                                const setItem = this._originalSetItem || localStorage.setItem.bind(localStorage);
+                                setItem('leancloud_last_sync', lastModified);
+                                setItem('leancloud_local_modified', lastModified);
+                                console.log(`⏰ 已更新本地时间戳: ${lastModified}`);
+                            }
+                        } finally {
+                            // 恢复完成，清除标志位
+                            this._isRestoringFromCloud = false;
                         }
                         
                         console.log(`✅ 恢复成功！共 ${restoredCount} 项数据`);
@@ -479,19 +506,33 @@
                         if (cloudData && typeof cloudData === 'object') {
                             let updatedCount = 0;
                             
-                            // 更新本地数据
-                            Object.keys(cloudData).forEach(key => {
-                                const value = cloudData[key];
-                                const jsonValue = typeof value === 'string' ? value : JSON.stringify(value);
-                                localStorage.setItem(key, jsonValue);
-                                updatedCount++;
-                            });
+                            // 设置标志位，表示正在从云端恢复数据
+                            this._isRestoringFromCloud = true;
                             
-                            // 更新本地时间戳（同步云端时间）
-                            localStorage.setItem('leancloud_last_sync', cloudLastModified);
-                            localStorage.setItem('leancloud_local_modified', cloudLastModified);
-                            this.lastSync = new Date(cloudLastModified);
-                            console.log(`⏰ 已更新本地时间戳为云端时间: ${cloudLastModified}`);
+                            try {
+                                // 更新本地数据
+                                Object.keys(cloudData).forEach(key => {
+                                    const value = cloudData[key];
+                                    const jsonValue = typeof value === 'string' ? value : JSON.stringify(value);
+                                    // 使用原始方法保存数据，避免触发同步
+                                    if (this._originalSetItem) {
+                                        this._originalSetItem.call(localStorage, key, jsonValue);
+                                    } else {
+                                        localStorage.setItem(key, jsonValue);
+                                    }
+                                    updatedCount++;
+                                });
+                                
+                                // 更新本地时间戳（同步云端时间）
+                                const setItem = this._originalSetItem || localStorage.setItem.bind(localStorage);
+                                setItem('leancloud_last_sync', cloudLastModified);
+                                setItem('leancloud_local_modified', cloudLastModified);
+                                this.lastSync = new Date(cloudLastModified);
+                                console.log(`⏰ 已更新本地时间戳为云端时间: ${cloudLastModified}`);
+                            } finally {
+                                // 恢复完成，清除标志位
+                                this._isRestoringFromCloud = false;
+                            }
                             
                             console.log(`✅ 已拉取云端更新：${updatedCount} 条数据`);
                             
