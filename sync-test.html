@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>跨设备同步测试 - LeanCloud</title>
+    <script src="leancloud-config.js"></script>
+    <script src="leancloud-sync.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        
+        .info-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+        
+        .info-box h2 {
+            margin-bottom: 10px;
+            font-size: 1.3em;
+        }
+        
+        .info-box p {
+            line-height: 1.6;
+            opacity: 0.95;
+        }
+        
+        .test-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .test-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+        }
+        
+        .input-group input,
+        .input-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+        
+        .input-group input:focus,
+        .input-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .input-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+        
+        .btn-warning {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background: #e68900;
+            transform: translateY(-2px);
+        }
+        
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #da190b;
+            transform: translateY(-2px);
+        }
+        
+        .status-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .status-box h4 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .status-item:last-child {
+            border-bottom: none;
+        }
+        
+        .status-label {
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .status-value {
+            color: #333;
+            font-weight: 600;
+        }
+        
+        .status-value.success {
+            color: #4caf50;
+        }
+        
+        .status-value.error {
+            color: #f44336;
+        }
+        
+        .status-value.warning {
+            color: #ff9800;
+        }
+        
+        .log-box {
+            background: #1e1e1e;
+            color: #f0f0f0;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+        }
+        
+        .log-entry.success {
+            color: #4caf50;
+        }
+        
+        .log-entry.error {
+            color: #f44336;
+        }
+        
+        .log-entry.info {
+            color: #2196f3;
+        }
+        
+        .log-entry.warning {
+            color: #ff9800;
+        }
+        
+        .device-info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
+        
+        .device-info strong {
+            color: #1976d2;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 1.5em;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 云同步状态指示器 -->
+    <div id="sync-status-indicator" style="
+        position: fixed;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(255, 255, 255, 0.95);
+        padding: 8px 20px;
+        border-radius: 20px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        z-index: 9999;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+    ">
+        <span id="sync-status-icon" style="font-size: 16px;">🟡</span>
+        <span id="sync-status-text" style="font-weight: 500;">正在初始化...</span>
+    </div>
+
+    <div class="container">
+        <h1>🔄 跨设备同步测试</h1>
+        <p class="subtitle">测试手机端与电脑端的实时数据同步功能</p>
+        
+        <div class="info-box">
+            <h2>📋 测试说明</h2>
+            <p>
+                <strong>步骤 1：</strong> 在此设备上输入测试数据并保存<br>
+                <strong>步骤 2：</strong> 在另一台设备上打开此页面<br>
+                <strong>步骤 3：</strong> 点击"从云端加载"按钮查看数据<br>
+                <strong>预期结果：</strong> 15秒内同步成功（或立即看到更新通知）
+            </p>
+        </div>
+        
+        <!-- 设备信息 -->
+        <div class="device-info">
+            <strong>当前设备：</strong> <span id="device-info"></span>
+        </div>
+        
+        <!-- 测试数据输入 -->
+        <div class="test-section">
+            <h3>📝 测试数据</h3>
+            
+            <div class="input-group">
+                <label for="test-title">标题</label>
+                <input type="text" id="test-title" placeholder="输入测试标题...">
+            </div>
+            
+            <div class="input-group">
+                <label for="test-content">内容</label>
+                <textarea id="test-content" placeholder="输入测试内容..."></textarea>
+            </div>
+            
+            <div class="button-group">
+                <button class="btn-primary" onclick="saveTestData()">💾 保存到云端</button>
+                <button class="btn-secondary" onclick="loadTestData()">☁️ 从云端加载</button>
+                <button class="btn-warning" onclick="clearTestData()">🗑️ 清除测试数据</button>
+                <button class="btn-danger" onclick="clearLocalData()">⚠️ 清除本地数据</button>
+            </div>
+        </div>
+        
+        <!-- 同步控制 -->
+        <div class="test-section">
+            <h3>⚙️ 同步控制</h3>
+            
+            <div class="button-group">
+                <button class="btn-primary" onclick="manualSync()">🔄 手动同步</button>
+                <button class="btn-secondary" onclick="checkUpdates()">🔍 检查更新</button>
+                <button class="btn-warning" onclick="forceRestore()">📥 强制恢复</button>
+                <button class="btn-danger" onclick="clearCloud()">☁️ 清除云端</button>
+            </div>
+            
+            <!-- 同步状态 -->
+            <div class="status-box">
+                <h4>📊 同步状态</h4>
+                <div class="status-item">
+                    <span class="status-label">连接状态</span>
+                    <span class="status-value" id="sync-status">初始化中...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">最后同步</span>
+                    <span class="status-value" id="last-sync">未同步</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">本地数据</span>
+                    <span class="status-value" id="local-data-count">0 条</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">云端数据</span>
+                    <span class="status-value" id="cloud-data-count">未知</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 日志输出 -->
+        <div class="test-section">
+            <h3>📜 操作日志</h3>
+            <div class="log-box" id="log-box">
+                <div class="log-entry info">等待操作...</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 显示设备信息
+        document.getElementById('device-info').textContent = navigator.userAgent.substring(0, 80) + '...';
+        
+        // 日志函数
+        function addLog(message, type = 'info') {
+            const logBox = document.getElementById('log-box');
+            const timestamp = new Date().toLocaleTimeString('zh-CN');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${timestamp}] ${message}`;
+            logBox.appendChild(entry);
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+        
+        // 更新状态显示
+        function updateStatus() {
+            if (window.leanCloudSync) {
+                const status = window.leanCloudSync.getStatus();
+                
+                document.getElementById('sync-status').textContent = status.isEnabled ? '已连接' : '未连接';
+                document.getElementById('sync-status').className = status.isEnabled ? 'status-value success' : 'status-value error';
+                
+                if (status.lastSync) {
+                    document.getElementById('last-sync').textContent = new Date(status.lastSync).toLocaleString('zh-CN');
+                }
+                
+                // 统计本地数据
+                let localCount = 0;
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key.startsWith('planData_') || key.startsWith('testData_')) {
+                        localCount++;
+                    }
+                }
+                document.getElementById('local-data-count').textContent = `${localCount} 条`;
+            }
+        }
+        
+        // 保存测试数据
+        async function saveTestData() {
+            const title = document.getElementById('test-title').value;
+            const content = document.getElementById('test-content').value;
+            
+            if (!title || !content) {
+                alert('请输入标题和内容');
+                return;
+            }
+            
+            const testData = {
+                title: title,
+                content: content,
+                timestamp: new Date().toISOString(),
+                device: navigator.userAgent.substring(0, 50)
+            };
+            
+            localStorage.setItem('testData_sync', JSON.stringify(testData));
+            addLog(`保存测试数据: ${title}`, 'success');
+            
+            // 等待同步完成
+            setTimeout(() => {
+                addLog('等待同步到云端...', 'info');
+                updateStatus();
+            }, 1000);
+        }
+        
+        // 加载测试数据
+        function loadTestData() {
+            const testData = localStorage.getItem('testData_sync');
+            
+            if (testData) {
+                try {
+                    const data = JSON.parse(testData);
+                    document.getElementById('test-title').value = data.title;
+                    document.getElementById('test-content').value = data.content;
+                    
+                    const timestamp = new Date(data.timestamp).toLocaleString('zh-CN');
+                    addLog(`加载测试数据: ${data.title} (${timestamp})`, 'success');
+                    addLog(`来自设备: ${data.device}`, 'info');
+                } catch (e) {
+                    addLog('解析数据失败', 'error');
+                }
+            } else {
+                addLog('本地没有测试数据', 'warning');
+            }
+            
+            updateStatus();
+        }
+        
+        // 清除测试数据
+        function clearTestData() {
+            if (confirm('确定要清除测试数据吗？')) {
+                document.getElementById('test-title').value = '';
+                document.getElementById('test-content').value = '';
+                localStorage.removeItem('testData_sync');
+                addLog('已清除测试数据', 'warning');
+                updateStatus();
+            }
+        }
+        
+        // 清除本地数据
+        function clearLocalData() {
+            if (confirm('确定要清除所有本地数据吗？此操作不可恢复！')) {
+                const keysToRemove = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key.startsWith('planData_') || key.startsWith('testData_')) {
+                        keysToRemove.push(key);
+                    }
+                }
+                
+                keysToRemove.forEach(key => localStorage.removeItem(key));
+                addLog(`已清除 ${keysToRemove.length} 条本地数据`, 'warning');
+                updateStatus();
+            }
+        }
+        
+        // 手动同步
+        async function manualSync() {
+            if (!window.leanCloudSync || !window.leanCloudSync.isEnabled) {
+                alert('LeanCloud 未初始化');
+                return;
+            }
+            
+            addLog('开始手动同步...', 'info');
+            await window.leanCloudSync.syncToCloud();
+            addLog('同步完成', 'success');
+            updateStatus();
+        }
+        
+        // 检查更新
+        async function checkUpdates() {
+            if (!window.leanCloudSync || !window.leanCloudSync.isEnabled) {
+                alert('LeanCloud 未初始化');
+                return;
+            }
+            
+            addLog('检查云端更新...', 'info');
+            await window.leanCloudSync.checkAndPullUpdates();
+            addLog('检查完成', 'success');
+            updateStatus();
+            
+            // 重新加载数据
+            loadTestData();
+        }
+        
+        // 强制恢复
+        async function forceRestore() {
+            if (!window.leanCloudSync || !window.leanCloudSync.isEnabled) {
+                alert('LeanCloud 未初始化');
+                return;
+            }
+            
+            if (confirm('确定要从云端强制恢复数据吗？这会覆盖本地数据！')) {
+                addLog('开始强制恢复...', 'warning');
+                await window.leanCloudSync.forceRestore();
+                addLog('恢复完成', 'success');
+                updateStatus();
+                loadTestData();
+            }
+        }
+        
+        // 清除云端
+        async function clearCloud() {
+            if (!window.leanCloudSync || !window.leanCloudSync.isEnabled) {
+                alert('LeanCloud 未初始化');
+                return;
+            }
+            
+            if (confirm('确定要清除云端数据吗？此操作不可恢复！')) {
+                addLog('清除云端数据...', 'warning');
+                await window.leanCloudSync.clearCloudData();
+                addLog('云端数据已清除', 'success');
+                updateStatus();
+            }
+        }
+        
+        // 监听 LeanCloud 初始化
+        window.addEventListener('leancloud-initialized', () => {
+            addLog('LeanCloud 初始化成功', 'success');
+            updateStatus();
+            
+            // 自动加载测试数据
+            setTimeout(() => {
+                loadTestData();
+            }, 500);
+        });
+        
+        // 监听数据恢复
+        window.addEventListener('data-restored', (e) => {
+            addLog(`数据已从云端恢复: ${e.detail.count} 条`, 'success');
+            updateStatus();
+            loadTestData();
+        });
+        
+        // 定期更新状态
+        setInterval(updateStatus, 2000);
+        
+        // 页面加载完成
+        document.addEventListener('DOMContentLoaded', () => {
+            addLog('测试页面加载完成', 'info');
+            addLog('等待 LeanCloud 初始化...', 'info');
+            
+            setTimeout(() => {
+                updateStatus();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
+

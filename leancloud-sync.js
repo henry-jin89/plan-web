@@ -18,6 +18,7 @@
             this.lastSync = null;
             this.syncInProgress = false;
             this.PlanData = null; // LeanCloud 数据类
+            this._syncDebounceTimer = null; // 同步防抖定时器
             
             this.init();
         }
@@ -119,8 +120,12 @@
                         originalSetItem.call(localStorage, 'leancloud_local_modified', now);
                         console.log(`⏰ 立即更新本地修改时间: ${now}`);
                         
-                        // 异步同步到云端
-                        this.syncToCloud();
+                        // 立即同步到云端（500ms 防抖，避免频繁保存）
+                        clearTimeout(this._syncDebounceTimer);
+                        this._syncDebounceTimer = setTimeout(() => {
+                            console.log('💾 开始上传到 LeanCloud...');
+                            this.syncToCloud();
+                        }, 500);
                     }
                 };
                 window.leancloudStorageListenerBound = true;
@@ -134,13 +139,29 @@
                 }
             }, 5 * 60 * 1000);
             
-            // 定期从云端拉取最新数据（每2分钟）- 解决跨设备同步问题
+            // 定期从云端拉取最新数据（每15秒）- 实现快速跨设备同步
             setInterval(() => {
                 if (this.isEnabled && !this.syncInProgress) {
-                    console.log('🔄 检查云端是否有更新...');
+                    console.log('🔄 定期检查云端更新...');
                     this.checkAndPullUpdates();
                 }
-            }, 2 * 60 * 1000); // 2分钟检查一次
+            }, 15 * 1000); // 15秒检查一次（实时同步）
+            
+            // 页面获得焦点时立即检查更新（用户切换回页面时）
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden && this.isEnabled && !this.syncInProgress) {
+                    console.log('📱 页面重新可见，立即检查云端更新...');
+                    this.checkAndPullUpdates();
+                }
+            });
+            
+            // 窗口获得焦点时也检查（从其他窗口切换回来）
+            window.addEventListener('focus', () => {
+                if (this.isEnabled && !this.syncInProgress) {
+                    console.log('🔍 窗口获得焦点，立即检查云端更新...');
+                    this.checkAndPullUpdates();
+                }
+            });
             
             // 页面关闭前同步
             window.addEventListener('beforeunload', () => {
@@ -191,6 +212,9 @@
                 this.syncInProgress = true;
                 console.log('💾 开始同步到 LeanCloud...');
                 console.log('📱 设备信息:', navigator.userAgent.substring(0, 50));
+                
+                // 更新状态指示器为同步中
+                this.updateSyncStatusIndicator('syncing');
                 
                 const planData = this.collectAllPlanData();
                 const dataCount = Object.keys(planData).length;
@@ -245,8 +269,13 @@
                 console.log(`💾 本地同步时间: ${localStorage.getItem('leancloud_last_sync')}`);
                 console.log('=============');
                 
+                // 更新页面上的同步状态指示器（如果存在）
+                this.updateSyncStatusIndicator('success', dataCount);
+                
             } catch (error) {
                 console.error('❌ 同步失败:', error);
+                // 更新状态指示器为失败
+                this.updateSyncStatusIndicator('error');
             } finally {
                 this.syncInProgress = false;
             }
@@ -485,52 +514,132 @@
         }
         
         /**
-         * 显示更新通知
+         * 显示更新通知（优化版 - 更友好的提示）
          */
         showUpdateNotification(count) {
+            // 防止重复创建通知
+            const existingNotification = document.getElementById('leancloud-sync-notification');
+            if (existingNotification) {
+                existingNotification.remove();
+            }
+            
             // 创建一个不阻塞的通知
             const notification = document.createElement('div');
+            notification.id = 'leancloud-sync-notification';
             notification.style.cssText = `
                 position: fixed;
                 top: 80px;
                 right: 20px;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
                 color: white;
-                padding: 15px 25px;
+                padding: 16px 24px;
                 border-radius: 12px;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+                box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
                 z-index: 10000;
                 font-size: 14px;
                 animation: slideIn 0.3s ease-out;
                 cursor: pointer;
+                max-width: 320px;
             `;
             notification.innerHTML = `
-                🔄 已同步其他设备的更新 (${count} 条数据)<br>
-                <small style="opacity: 0.9;">点击刷新页面查看</small>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="font-size: 24px;">✅</div>
+                    <div>
+                        <div style="font-weight: 600; margin-bottom: 4px;">云端数据已更新</div>
+                        <div style="opacity: 0.95; font-size: 13px;">同步了 ${count} 条数据，点击刷新查看</div>
+                    </div>
+                </div>
             `;
             
-            // 添加动画
-            const style = document.createElement('style');
-            style.textContent = `
-                @keyframes slideIn {
-                    from { transform: translateX(400px); opacity: 0; }
-                    to { transform: translateX(0); opacity: 1; }
-                }
-            `;
-            document.head.appendChild(style);
+            // 添加动画样式（只添加一次）
+            if (!document.getElementById('leancloud-notification-style')) {
+                const style = document.createElement('style');
+                style.id = 'leancloud-notification-style';
+                style.textContent = `
+                    @keyframes slideIn {
+                        from { transform: translateX(400px); opacity: 0; }
+                        to { transform: translateX(0); opacity: 1; }
+                    }
+                    @keyframes slideOut {
+                        from { transform: translateX(0); opacity: 1; }
+                        to { transform: translateX(400px); opacity: 0; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
             
             // 点击刷新页面
             notification.onclick = () => {
+                console.log('🔄 用户点击通知，刷新页面...');
                 window.location.reload();
+            };
+            
+            // 鼠标悬停效果
+            notification.onmouseenter = () => {
+                notification.style.transform = 'scale(1.05)';
+                notification.style.boxShadow = '0 8px 25px rgba(76, 175, 80, 0.5)';
+            };
+            
+            notification.onmouseleave = () => {
+                notification.style.transform = 'scale(1)';
+                notification.style.boxShadow = '0 6px 20px rgba(76, 175, 80, 0.4)';
             };
             
             document.body.appendChild(notification);
             
-            // 5秒后自动消失
+            // 8秒后自动消失
             setTimeout(() => {
-                notification.style.animation = 'slideIn 0.3s ease-out reverse';
-                setTimeout(() => notification.remove(), 300);
-            }, 5000);
+                notification.style.animation = 'slideOut 0.3s ease-out';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 300);
+            }, 8000);
+        }
+        
+        /**
+         * 更新同步状态指示器（页面上的状态显示）
+         */
+        updateSyncStatusIndicator(status, count = 0) {
+            const indicator = document.getElementById('sync-status-indicator');
+            const icon = document.getElementById('sync-status-icon');
+            const text = document.getElementById('sync-status-text');
+            
+            if (!indicator || !icon || !text) return;
+            
+            if (status === 'success') {
+                // 同步成功 - 短暂显示成功状态
+                icon.textContent = '✅';
+                text.textContent = `已同步 ${count} 条`;
+                indicator.style.background = 'rgba(76, 175, 80, 0.95)';
+                indicator.style.color = 'white';
+                
+                // 2秒后恢复为正常状态
+                setTimeout(() => {
+                    icon.textContent = '🟢';
+                    text.textContent = 'LeanCloud 已连接';
+                }, 2000);
+            } else if (status === 'syncing') {
+                // 同步中
+                icon.textContent = '🔄';
+                text.textContent = '同步中...';
+                indicator.style.background = 'rgba(33, 150, 243, 0.95)';
+                indicator.style.color = 'white';
+            } else if (status === 'error') {
+                // 同步失败
+                icon.textContent = '⚠️';
+                text.textContent = '同步失败';
+                indicator.style.background = 'rgba(244, 67, 54, 0.95)';
+                indicator.style.color = 'white';
+                
+                // 5秒后恢复
+                setTimeout(() => {
+                    icon.textContent = '🟢';
+                    text.textContent = 'LeanCloud 已连接';
+                    indicator.style.background = 'rgba(76, 175, 80, 0.95)';
+                }, 5000);
+            }
         }
         
         /**
