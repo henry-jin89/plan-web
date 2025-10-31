@@ -71,6 +71,14 @@
                     detail: { timestamp: new Date() }
                 }));
                 
+                // 3秒后再次检查云端更新（确保获取最新数据）
+                setTimeout(() => {
+                    if (this.isEnabled && !this.syncInProgress) {
+                        console.log('🔄 初始化后自动检查云端更新...');
+                        this.checkAndPullUpdates();
+                    }
+                }, 3000);
+                
             } catch (error) {
                 console.error('❌ LeanCloud 初始化失败:', error);
                 this.isEnabled = false;
@@ -150,13 +158,13 @@
                 }
             }, 5 * 60 * 1000);
             
-            // 定期从云端拉取最新数据（每15秒）- 实现快速跨设备同步
+            // 定期从云端拉取最新数据（每10秒）- 实现快速跨设备同步
             setInterval(() => {
                 if (this.isEnabled && !this.syncInProgress) {
                     console.log('🔄 定期检查云端更新...');
                     this.checkAndPullUpdates();
                 }
-            }, 15 * 1000); // 15秒检查一次（实时同步）
+            }, 10 * 1000); // 10秒检查一次（更快的实时同步）
             
             // 页面获得焦点时立即检查更新（用户切换回页面时）
             document.addEventListener('visibilitychange', () => {
@@ -173,6 +181,42 @@
                     this.checkAndPullUpdates();
                 }
             });
+            
+            // 鼠标移动时检查（防抖30秒，避免频繁检查）
+            let mouseCheckTimer = null;
+            let lastMouseCheck = 0;
+            document.addEventListener('mousemove', () => {
+                // 如果距离上次检查超过30秒，才允许再次检查
+                const now = Date.now();
+                if (now - lastMouseCheck < 30000) return;
+                
+                clearTimeout(mouseCheckTimer);
+                mouseCheckTimer = setTimeout(() => {
+                    if (this.isEnabled && !this.syncInProgress && !document.hidden) {
+                        console.log('🖱️ 检测到用户活动，检查云端更新...');
+                        this.checkAndPullUpdates();
+                        lastMouseCheck = Date.now();
+                    }
+                }, 2000); // 鼠标停止移动2秒后检查
+            }, { passive: true });
+            
+            // 页面滚动时检查（防抖30秒）
+            let scrollCheckTimer = null;
+            let lastScrollCheck = 0;
+            window.addEventListener('scroll', () => {
+                // 如果距离上次检查超过30秒，才允许再次检查
+                const now = Date.now();
+                if (now - lastScrollCheck < 30000) return;
+                
+                clearTimeout(scrollCheckTimer);
+                scrollCheckTimer = setTimeout(() => {
+                    if (this.isEnabled && !this.syncInProgress && !document.hidden) {
+                        console.log('📜 检测到页面滚动，检查云端更新...');
+                        this.checkAndPullUpdates();
+                        lastScrollCheck = Date.now();
+                    }
+                }, 2000); // 滚动停止2秒后检查
+            }, { passive: true });
             
             // 页面关闭前同步
             window.addEventListener('beforeunload', () => {
