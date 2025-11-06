@@ -1537,7 +1537,38 @@ function saveDayPlan() {
         const success = StorageUtils.savePlan('day', currentDate, planData);
         
         if (success) {
-            MessageUtils.success('日计划保存成功！');
+            console.log('✅ 日计划保存到 localStorage 成功');
+            
+            // 🔑 关键修复：立即更新本地修改时间戳（防止刷新时被云端旧数据覆盖）
+            const now = new Date().toISOString();
+            try {
+                // 使用原始的 setItem 方法（如果存在）以避免触发额外的同步
+                if (window.leanCloudSync && window.leanCloudSync._originalSetItem) {
+                    window.leanCloudSync._originalSetItem.call(localStorage, 'leancloud_local_modified', now);
+                } else {
+                    localStorage.setItem('leancloud_local_modified', now);
+                }
+                console.log(`⏰ 已立即更新本地修改时间戳: ${now}`);
+            } catch (e) {
+                console.warn('更新时间戳失败，但数据已保存:', e);
+            }
+            
+            // 🔑 关键修复：立即触发云端同步（不等待500ms防抖）
+            if (window.leanCloudSync && window.leanCloudSync.isEnabled) {
+                console.log('🚀 立即同步到云端...');
+                // 清除之前的防抖定时器
+                if (window.leanCloudSync._syncDebounceTimer) {
+                    clearTimeout(window.leanCloudSync._syncDebounceTimer);
+                }
+                // 立即同步
+                window.leanCloudSync.syncToCloud().then(() => {
+                    console.log('☁️ 云端同步已完成');
+                }).catch(err => {
+                    console.warn('云端同步失败，但本地数据已保存:', err);
+                });
+            }
+            
+            MessageUtils.success('日计划保存成功！正在同步到云端...');
             
             // 清除草稿
             localStorage.removeItem(`day_reflection_draft_${currentDate}`);
