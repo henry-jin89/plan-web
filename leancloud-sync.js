@@ -12,6 +12,7 @@
     
     class LeanCloudSync {
         constructor() {
+            console.log('🔧 创建 LeanCloudSync 实例...');
             this.isInitialized = false;
             this.isEnabled = false;
             this.sharedUserId = SHARED_USER_ID;
@@ -21,8 +22,13 @@
             this._syncDebounceTimer = null; // 同步防抖定时器
             this._originalSetItem = null; // 保存原始的 localStorage.setItem 方法
             this._isRestoringFromCloud = false; // 标记是否正在从云端恢复数据
+            this.initError = null; // 保存初始化错误信息
             
-            this.init();
+            console.log('🔧 LeanCloudSync 实例已创建，开始初始化...');
+            this.init().catch(err => {
+                console.error('❌ LeanCloudSync 初始化失败:', err);
+                this.initError = err.message;
+            });
         }
         
         async init() {
@@ -843,9 +849,27 @@
     }
     
     // 创建全局实例（注意：使用大写C以匹配index.html中的引用）
-    window.leanCloudSync = new LeanCloudSync();
-    
-    console.log('✅ LeanCloud 同步系统已加载');
+    try {
+        console.log('📦 准备创建 LeanCloudSync 全局实例...');
+        window.leanCloudSync = new LeanCloudSync();
+        console.log('✅ LeanCloud 同步系统已加载，全局实例已创建');
+    } catch (error) {
+        console.error('❌ 创建 LeanCloudSync 实例失败:', error);
+        // 创建一个带错误信息的占位对象
+        window.leanCloudSync = {
+            isInitialized: false,
+            isEnabled: false,
+            initError: error.message,
+            getStatus: function() {
+                return {
+                    isInitialized: false,
+                    isEnabled: false,
+                    lastSync: null,
+                    error: this.initError
+                };
+            }
+        };
+    }
     
 })();
 

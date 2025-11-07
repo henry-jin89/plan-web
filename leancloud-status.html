@@ -250,9 +250,30 @@
 
         function updateStatus() {
             if (!window.leanCloudSync) {
-                log('等待 LeanCloud 初始化...', 'info');
+                log('等待 LeanCloud 加载...', 'info');
                 setTimeout(updateStatus, 1000);
                 return;
+            }
+            
+            // 检查是否真正初始化完成
+            if (!window.leanCloudSync.isInitialized) {
+                // 检查是否有初始化错误
+                if (window.leanCloudSync.initError) {
+                    log(`❌ LeanCloud 初始化失败: ${window.leanCloudSync.initError}`, 'error');
+                    
+                    // 更新UI显示错误
+                    const connectionCard = document.getElementById('connection-status');
+                    connectionCard.className = 'status-card';
+                    connectionCard.querySelector('.status-value').textContent = '❌ 初始化失败';
+                    connectionCard.querySelector('.status-value').title = window.leanCloudSync.initError;
+                    
+                    // 不再重试，显示错误信息
+                    return;
+                } else {
+                    log('LeanCloud 对象已创建，等待初始化完成...', 'info');
+                    setTimeout(updateStatus, 1000);
+                    return;
+                }
             }
             
             const status = window.leanCloudSync.getStatus();
@@ -265,6 +286,9 @@
             } else {
                 connectionCard.className = 'status-card';
                 connectionCard.querySelector('.status-value').textContent = '❌ 未连接';
+                if (status.error) {
+                    connectionCard.querySelector('.status-value').title = status.error;
+                }
             }
             
             // 更新同步状态
