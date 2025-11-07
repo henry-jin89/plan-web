@@ -337,6 +337,18 @@
                 
                 addLog('云端数据已拉取到本地', 'success');
 
+                // 🔍 调试：检查 localStorage 中的所有键
+                addLog('📊 检查 localStorage 中的所有数据...', 'info');
+                const allKeys = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    allKeys.push(key);
+                    if (key === 'sync_test_data') {
+                        addLog(`  ✅ 找到: ${key} = ${localStorage.getItem(key).substring(0, 50)}...`, 'success');
+                    }
+                }
+                addLog(`  📋 localStorage 共有 ${localStorage.length} 个键: ${allKeys.join(', ')}`, 'info');
+
                 // 读取本地数据
                 const testData = localStorage.getItem('sync_test_data');
                 
@@ -400,6 +412,18 @@
                     const lastModified = planObject.get('lastModified');
                     
                     addLog('✅ 云端数据查询成功', 'success');
+                    addLog(`📊 云端数据类型: ${typeof cloudData}`, 'info');
+                    
+                    // 🔍 调试：显示云端数据的所有键
+                    if (cloudData && typeof cloudData === 'object') {
+                        const cloudKeys = Object.keys(cloudData);
+                        addLog(`📋 云端数据共有 ${cloudKeys.length} 个键: ${cloudKeys.join(', ')}`, 'info');
+                        if (cloudData.sync_test_data) {
+                            addLog(`  ✅ 云端包含 sync_test_data: ${JSON.stringify(cloudData.sync_test_data).substring(0, 100)}...`, 'success');
+                        } else {
+                            addLog(`  ⚠️ 云端不包含 sync_test_data`, 'warning');
+                        }
+                    }
                     
                     const resultDiv = document.getElementById('test-result');
                     
