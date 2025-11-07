@@ -579,10 +579,13 @@
                                 
                                 // 更新本地时间戳（同步云端时间）
                                 const setItem = this._originalSetItem || localStorage.setItem.bind(localStorage);
-                                setItem('leancloud_last_sync', cloudLastModified);
-                                setItem('leancloud_local_modified', cloudLastModified);
+                                // 🔑 修复：确保存储字符串格式，兼容 Date 对象和字符串
+                                const timestampStr = cloudLastModified instanceof Date ? 
+                                    cloudLastModified.toISOString() : cloudLastModified;
+                                setItem('leancloud_last_sync', timestampStr);
+                                setItem('leancloud_local_modified', timestampStr);
                                 this.lastSync = new Date(cloudLastModified);
-                                console.log(`⏰ 已更新本地时间戳为云端时间: ${cloudLastModified}`);
+                                console.log(`⏰ 已更新本地时间戳为云端时间: ${timestampStr}`);
                             } finally {
                                 // 恢复完成，清除标志位
                                 this._isRestoringFromCloud = false;
