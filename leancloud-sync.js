@@ -383,26 +383,36 @@
                                 cloudLastModified.toISOString() : cloudLastModified;
                             console.log(`☁️ 云端最后更新时间: ${cloudLastModifiedStr || '未知'}`);
                             
-                            // 使用本地修改时间来判断（如果存在）
-                            const compareTime = localModified || localLastSync;
-                            
-                            if (compareTime && cloudLastModified) {
-                                const localTime = new Date(compareTime).getTime();
+                            // 🔑 修复：只使用 localLastSync 来判断（最后一次同步时间）
+                            // 不使用 localModified，避免本地草稿阻止云端更新拉取
+                            if (localLastSync && cloudLastModified) {
+                                const localSyncTime = new Date(localLastSync).getTime();
                                 const cloudTime = new Date(cloudLastModified).getTime();
-                                const diffSeconds = Math.round((cloudTime - localTime) / 1000);
+                                const diffSeconds = Math.round((cloudTime - localSyncTime) / 1000);
                                 
                                 console.log(`⚖️ 时间戳比较:`);
-                                console.log(`   本地: ${new Date(localTime).toLocaleString()}`);
-                                console.log(`   云端: ${new Date(cloudTime).toLocaleString()}`);
+                                console.log(`   本地同步: ${new Date(localSyncTime).toLocaleString()}`);
+                                console.log(`   云端更新: ${new Date(cloudTime).toLocaleString()}`);
                                 console.log(`   相差: ${diffSeconds} 秒`);
                                 
-                                if (localTime >= cloudTime) {
-                                    console.log('✅ 本地数据已是最新（本地>=云端），跳过自动恢复');
+                                // 🔑 关键修复：如果云端时间 <= 本地同步时间，说明本地已有最新数据
+                                if (cloudTime <= localSyncTime) {
+                                    console.log('✅ 本地数据已是最新（云端时间 <= 本地同步时间），跳过自动恢复');
                                     console.log('=========================');
                                     return;
                                 } else {
-                                    console.log(`🆕 云端有更新（云端>${diffSeconds}秒），开始恢复...`);
+                                    console.log(`🆕 云端有更新（云端比本地同步晚 ${diffSeconds} 秒），开始恢复...`);
+                                    
+                                    // 检查是否有未同步的本地修改
+                                    if (localModified && new Date(localModified) > new Date(localLastSync)) {
+                                        console.warn('⚠️ 警告：本地有未同步的修改，但云端数据更新，将使用云端数据');
+                                        console.warn(`   本地修改时间: ${localModified}`);
+                                        console.warn(`   本地同步时间: ${localLastSync}`);
+                                    }
                                 }
+                            } else if (!localLastSync) {
+                                console.log('ℹ️ 本地从未同步过，将恢复云端数据');
+                            }
                             }
                         }
                     } catch (queryError) {
