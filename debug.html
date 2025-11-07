@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 LeanCloud 调试工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid;
+        }
+        .alert-info {
+            background: #e7f3ff;
+            border-color: #2196F3;
+            color: #0c5280;
+        }
+        .alert-success {
+            background: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+        .alert-error {
+            background: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+        .alert-warning {
+            background: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .section h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .code {
+            background: #282c34;
+            color: #61dafb;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        .badge-success {
+            background: #28a745;
+            color: white;
+        }
+        .badge-error {
+            background: #dc3545;
+            color: white;
+        }
+        .badge-warning {
+            background: #ffc107;
+            color: #333;
+        }
+        .badge-info {
+            background: #2196F3;
+            color: white;
+        }
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            background: #5568d3;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 LeanCloud 调试工具</h1>
+        <p style="color: #666; margin-bottom: 20px;">此页面会显示所有调试信息，无需打开开发者工具</p>
+
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>正在加载调试信息...</p>
+        </div>
+
+        <div id="results" style="display: none;">
+            <!-- 总体状态 -->
+            <div class="section">
+                <h3>📊 总体状态</h3>
+                <div id="overall-status"></div>
+            </div>
+
+            <!-- 详细检查 -->
+            <div class="section">
+                <h3>🔍 详细检查</h3>
+                <div id="detailed-checks"></div>
+            </div>
+
+            <!-- 对象状态 -->
+            <div class="section">
+                <h3>🎯 对象状态</h3>
+                <div id="object-status"></div>
+            </div>
+
+            <!-- 错误信息 -->
+            <div id="error-section" style="display: none;" class="section">
+                <h3>❌ 错误信息</h3>
+                <div id="error-details"></div>
+            </div>
+
+            <!-- 原始数据 -->
+            <div class="section">
+                <h3>💾 原始数据（供开发者查看）</h3>
+                <div class="code" id="raw-data"></div>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div style="text-align: center; margin: 20px 0;">
+                <button class="btn" onclick="runDiagnostics()">🔄 重新检查</button>
+                <button class="btn" onclick="copyResults()">📋 复制结果</button>
+                <a href="leancloud-status.html" class="btn" style="text-decoration: none;">🏠 返回状态页</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- LeanCloud SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.15.0/dist/av-min.js"></script>
+    
+    <!-- LeanCloud 配置 -->
+    <script src="leancloud-config.js"></script>
+    
+    <!-- LeanCloud 同步脚本 -->
+    <script src="leancloud-sync.js"></script>
+
+    <script>
+        let diagnosticResults = {};
+
+        function addResult(category, item, status, details = '') {
+            if (!diagnosticResults[category]) {
+                diagnosticResults[category] = [];
+            }
+            diagnosticResults[category].push({ item, status, details });
+        }
+
+        function getBadgeClass(status) {
+            switch(status) {
+                case 'success': return 'badge-success';
+                case 'error': return 'badge-error';
+                case 'warning': return 'badge-warning';
+                default: return 'badge-info';
+            }
+        }
+
+        function getStatusIcon(status) {
+            switch(status) {
+                case 'success': return '✅';
+                case 'error': return '❌';
+                case 'warning': return '⚠️';
+                default: return 'ℹ️';
+            }
+        }
+
+        async function runDiagnostics() {
+            diagnosticResults = {};
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+
+            // 等待2秒让所有脚本加载
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // 检查1: 网络连接
+            if (navigator.onLine) {
+                addResult('基础检查', '网络连接', 'success', '设备已连接到网络');
+            } else {
+                addResult('基础检查', '网络连接', 'error', '设备处于离线状态');
+            }
+
+            // 检查2: LeanCloud SDK
+            if (typeof AV !== 'undefined') {
+                addResult('基础检查', 'LeanCloud SDK', 'success', `SDK 已加载 (版本: ${AV.version || '未知'})`);
+            } else {
+                addResult('基础检查', 'LeanCloud SDK', 'error', 'SDK 未加载，可能是CDN无法访问');
+            }
+
+            // 检查3: 配置文件
+            if (typeof window.leancloudConfig !== 'undefined') {
+                addResult('基础检查', '配置文件', 'success', '配置文件已加载');
+                addResult('配置详情', 'App ID', 'info', window.leancloudConfig.appId?.substring(0, 10) + '...');
+                addResult('配置详情', 'Server URL', 'info', window.leancloudConfig.serverURL);
+            } else {
+                addResult('基础检查', '配置文件', 'error', 'leancloud-config.js 未加载');
+            }
+
+            // 检查4: 同步对象
+            if (typeof window.leanCloudSync !== 'undefined') {
+                addResult('基础检查', '同步对象', 'success', 'leanCloudSync 对象已创建');
+                
+                // 详细检查对象属性
+                const sync = window.leanCloudSync;
+                
+                if (sync.isInitialized) {
+                    addResult('同步状态', '初始化状态', 'success', 'LeanCloud 已成功初始化');
+                } else {
+                    if (sync.initError) {
+                        addResult('同步状态', '初始化状态', 'error', `初始化失败: ${sync.initError}`);
+                    } else {
+                        addResult('同步状态', '初始化状态', 'warning', '正在初始化中...');
+                    }
+                }
+
+                addResult('同步状态', '同步功能', sync.isEnabled ? 'success' : 'warning', 
+                    sync.isEnabled ? '已启用' : '未启用');
+                
+                addResult('同步状态', '共享ID', 'info', sync.sharedUserId || '未设置');
+                
+                if (sync.lastSync) {
+                    const timeAgo = Math.floor((new Date() - sync.lastSync) / 1000);
+                    addResult('同步状态', '最后同步', 'success', `${timeAgo} 秒前`);
+                } else {
+                    addResult('同步状态', '最后同步', 'info', '从未同步');
+                }
+
+            } else {
+                addResult('基础检查', '同步对象', 'error', 'leancloud-sync.js 未加载或执行失败');
+            }
+
+            // 检查5: LocalStorage
+            try {
+                localStorage.setItem('test', 'test');
+                localStorage.removeItem('test');
+                addResult('基础检查', 'LocalStorage', 'success', '本地存储可用');
+            } catch(e) {
+                addResult('基础检查', 'LocalStorage', 'error', `本地存储不可用: ${e.message}`);
+            }
+
+            // 显示结果
+            displayResults();
+        }
+
+        function displayResults() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('results').style.display = 'block';
+
+            // 总体状态
+            let hasErrors = Object.values(diagnosticResults).some(items => 
+                items.some(item => item.status === 'error')
+            );
+            
+            const overallDiv = document.getElementById('overall-status');
+            if (hasErrors) {
+                overallDiv.innerHTML = `
+                    <div class="alert alert-error">
+                        <strong>❌ 发现问题！</strong><br>
+                        LeanCloud 初始化存在问题，请查看下面的详细信息。
+                    </div>
+                `;
+            } else {
+                overallDiv.innerHTML = `
+                    <div class="alert alert-success">
+                        <strong>✅ 一切正常！</strong><br>
+                        所有检查都通过了，LeanCloud 同步系统运行正常。
+                    </div>
+                `;
+            }
+
+            // 详细检查
+            const detailedDiv = document.getElementById('detailed-checks');
+            let detailedHTML = '';
+            for (const [category, items] of Object.entries(diagnosticResults)) {
+                detailedHTML += `<h4 style="color: #667eea; margin-top: 15px;">${category}</h4>`;
+                items.forEach(item => {
+                    detailedHTML += `
+                        <div style="margin: 10px 0; padding: 10px; background: white; border-radius: 4px;">
+                            ${getStatusIcon(item.status)} 
+                            <strong>${item.item}</strong>: 
+                            <span class="status-badge ${getBadgeClass(item.status)}">${item.status}</span>
+                            ${item.details ? `<br><small style="color: #666;">${item.details}</small>` : ''}
+                        </div>
+                    `;
+                });
+            }
+            detailedDiv.innerHTML = detailedHTML;
+
+            // 对象状态
+            const objectDiv = document.getElementById('object-status');
+            if (window.leanCloudSync) {
+                const status = window.leanCloudSync.getStatus ? 
+                    window.leanCloudSync.getStatus() : 
+                    {
+                        isInitialized: window.leanCloudSync.isInitialized,
+                        isEnabled: window.leanCloudSync.isEnabled,
+                        lastSync: window.leanCloudSync.lastSync
+                    };
+                
+                objectDiv.innerHTML = `<div class="code">${JSON.stringify(status, null, 2)}</div>`;
+            } else {
+                objectDiv.innerHTML = `<div class="alert alert-error">window.leanCloudSync 对象不存在</div>`;
+            }
+
+            // 错误详情
+            if (hasErrors) {
+                document.getElementById('error-section').style.display = 'block';
+                const errorDiv = document.getElementById('error-details');
+                let errorHTML = '';
+                
+                Object.values(diagnosticResults).forEach(items => {
+                    items.filter(item => item.status === 'error').forEach(item => {
+                        errorHTML += `
+                            <div class="alert alert-error">
+                                <strong>${item.item}</strong><br>
+                                ${item.details}
+                            </div>
+                        `;
+                    });
+                });
+                
+                errorDiv.innerHTML = errorHTML;
+            }
+
+            // 原始数据
+            const rawData = {
+                diagnosticResults,
+                navigator: {
+                    onLine: navigator.onLine,
+                    userAgent: navigator.userAgent
+                },
+                AV: typeof AV !== 'undefined' ? {
+                    version: AV.version,
+                    applicationId: AV.applicationId
+                } : undefined,
+                leancloudConfig: window.leancloudConfig,
+                leanCloudSync: window.leanCloudSync ? {
+                    isInitialized: window.leanCloudSync.isInitialized,
+                    isEnabled: window.leanCloudSync.isEnabled,
+                    initError: window.leanCloudSync.initError,
+                    sharedUserId: window.leanCloudSync.sharedUserId
+                } : undefined
+            };
+            
+            document.getElementById('raw-data').textContent = JSON.stringify(rawData, null, 2);
+        }
+
+        function copyResults() {
+            const rawData = document.getElementById('raw-data').textContent;
+            navigator.clipboard.writeText(rawData).then(() => {
+                alert('✅ 结果已复制到剪贴板！\n\n您可以将这些信息发送给开发者以获取帮助。');
+            }).catch(err => {
+                alert('❌ 复制失败，请手动复制文本');
+            });
+        }
+
+        // 页面加载时自动运行诊断
+        window.addEventListener('load', () => {
+            setTimeout(runDiagnostics, 500);
+        });
+    </script>
+</body>
+</html>
+
