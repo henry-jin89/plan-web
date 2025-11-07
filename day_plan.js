@@ -19,6 +19,27 @@ document.addEventListener('DOMContentLoaded', function() {
     // 为现有复选框添加保存功能
     updateExistingCheckboxes();
     
+    // 🔑 新增：监听云端数据更新事件，自动刷新页面
+    window.addEventListener('storage', function(e) {
+        console.log('📥 检测到数据更新事件，重新加载计划数据...');
+        // 延迟100ms确保数据已完全写入
+        setTimeout(() => {
+            loadTodayPlan();
+            updateProgress();
+            console.log('✅ 页面数据已刷新');
+        }, 100);
+    });
+    
+    // 🔑 新增：监听自定义的数据恢复事件
+    window.addEventListener('data-restored', function(e) {
+        console.log('📥 检测到云端数据恢复，刷新页面数据...', e.detail);
+        setTimeout(() => {
+            loadTodayPlan();
+            updateProgress();
+            console.log('✅ 页面数据已从云端恢复');
+        }, 100);
+    });
+    
     console.log('✅ 日计划页面初始化完成');
     
     // 测试依赖关系功能是否可用

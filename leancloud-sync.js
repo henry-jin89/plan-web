@@ -158,13 +158,13 @@
                 }
             }, 5 * 60 * 1000);
             
-            // 定期从云端拉取最新数据（每10秒）- 实现快速跨设备同步
+            // 定期从云端拉取最新数据（每5秒）- 实现快速跨设备同步
             setInterval(() => {
                 if (this.isEnabled && !this.syncInProgress) {
                     console.log('🔄 定期检查云端更新...');
                     this.checkAndPullUpdates();
                 }
-            }, 10 * 1000); // 10秒检查一次（更快的实时同步）
+            }, 5 * 1000); // 🔑 缩短到5秒，更快的跨设备同步
             
             // 页面获得焦点时立即检查更新（用户切换回页面时）
             document.addEventListener('visibilitychange', () => {
@@ -217,6 +217,27 @@
                     }
                 }, 2000); // 滚动停止2秒后检查
             }, { passive: true });
+            
+            // 🔑 新增：手机端触摸事件监听（防抖20秒）
+            let touchCheckTimer = null;
+            let lastTouchCheck = 0;
+            const touchHandler = () => {
+                const now = Date.now();
+                if (now - lastTouchCheck < 20000) return; // 20秒防抖
+                
+                clearTimeout(touchCheckTimer);
+                touchCheckTimer = setTimeout(() => {
+                    if (this.isEnabled && !this.syncInProgress && !document.hidden) {
+                        console.log('📱 检测到触摸活动，检查云端更新...');
+                        this.checkAndPullUpdates();
+                        lastTouchCheck = Date.now();
+                    }
+                }, 1500); // 触摸停止1.5秒后检查
+            };
+            
+            // 监听触摸开始和触摸移动
+            document.addEventListener('touchstart', touchHandler, { passive: true });
+            document.addEventListener('touchmove', touchHandler, { passive: true });
             
             // 页面关闭前同步
             window.addEventListener('beforeunload', () => {
@@ -614,6 +635,11 @@
                             
                             // 触发页面刷新事件，让UI更新
                             window.dispatchEvent(new Event('storage'));
+                            
+                            // 🔑 新增：显示简短的同步成功提示
+                            if (typeof MessageUtils !== 'undefined' && MessageUtils.success) {
+                                MessageUtils.success(`✅ 已同步云端最新数据（${itemCount}条）`, 2000);
+                            }
                             
                             // 显示通知（不阻塞）
                             this.showUpdateNotification(updatedCount);
