@@ -122,8 +122,8 @@
             
             // 监听 localStorage 变化
             if (!window.leancloudStorageListenerBound) {
-                // 保存原始方法
-                this._originalSetItem = localStorage.setItem;
+                // 保存原始方法（绑定上下文，避免 Illegal invocation 错误）
+                this._originalSetItem = localStorage.setItem.bind(localStorage);
                 const originalSetItem = this._originalSetItem;
                 
                 localStorage.setItem = (key, value) => {
