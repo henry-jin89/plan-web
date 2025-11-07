@@ -336,7 +336,7 @@
                 const nowISO = nowDate.toISOString();
                 
                 planObject.set('data', planData);
-                planObject.set('lastModified', nowDate);  // 🔑 修复：使用 Date 对象而不是字符串
+                planObject.set('lastModified', nowISO);  // 🔑 使用 ISO 字符串（LeanCloud 字段为 String 类型）
                 planObject.set('deviceInfo', navigator.userAgent.substring(0, 50));
                 planObject.set('itemCount', dataCount);
                 
