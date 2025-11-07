@@ -1109,18 +1109,37 @@ function initDayPlan() {
 // 设置事件监听器
 function setupEventListeners() {
     // 日期导航
-    document.getElementById('day-prev').addEventListener('click', () => navigateDate(-1));
-    document.getElementById('day-next').addEventListener('click', () => navigateDate(1));
-    document.getElementById('day_date').addEventListener('change', handleDateChange);
+    const dayPrev = document.getElementById('day-prev');
+    const dayNext = document.getElementById('day-next');
+    const dayDate = document.getElementById('day_date');
+    
+    if (dayPrev) {
+        dayPrev.addEventListener('click', () => navigateDate(-1));
+    }
+    if (dayNext) {
+        dayNext.addEventListener('click', () => navigateDate(1));
+    }
+    if (dayDate) {
+        dayDate.addEventListener('change', handleDateChange);
+    }
     
     // 保存按钮
-    document.querySelector('.save-btn').addEventListener('click', saveDayPlan);
+    const saveBtn = document.querySelector('.save-btn');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', saveDayPlan);
+    }
     
     // 历史记录按钮
-    document.querySelector('.save-view-btn').addEventListener('click', showDayHistory);
+    const historyBtn = document.querySelector('.save-view-btn');
+    if (historyBtn) {
+        historyBtn.addEventListener('click', showDayHistory);
+    }
     
     // AI助手按钮
-    document.getElementById('ai-assistant-btn').addEventListener('click', showAIAssistant);
+    const aiAssistantBtn = document.getElementById('ai-assistant-btn');
+    if (aiAssistantBtn) {
+        aiAssistantBtn.addEventListener('click', showAIAssistant);
+    }
     
     // 智能洞察按钮
     const smartInsightsBtn = document.getElementById('smart-insights-btn');
