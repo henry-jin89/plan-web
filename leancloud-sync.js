@@ -137,7 +137,8 @@
                     
                     // 只同步计划相关数据
                     if (key.startsWith('planData_') || key.startsWith('habitData_') || 
-                        key.startsWith('moodData_') || key.startsWith('gratitudeData_')) {
+                        key.startsWith('moodData_') || key.startsWith('gratitudeData_') ||
+                        key === 'sync_test_data') { // 包含测试数据
                         console.log(`📝 检测到数据变化: ${key}`);
                         
                         // 立即更新本地修改时间戳（关键修复：防止刷新时丢失修改）
@@ -262,14 +263,14 @@
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
                 
+                // 收集所有需要同步的数据
                 if (key.startsWith('planData_') || key.startsWith('habitData_') || 
-                    key.startsWith('moodData_') || key.startsWith('gratitudeData_')) {
-                    try {
-                        const value = localStorage.getItem(key);
-                        allData[key] = JSON.parse(value);
-                    } catch (e) {
-                        allData[key] = localStorage.getItem(key);
-                    }
+                    key.startsWith('moodData_') || key.startsWith('gratitudeData_') ||
+                    key === 'sync_test_data') { // 包含测试数据
+                    const value = localStorage.getItem(key);
+                    // 直接保存字符串值，在云端以字符串形式存储
+                    // 恢复时也会以字符串形式写回 localStorage
+                    allData[key] = value;
                 }
             }
             
