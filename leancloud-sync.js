@@ -304,10 +304,11 @@
                 }
                 
                 // 更新数据 - 每次上传都生成新的云端时间戳
-                const now = new Date().toISOString();
+                const nowDate = new Date();
+                const nowISO = nowDate.toISOString();
                 
                 planObject.set('data', planData);
-                planObject.set('lastModified', now);
+                planObject.set('lastModified', nowDate);  // 🔑 修复：使用 Date 对象而不是字符串
                 planObject.set('deviceInfo', navigator.userAgent.substring(0, 50));
                 planObject.set('itemCount', dataCount);
                 
@@ -316,12 +317,12 @@
                 // 上传成功后，更新最后同步时间（记录云端时间）
                 // 使用原始方法避免触发监听器
                 const setItem = this._originalSetItem || localStorage.setItem.bind(localStorage);
-                setItem('leancloud_last_sync', now);
-                this.lastSync = new Date(now);
+                setItem('leancloud_last_sync', nowISO);
+                this.lastSync = nowDate;
                 
                 console.log('=== 同步成功 ===');
                 console.log(`✅ 共同步 ${dataCount} 项数据`);
-                console.log(`☁️ 云端时间: ${now}`);
+                console.log(`☁️ 云端时间: ${nowISO}`);
                 console.log(`💾 本地修改时间: ${localStorage.getItem('leancloud_local_modified')}`);
                 console.log(`💾 本地同步时间: ${localStorage.getItem('leancloud_last_sync')}`);
                 console.log('=============');
@@ -377,7 +378,10 @@
                         
                         if (planObject) {
                             const cloudLastModified = planObject.get('lastModified');
-                            console.log(`☁️ 云端最后更新时间: ${cloudLastModified || '未知'}`);
+                            // 兼容处理：cloudLastModified 可能是 Date 对象或 ISO 字符串
+                            const cloudLastModifiedStr = cloudLastModified instanceof Date ? 
+                                cloudLastModified.toISOString() : cloudLastModified;
+                            console.log(`☁️ 云端最后更新时间: ${cloudLastModifiedStr || '未知'}`);
                             
                             // 使用本地修改时间来判断（如果存在）
                             const compareTime = localModified || localLastSync;
@@ -424,9 +428,12 @@
                     const cloudData = planObject.get('data');
                     const itemCount = planObject.get('itemCount') || 0;
                     const lastModified = planObject.get('lastModified');
+                    // 兼容处理：转换为 ISO 字符串用于显示和存储
+                    const lastModifiedStr = lastModified instanceof Date ? 
+                        lastModified.toISOString() : lastModified;
                     
                     console.log(`☁️ 发现云端数据: ${itemCount} 条记录`);
-                    console.log(`📅 云端最后更新: ${lastModified || '未知'}`);
+                    console.log(`📅 云端最后更新: ${lastModifiedStr || '未知'}`);
                     
                     if (cloudData && typeof cloudData === 'object') {
                         let restoredCount = 0;
@@ -448,11 +455,11 @@
                             });
                             
                             // 更新本地时间戳（关键：避免重复恢复和数据冲突）
-                            if (lastModified) {
+                            if (lastModifiedStr) {
                                 const setItem = this._originalSetItem || localStorage.setItem.bind(localStorage);
-                                setItem('leancloud_last_sync', lastModified);
-                                setItem('leancloud_local_modified', lastModified);
-                                console.log(`⏰ 已更新本地时间戳: ${lastModified}`);
+                                setItem('leancloud_last_sync', lastModifiedStr);
+                                setItem('leancloud_local_modified', lastModifiedStr);
+                                console.log(`⏰ 已更新本地时间戳: ${lastModifiedStr}`);
                             }
                         } finally {
                             // 恢复完成，清除标志位
@@ -535,9 +542,12 @@
                 
                 if (planObject) {
                     const cloudLastModified = planObject.get('lastModified');
+                    // 兼容处理：cloudLastModified 可能是 Date 对象或 ISO 字符串
+                    const cloudLastModifiedStr = cloudLastModified instanceof Date ? 
+                        cloudLastModified.toISOString() : cloudLastModified;
                     const localLastSync = localStorage.getItem('leancloud_last_sync');
                     
-                    console.log('☁️ 云端最后更新:', cloudLastModified);
+                    console.log('☁️ 云端最后更新:', cloudLastModifiedStr);
                     console.log('💾 本地最后同步:', localLastSync);
                     
                     // 如果云端数据更新时间晚于本地最后同步时间

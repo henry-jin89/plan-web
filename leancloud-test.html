@@ -164,7 +164,7 @@
                 const TestObject = AV.Object.extend('TestConnection');
                 const testObj = new TestObject();
                 testObj.set('test', 'connection_test');
-                testObj.set('timestamp', new Date().toISOString());
+                testObj.set('timestamp', new Date());  // 修复：使用 Date 对象而不是字符串
                 
                 await testObj.save();
                 
