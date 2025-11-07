@@ -555,14 +555,23 @@
                     // 兼容处理：cloudLastModified 可能是 Date 对象或 ISO 字符串
                     const cloudLastModifiedStr = cloudLastModified instanceof Date ? 
                         cloudLastModified.toISOString() : cloudLastModified;
+                    
+                    // 🔑 关键修复：同时检查本地修改时间和同步时间，使用较新的那个
+                    const localModified = localStorage.getItem('leancloud_local_modified');
                     const localLastSync = localStorage.getItem('leancloud_last_sync');
+                    const compareTime = localModified || localLastSync;  // 优先使用本地修改时间
                     
                     console.log('☁️ 云端最后更新:', cloudLastModifiedStr);
-                    console.log('💾 本地最后同步:', localLastSync);
+                    console.log('💾 本地修改时间:', localModified);
+                    console.log('💾 本地同步时间:', localLastSync);
+                    console.log('⚖️ 用于比较的时间:', compareTime);
                     
-                    // 如果云端数据更新时间晚于本地最后同步时间
-                    if (cloudLastModified && (!localLastSync || new Date(cloudLastModified) > new Date(localLastSync))) {
+                    // 🔑 修复：如果云端数据更新时间晚于本地时间（修改时间或同步时间中较新的）
+                    if (cloudLastModified && (!compareTime || new Date(cloudLastModified) > new Date(compareTime))) {
                         console.log('🆕 发现云端有新数据！');
+                        console.log(`   云端: ${new Date(cloudLastModified).toLocaleString()}`);
+                        console.log(`   本地: ${compareTime ? new Date(compareTime).toLocaleString() : '无'}`);
+                        console.log(`   相差: ${Math.round((new Date(cloudLastModified) - new Date(compareTime)) / 1000)} 秒`);
                         
                         const cloudData = planObject.get('data');
                         const itemCount = planObject.get('itemCount') || 0;
