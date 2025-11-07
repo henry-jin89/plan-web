@@ -440,7 +440,6 @@
                             } else if (!localLastSync) {
                                 console.log('ℹ️ 本地从未同步过，将恢复云端数据');
                             }
-                            }
                         }
                     } catch (queryError) {
                         // 如果查询失败（如首次使用），继续正常流程
