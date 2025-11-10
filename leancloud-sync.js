@@ -77,13 +77,14 @@
                     detail: { timestamp: new Date() }
                 }));
                 
-                // 3秒后再次检查云端更新（确保获取最新数据）
+                // 🔑 关键修复：延迟同步检查，确保页面先加载完数据
+                // 延迟10秒再检查更新，给页面足够时间加载数据
                 setTimeout(() => {
                     if (this.isEnabled && !this.syncInProgress) {
-                        console.log('🔄 初始化后自动检查云端更新...');
+                        console.log('🔄 初始化后自动检查云端更新（延迟10秒，确保页面数据已加载）...');
                         this.checkAndPullUpdates();
                     }
-                }, 3000);
+                }, 10000); // 从3秒改为10秒
                 
             } catch (error) {
                 console.error('❌ LeanCloud 初始化失败:', error);
@@ -572,6 +573,27 @@
             try {
                 console.log('🔍 检查云端是否有新数据...');
                 
+                // 🔑 关键修复：检查本地是否有数据，如果有数据且时间戳较新，不覆盖
+                const localWeekData = localStorage.getItem('planData_week');
+                if (localWeekData) {
+                    try {
+                        const allPlans = JSON.parse(localWeekData);
+                        // 获取当前周（使用与 week_plan.js 相同的逻辑）
+                        const now = new Date();
+                        const year = now.getFullYear();
+                        const onejan = new Date(year, 0, 1);
+                        const week = Math.ceil((((now - onejan) / 86400000) + onejan.getDay() + 1) / 7);
+                        const currentWeek = `${year}-W${String(week).padStart(2, '0')}`;
+                        const localPlan = allPlans[currentWeek];
+                        
+                        if (localPlan && localPlan.lastModified) {
+                            console.log(`📦 本地有周计划数据 (${currentWeek})，最后修改: ${localPlan.lastModified}`);
+                        }
+                    } catch (e) {
+                        console.warn('解析本地周计划数据失败:', e);
+                    }
+                }
+                
                 const query = new AV.Query('PlanData');
                 query.equalTo('userId', this.sharedUserId);
                 
@@ -598,6 +620,32 @@
                     if (localModified && new Date(localModified) >= new Date(cloudLastModified)) {
                         console.log('✅ 本地数据已是最新（本地修改时间 >= 云端时间），跳过覆盖');
                         return;
+                    }
+                    
+                    // 🔑 修复：如果本地有数据且时间戳较新，也不覆盖
+                    if (localWeekData) {
+                        try {
+                            const allPlans = JSON.parse(localWeekData);
+                            // 获取当前周（使用与 week_plan.js 相同的逻辑）
+                            const now = new Date();
+                            const year = now.getFullYear();
+                            const onejan = new Date(year, 0, 1);
+                            const week = Math.ceil((((now - onejan) / 86400000) + onejan.getDay() + 1) / 7);
+                            const currentWeek = `${year}-W${String(week).padStart(2, '0')}`;
+                            const localPlan = allPlans[currentWeek];
+                            
+                            if (localPlan && localPlan.lastModified) {
+                                const localPlanTime = new Date(localPlan.lastModified).getTime();
+                                const cloudTime = new Date(cloudLastModified).getTime();
+                                
+                                if (localPlanTime >= cloudTime) {
+                                    console.log(`✅ 本地周计划数据已是最新（本地: ${new Date(localPlanTime).toLocaleString()}, 云端: ${new Date(cloudTime).toLocaleString()}），跳过覆盖`);
+                                    return;
+                                }
+                            }
+                        } catch (e) {
+                            console.warn('检查本地周计划数据时间戳失败:', e);
+                        }
                     }
                     
                     // 🔑 修复：如果云端数据更新时间晚于本地时间（修改时间或同步时间中较新的）
