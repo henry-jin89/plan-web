@@ -407,6 +407,20 @@ function saveWeekPlan() {
         const success = StorageUtils.savePlan('week', currentWeek, planData);
         
         if (success) {
+            // 🔑 关键修复：立即更新本地修改时间戳（防止刷新时被云端旧数据覆盖）
+            const now = new Date().toISOString();
+            try {
+                // 使用原始的 setItem 方法（如果存在）以避免触发额外的同步
+                if (window.leanCloudSync && window.leanCloudSync._originalSetItem) {
+                    window.leanCloudSync._originalSetItem.call(localStorage, 'leancloud_local_modified', now);
+                } else {
+                    localStorage.setItem('leancloud_local_modified', now);
+                }
+                console.log(`⏰ 已立即更新本地修改时间戳: ${now}`);
+            } catch (e) {
+                console.warn('更新时间戳失败，但数据已保存:', e);
+            }
+            
             MessageUtils.success('周计划保存成功！');
             
             // 更新统计
