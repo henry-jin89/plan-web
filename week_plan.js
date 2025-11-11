@@ -112,51 +112,68 @@ function debounce(func, wait) {
 // 设置事件监听器
 function setupEventListeners() {
     // 周导航
-    document.getElementById('week-prev').addEventListener('click', () => navigateWeek(-1));
-    document.getElementById('week-next').addEventListener('click', () => navigateWeek(1));
-    document.getElementById('week_date').addEventListener('change', handleWeekChange);
+    const prevBtn = document.getElementById('week-prev');
+    if (prevBtn) prevBtn.addEventListener('click', () => navigateWeek(-1));
+    const nextBtn = document.getElementById('week-next');
+    if (nextBtn) nextBtn.addEventListener('click', () => navigateWeek(1));
+    const weekInput = document.getElementById('week_date');
+    if (weekInput) weekInput.addEventListener('change', handleWeekChange);
     
     // 保存按钮
-    document.querySelector('.save-btn').addEventListener('click', saveWeekPlan);
+    const saveBtn = document.querySelector('.save-btn');
+    if (saveBtn) saveBtn.addEventListener('click', saveWeekPlan);
     
     // 历史记录按钮
-    document.querySelector('.save-view-btn').addEventListener('click', showWeekHistory);
+    const saveViewBtn = document.querySelector('.save-view-btn');
+    if (saveViewBtn) saveViewBtn.addEventListener('click', showWeekHistory);
     
     // AI助手按钮
-    document.getElementById('ai-assistant-btn').addEventListener('click', showWeekAIAssistant);
+    const aiAssistantBtn = document.getElementById('ai-assistant-btn');
+    if (aiAssistantBtn) aiAssistantBtn.addEventListener('click', showWeekAIAssistant);
     
     // 智能洞察按钮
-    document.getElementById('week-insights-btn').addEventListener('click', showWeekInsights);
+    const insightsBtn = document.getElementById('week-insights-btn');
+    if (insightsBtn) insightsBtn.addEventListener('click', showWeekInsights);
     
     // 效率优化按钮
-    document.getElementById('week-optimization-btn').addEventListener('click', showWeekOptimization);
+    const optimizationBtn = document.getElementById('week-optimization-btn');
+    if (optimizationBtn) optimizationBtn.addEventListener('click', showWeekOptimization);
     
     // 生成周报按钮
-    document.getElementById('generate-review-btn').addEventListener('click', generateWeeklyReport);
+    const generateReviewBtn = document.getElementById('generate-review-btn');
+    if (generateReviewBtn) generateReviewBtn.addEventListener('click', generateWeeklyReport);
     
     // 周分析按钮
-    document.getElementById('week-analysis-btn').addEventListener('click', showWeekAnalysis);
+    const analysisBtn = document.getElementById('week-analysis-btn');
+    if (analysisBtn) analysisBtn.addEventListener('click', showWeekAnalysis);
     
     // 周回顾按钮
-    document.getElementById('week-review-btn').addEventListener('click', focusOnReview);
+    const reviewBtn = document.getElementById('week-review-btn');
+    if (reviewBtn) reviewBtn.addEventListener('click', focusOnReview);
     
     // AI建议按钮
-    document.getElementById('ai-suggest-goals-btn')?.addEventListener('click', generateGoalSuggestions);
+    const aiSuggestBtn = document.getElementById('ai-suggest-goals-btn');
+    if (aiSuggestBtn) aiSuggestBtn.addEventListener('click', generateGoalSuggestions);
     
     // 目标追踪按钮
-    document.getElementById('goal-tracker-btn')?.addEventListener('click', showGoalTracker);
+    const goalTrackerBtn = document.getElementById('goal-tracker-btn');
+    if (goalTrackerBtn) goalTrackerBtn.addEventListener('click', showGoalTracker);
     
     // 智能排程按钮
-    document.getElementById('auto-schedule-btn')?.addEventListener('click', autoScheduleTasks);
+    const autoScheduleBtn = document.getElementById('auto-schedule-btn');
+    if (autoScheduleBtn) autoScheduleBtn.addEventListener('click', autoScheduleTasks);
     
     // 负载均衡按钮
-    document.getElementById('workload-balance-btn')?.addEventListener('click', balanceWorkload);
+    const workloadBtn = document.getElementById('workload-balance-btn');
+    if (workloadBtn) workloadBtn.addEventListener('click', balanceWorkload);
     
     // 回顾模板按钮
-    document.getElementById('review-template-btn')?.addEventListener('click', showReviewTemplate);
+    const reviewTemplateBtn = document.getElementById('review-template-btn');
+    if (reviewTemplateBtn) reviewTemplateBtn.addEventListener('click', showReviewTemplate);
     
     // 成就记录按钮
-    document.getElementById('achievement-tracker-btn')?.addEventListener('click', showAchievementTracker);
+    const achievementBtn = document.getElementById('achievement-tracker-btn');
+    if (achievementBtn) achievementBtn.addEventListener('click', showAchievementTracker);
     
     // 下周AI规划按钮
     document.getElementById('next-week-ai-btn')?.addEventListener('click', generateNextWeekPlan);
