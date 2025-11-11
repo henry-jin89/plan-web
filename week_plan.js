@@ -12,31 +12,6 @@ document.addEventListener('DOMContentLoaded', function() {
     setupEventListeners();
     loadWeekPlan();
     
-    // 🔑 关键修复：监听 storage 事件，当数据被同步脚本更新时重新加载
-    window.addEventListener('storage', function(e) {
-        // 如果是 planData_week 相关的数据变化，重新加载
-        if (e.key && e.key.startsWith('planData_week')) {
-            console.log('🔄 检测到周计划数据变化，重新加载...');
-            setTimeout(() => {
-                loadWeekPlan();
-                safeUpdateProgress('数据同步完成');
-            }, 100);
-        }
-    });
-    
-    // 🔑 关键修复：延迟同步检查，确保页面先加载完数据
-    // 等待 LeanCloud 初始化完成后再检查更新
-    window.addEventListener('leancloud-initialized', function() {
-        console.log('✅ LeanCloud 已初始化，等待数据加载完成...');
-        // 延迟5秒再检查更新，确保页面数据已加载
-        setTimeout(() => {
-            if (window.leanCloudSync && window.leanCloudSync.isEnabled) {
-                console.log('🔄 开始检查云端更新...');
-                window.leanCloudSync.checkAndPullUpdates();
-            }
-        }, 5000);
-    });
-    
     // 更新进度
     safeUpdateProgress('页面初始化');
     
@@ -335,16 +310,11 @@ let pendingCarryOverContent = '';
 
 // 加载周计划
 function loadWeekPlan() {
-    console.log(`📖 开始加载周计划: ${currentWeek}`);
-    
-    // 🔑 关键修复：直接检查 localStorage，确保数据存在
-    const key = `planData_week`;
-    const allPlans = JSON.parse(localStorage.getItem(key) || '{}');
-    console.log(`📦 localStorage 中的周计划数据:`, Object.keys(allPlans));
-    console.log(`📦 当前周 ${currentWeek} 的数据:`, allPlans[currentWeek]);
-    
+    // *** 新增日志: 打印 currentWeek ***
+    console.log('[DEBUG] 当前周 currentWeek =', currentWeek);
     const planData = StorageUtils.loadPlan('week', currentWeek);
-    console.log(`📖 StorageUtils.loadPlan 返回的数据:`, planData);
+    // *** 新增日志: 打印拉取到的周数据 ***
+    console.log('[DEBUG] loadPlan 加载周计划:', planData);
     
     if (planData) {
         // 加载各个字段
@@ -454,6 +424,10 @@ function saveWeekPlan() {
             } catch (e) {
                 console.warn('更新时间戳失败，但数据已保存:', e);
             }
+            // *** 新增日志: 保存后立刻打印本地 week 数据 ***
+            try {
+                console.log('[DEBUG] 保存后 localStorage[planData_week]:', localStorage.getItem('planData_week'));
+            } catch (e) {}
             
             MessageUtils.success('周计划保存成功！');
             
