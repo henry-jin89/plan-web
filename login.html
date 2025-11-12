@@ -164,6 +164,10 @@
         </div>
 
         <div id="login-message" class="notice" style="display:none;"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:14px;">
+            <a href="#" id="forgot-link" style="color:#2563eb;text-decoration:none;">忘记密码?</a>
+            <div>新用户? <a href="#" id="register-link" style="color:#2563eb;text-decoration:none;">注册</a></div>
+        </div>
     </div>
 
     <script>
@@ -211,23 +215,21 @@
                 localStorage.removeItem(CODE_KEY);
                 localStorage.removeItem(CODE_EXPIRY_KEY);
 
-                setTimeout(() => {
-                    // 跳转回登录前页面（若存在 redirect 参数），否则回到 index.html
-                    try {
-                        const params = new URLSearchParams(window.location.search);
-                        const redirect = params.get('redirect');
-                        if (redirect) {
-                            // redirect 存储的是 path + search + hash; 需要构造完整 URL
-                            const target = window.location.origin + redirect;
-                            window.location.href = target;
-                            return;
-                        }
-                    } catch (e) {
-                        // 忽略解析错误，回到首页
-                        console.warn('解析 redirect 参数失败:', e);
+                // 立即跳转回登录前页面（若存在 redirect 参数），否则回到 index.html
+                try {
+                    const params = new URLSearchParams(window.location.search);
+                    const redirect = params.get('redirect');
+                    if (redirect) {
+                        // redirect 存储的是 path + search + hash; 需要构造完整 URL
+                        const target = window.location.origin + redirect;
+                        window.location.replace(target);
+                        return;
                     }
-                    window.location.href = 'index.html';
-                }, 800);
+                } catch (e) {
+                    // 忽略解析错误，回到首页
+                    console.warn('解析 redirect 参数失败:', e);
+                }
+                window.location.replace('index.html');
             });
 
             // 快捷回车支持
@@ -238,6 +240,90 @@
                     }
                 });
             });
+
+            // 注册与忘记密码逻辑（若 ModalUtils/MessageUtils 可用，优先使用）
+            const forgotLink = document.getElementById('forgot-link');
+            const registerLink = document.getElementById('register-link');
+
+            function showForgotModal() {
+                const content = `
+                    <div style="display:flex;flex-direction:column;gap:10px;min-width:260px;">
+                        <label style="font-weight:600;">请输入注册邮箱</label>
+                        <input id="forgot-email" type="email" placeholder="email@example.com" style="padding:8px;border:1px solid #e6eefc;border-radius:6px;">
+                    </div>
+                `;
+                if (typeof ModalUtils !== 'undefined') {
+                    ModalUtils.show('忘记密码', content, {
+                        buttons: [
+                            { text: '取消', class: 'btn-main' },
+                            { text: '发送重置链接', class: 'btn-main', handler: function() {
+                                const emailEl = document.getElementById('forgot-email');
+                                const email = emailEl ? emailEl.value.trim() : '';
+                                if (!email) { if (typeof MessageUtils !== 'undefined') MessageUtils.error('请输入邮箱'); else alert('请输入邮箱'); return; }
+                                // 演示：在控制台打印，真实应调用后端
+                                console.log('【演示】发送密码重置邮件至：', email);
+                                if (typeof MessageUtils !== 'undefined') MessageUtils.success('重置链接已发送（演示）'); else alert('重置链接已发送（演示）');
+                            } }
+                        ]
+                    });
+                } else {
+                    const email = prompt('请输入注册邮箱以接收重置链接：');
+                    if (email) {
+                        console.log('【演示】发送密码重置邮件至：', email);
+                        alert('重置链接已发送（演示）');
+                    }
+                }
+            }
+
+            function showRegisterModal() {
+                const content = `
+                    <div style="display:flex;flex-direction:column;gap:10px;min-width:280px;">
+                        <label style="font-weight:600;">账号（邮箱）</label>
+                        <input id="reg-username" type="email" placeholder="email@example.com" style="padding:8px;border:1px solid #e6eefc;border-radius:6px;">
+                        <label style="font-weight:600;">密码</label>
+                        <input id="reg-password" type="password" placeholder="请输入密码" style="padding:8px;border:1px solid #e6eefc;border-radius:6px;">
+                    </div>
+                `;
+                if (typeof ModalUtils !== 'undefined') {
+                    ModalUtils.show('注册新用户', content, {
+                        buttons: [
+                            { text: '取消', class: 'btn-main' },
+                            { text: '注册', class: 'btn-main', handler: function() {
+                                const u = document.getElementById('reg-username')?.value.trim() || '';
+                                const p = document.getElementById('reg-password')?.value || '';
+                                if (!u || !p) { if (typeof MessageUtils !== 'undefined') MessageUtils.error('请填写邮箱和密码'); else alert('请填写邮箱和密码'); return; }
+                                // 演示注册：直接写入 localStorage
+                                const token = btoa(u + ':' + Date.now());
+                                try {
+                                    localStorage.setItem('auth_token', token);
+                                    localStorage.setItem('auth_user', u);
+                                } catch (e) { console.warn(e); }
+                                if (typeof MessageUtils !== 'undefined') MessageUtils.success('注册并登录成功'); else alert('注册并登录成功');
+                                // 跳转回首页或 redirect
+                                try {
+                                    const params = new URLSearchParams(window.location.search);
+                                    const redirect = params.get('redirect');
+                                    if (redirect) { window.location.replace(window.location.origin + redirect); return; }
+                                } catch (e) {}
+                                window.location.replace('index.html');
+                            } }
+                        ]
+                    });
+                } else {
+                    const u = prompt('注册邮箱：');
+                    const p = prompt('密码：');
+                    if (u && p) {
+                        const token = btoa(u + ':' + Date.now());
+                        localStorage.setItem('auth_token', token);
+                        localStorage.setItem('auth_user', u);
+                        alert('注册并登录成功（演示）');
+                        window.location.replace('index.html');
+                    }
+                }
+            }
+
+            forgotLink && forgotLink.addEventListener('click', function(e){ e.preventDefault(); showForgotModal(); });
+            registerLink && registerLink.addEventListener('click', function(e){ e.preventDefault(); showRegisterModal(); });
         })();
     </script>
 </body>
