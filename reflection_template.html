@@ -3,18 +3,9 @@
 
 <head>
     <script src="config.js"></script>
-    
-    <!-- Firebase配置 -->
-    <script src="firebase-config.js"></script>
-    
-    <!-- 同步修复工具 -->
-    <script src="sync-fix.js"></script>
-    
-    <!-- WebSocket 实时同步 -->
-    <script src="websocket-sync.js"></script>
-    
-    <!-- Firebase数据库同步 -->
-    <script src="firebase-database-sync.js"></script>
+    <script src="leancloud-config.js"></script>
+    <script src="leancloud-sync.js"></script>
+    <script src="universal-cloud-sync.js"></script>
     <script src="gemini-ai-assistant.js"></script>
     
     <meta charset="UTF-8">
@@ -560,17 +551,20 @@
         });
 
         function initReflectionTemplate() {
-            // 设置当前日期
+            // 设置当前日期（空安全检查）
             const today = new Date();
             const dateInput = document.getElementById('reflection-date');
-            dateInput.value = today.toISOString().split('T')[0];
-            updateWeekday();
+            if (dateInput) {
+                dateInput.value = today.toISOString().split('T')[0];
+                updateWeekday();
+                // 绑定事件
+                dateInput.addEventListener('change', updateWeekday);
+            } else {
+                console.warn('⚠️ 未找到 #reflection-date 输入框，跳过日期初始化');
+            }
 
-            // 绑定事件
-            dateInput.addEventListener('change', updateWeekday);
-            
             // 心情选择器
-            const moodItems = document.querySelectorAll('.mood-item');
+            const moodItems = document.querySelectorAll('.mood-item') || [];
             moodItems.forEach(item => {
                 item.addEventListener('click', function() {
                     moodItems.forEach(m => m.classList.remove('selected'));
@@ -578,18 +572,22 @@
                     updateInsights();
                 });
             });
-
+            
             // 文本统计
-            const textareas = document.querySelectorAll('.reflection-textarea');
+            const textareas = document.querySelectorAll('.reflection-textarea') || [];
             textareas.forEach(textarea => {
                 textarea.addEventListener('input', updateStatistics);
             });
-
-            // 加载保存的反思
-            loadSavedReflection();
             
-            // 自动保存
-            setInterval(autoSave, 30000); // 每30秒自动保存
+            // 加载保存的反思（空安全）
+            try {
+                loadSavedReflection();
+            } catch (e) {
+                console.warn('⚠️ 加载已保存的反思时出错:', e);
+            }
+            
+            // 自动保存（每30秒）
+            setInterval(autoSave, 30000);
         }
 
         function updateWeekday() {
@@ -764,10 +762,21 @@
         }
 
         function autoSave() {
+            const dateEl = document.getElementById('reflection-date');
+            if (!dateEl) {
+                console.warn('⚠️ 自动保存失败：找不到 #reflection-date 元素');
+                return;
+            }
+
             const reflectionData = gatherReflectionData();
-            const date = document.getElementById('reflection-date').value;
-            localStorage.setItem(`reflection_${date}`, JSON.stringify(reflectionData));
-            
+            const date = dateEl.value;
+            try {
+                localStorage.setItem(`reflection_${date}`, JSON.stringify(reflectionData));
+            } catch (e) {
+                console.error('❌ 自动保存到 localStorage 失败（reflection）:', e);
+                return;
+            }
+
             // 更新本地修改时间戳以便同步器检测到变更
             try {
                 const now = new Date().toISOString();
@@ -783,7 +792,13 @@
         }
 
         function loadSavedReflection() {
-            const date = document.getElementById('reflection-date').value;
+            const dateEl = document.getElementById('reflection-date');
+            if (!dateEl) {
+                console.warn('⚠️ 无法加载已保存的反思：找不到 #reflection-date');
+                return;
+            }
+
+            const date = dateEl.value;
             const saved = localStorage.getItem(`reflection_${date}`);
             
             if (saved) {
@@ -926,11 +941,13 @@ ${reflectionData.tomorrow}
             }
         });
     </script>
-    <!-- 同步服务 -->
-    <!-- 通用自动同步功能 -->
-    <script src="universal-auto-sync.js"></script>
+    <!-- 同步服务（加载仓库中存在的同步脚本以避免 404） -->
+    <script src="universal-cloud-sync.js"></script>
+    <script src="auto-cloud-sync.js"></script>
     <script src="add-ai-to-all-pages.js"></script>
     <script src="ai-fix-universal.js"></script>  <!-- AI分析功能修复 -->
+    <script src="leancloud-config.js"></script>
+    <script src="leancloud-sync.js"></script>
 </body>
 
 </html>
