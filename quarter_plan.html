@@ -101,7 +101,7 @@
 
         <!-- 操作栏 -->
         <div class="save-bar">
-            <button type="button" id="quarter-template-btn" class="btn-main" style="background: #ff9800;">📋 使用模板</button>
+            <button type="button" id="quarter-template-btn" class="btn-main" style="background: #ff9800;" onclick="showQuarterTemplateSelector()">📋 使用模板</button>
             <button type="button" class="save-btn" data-type="quarter">💾 保存计划</button>
             <button type="button" class="save-view-btn" data-type="quarter">📚 历史记录</button>
             <button type="button" id="okr-assistant-btn">🎯 OKR助手</button>
@@ -185,23 +185,45 @@
             document.getElementById('quarter_year').value = currentYear;
             updateMonthTitles();
             
-            // 启用待办事项功能
-            const containers = document.querySelectorAll('.todo-list-container');
-            containers.forEach(container => {
-                TodoUtils.enableTodoFunctionality(container);
-            });
+            // 启用待办事项功能（安全检查 TodoUtils）
+            try {
+                const containers = document.querySelectorAll('.todo-list-container');
+                containers.forEach(container => {
+                    if (typeof TodoUtils !== 'undefined' && TodoUtils.enableTodoFunctionality) {
+                        TodoUtils.enableTodoFunctionality(container);
+                    } else if (typeof TodoUtils !== 'undefined' && TodoUtils.renderTodos) {
+                        // 退化处理：只渲染已有内容
+                        TodoUtils.renderTodos(container);
+                    }
+                });
+            } catch (e) {
+                console.warn('⚠️ 启用待办事项功能失败（忽略）:', e);
+            }
             
-            // 设置事件监听器
-            document.getElementById('quarter-prev').addEventListener('click', () => navigateQuarter(-1));
-            document.getElementById('quarter-next').addEventListener('click', () => navigateQuarter(1));
-            document.getElementById('quarter_select').addEventListener('change', handleQuarterChange);
-            document.getElementById('quarter_year').addEventListener('change', handleYearChange);
-            document.querySelector('.save-btn').addEventListener('click', saveQuarterPlan);
-            document.querySelector('.save-view-btn').addEventListener('click', showQuarterHistory);
-            document.getElementById('okr-assistant-btn').addEventListener('click', showOKRAssistant);
-            document.querySelector('.ai-assistant-btn').addEventListener('click', showQuarterAIAssistant);
-            document.getElementById('quarter-template-btn').addEventListener('click', showQuarterTemplateSelector);
-            
+            // 设置事件监听器（带元素存在性检查）
+            try {
+                const prevBtn = document.getElementById('quarter-prev');
+                if (prevBtn) prevBtn.addEventListener('click', () => navigateQuarter(-1));
+                const nextBtn = document.getElementById('quarter-next');
+                if (nextBtn) nextBtn.addEventListener('click', () => navigateQuarter(1));
+                const quarterSelect = document.getElementById('quarter_select');
+                if (quarterSelect) quarterSelect.addEventListener('change', handleQuarterChange);
+                const quarterYear = document.getElementById('quarter_year');
+                if (quarterYear) quarterYear.addEventListener('change', handleYearChange);
+                const saveBtn = document.querySelector('.save-btn');
+                if (saveBtn) saveBtn.addEventListener('click', saveQuarterPlan);
+                const saveViewBtn = document.querySelector('.save-view-btn');
+                if (saveViewBtn) saveViewBtn.addEventListener('click', showQuarterHistory);
+                const okrBtn = document.getElementById('okr-assistant-btn');
+                if (okrBtn) okrBtn.addEventListener('click', showOKRAssistant);
+                const aiBtn = document.querySelector('.ai-assistant-btn');
+                if (aiBtn) aiBtn.addEventListener('click', showQuarterAIAssistant);
+                const templateBtn = document.getElementById('quarter-template-btn');
+                if (templateBtn) templateBtn.addEventListener('click', showQuarterTemplateSelector);
+            } catch (e) {
+                console.error('❌ 绑定季度页面事件失败:', e);
+            }
+
             loadQuarterPlan();
             updateProgress();
         }
