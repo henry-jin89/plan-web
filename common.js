@@ -1969,6 +1969,36 @@ window.showModal = ModalUtils.show.bind(ModalUtils);
                                         console.warn('更新徽章失败:', e);
                                     }
 
+                                    // 触发同步器重载与页面事件通知（让页面局部刷新/重新加载用户数据）
+                                    try {
+                                        // dispatch an event so pages can listen and refresh parts
+                                        window.dispatchEvent(new CustomEvent('user-switched', { detail: { username } }));
+
+                                        // trigger leanCloud syncer reload if available
+                                        if (window.leanCloudSync && typeof window.leanCloudSync.forceSync === 'function') {
+                                            try {
+                                                window.leanCloudSync.forceSync();
+                                                console.log('🔄 已触发 leanCloudSync.forceSync()');
+                                            } catch (syncErr) {
+                                                console.warn('触发 leanCloudSync.forceSync() 失败:', syncErr);
+                                            }
+                                        } else if (window.leanCloudSync && typeof window.leanCloudSync.checkAndPullUpdates === 'function') {
+                                            try {
+                                                window.leanCloudSync.checkAndPullUpdates();
+                                                console.log('🔍 已触发 leanCloudSync.checkAndPullUpdates()');
+                                            } catch (checkErr) {
+                                                console.warn('触发 leanCloudSync.checkAndPullUpdates() 失败:', checkErr);
+                                            }
+                                        }
+
+                                        // call updateSyncStatus if available to refresh UI indicator
+                                        if (typeof updateSyncStatus === 'function') {
+                                            try { updateSyncStatus(); } catch (e) { /* ignore */ }
+                                        }
+                                    } catch (e) {
+                                        console.warn('触发同步或事件通知失败:', e);
+                                    }
+
                                     // 关闭模态框并收起菜单
                                     try {
                                         if (typeof ModalUtils !== 'undefined' && modal) {
