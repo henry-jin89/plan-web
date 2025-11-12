@@ -280,12 +280,39 @@
                 month1Milestones: getTodoContent('month1_milestones'),
                 month2Milestones: getTodoContent('month2_milestones'),
                 month3Milestones: getTodoContent('month3_milestones'),
-                review: document.getElementById('quarter_review').value
+                review: document.getElementById('quarter_review').value,
+                lastModified: new Date().toISOString()
             };
 
             const success = StorageUtils.savePlan('quarter', quarterKey, data);
             if (success) {
+                // 立即更新本地修改时间戳，保护本地新数据不被云端覆盖
+                const now = new Date().toISOString();
+                try {
+                    if (window.leanCloudSync && window.leanCloudSync._originalSetItem) {
+                        window.leanCloudSync._originalSetItem.call(localStorage, 'leancloud_local_modified', now);
+                    } else {
+                        localStorage.setItem('leancloud_local_modified', now);
+                    }
+                    console.log('⏰ 已更新 leancloud_local_modified:', now);
+                } catch (e) {
+                    console.warn('更新时间戳失败:', e);
+                }
+
                 MessageUtils.success('季度计划保存成功！');
+
+                // 如果 LeanCloud 同步已启用，立即触发同步（清除防抖）
+                try {
+                    if (window.leanCloudSync && window.leanCloudSync.isEnabled) {
+                        if (window.leanCloudSync._syncDebounceTimer) {
+                            clearTimeout(window.leanCloudSync._syncDebounceTimer);
+                        }
+                        // 直接调用同步（若正在同步会被内部忽略）
+                        window.leanCloudSync.syncToCloud();
+                    }
+                } catch (e) {
+                    console.warn('触发云端同步失败:', e);
+                }
             }
         }
 
