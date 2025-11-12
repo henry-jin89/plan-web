@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>登录 - plan-web</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* 局部样式，配合全局 style.css 使用 */
+        body.login-page {
+            background: linear-gradient(180deg,#f5f7fa 0%, #e8eef8 100%);
+            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", "Microsoft Yahei", Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 420px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(18, 38, 63, 0.08);
+            padding: 28px;
+            box-sizing: border-box;
+        }
+
+        .login-card h1 {
+            margin: 0 0 12px 0;
+            font-size: 1.25rem;
+            color: #1b3350;
+        }
+
+        .form-row {
+            margin-bottom: 12px;
+        }
+
+        .form-row label {
+            display: block;
+            font-size: 0.9rem;
+            color: #556;
+            margin-bottom: 6px;
+        }
+
+        .form-row input[type="text"],
+        .form-row input[type="password"],
+        .form-row input[type="tel"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #e1e8f0;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            box-sizing: border-box;
+        }
+
+        .code-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .code-row input {
+            flex: 1;
+        }
+
+        .btn {
+            display: inline-block;
+            background: linear-gradient(135deg,#3b82f6,#2563eb);
+            color: #fff;
+            border: none;
+            padding: 10px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .btn.secondary {
+            background: #eef6ff;
+            color: #2563eb;
+            border: 1px solid #d7e9ff;
+        }
+
+        .row-between {
+            display:flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .muted {
+            color: #7b8794;
+            font-size: 0.85rem;
+        }
+
+        .hint {
+            margin-top: 10px;
+            font-size: 0.85rem;
+            color: #556;
+        }
+
+        .notice {
+            margin-top: 12px;
+            padding: 10px;
+            background: #fff8e1;
+            border-radius: 8px;
+            color: #8a6d00;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body class="login-page">
+    <div class="login-card" role="main" aria-labelledby="login-title">
+        <h1 id="login-title">登录到 plan-web</h1>
+
+        <div class="form-row">
+            <label for="login-username">账号（邮箱或用户名）</label>
+            <input id="login-username" type="text" autocomplete="username" placeholder="请输入账号" />
+        </div>
+
+        <div class="form-row">
+            <label for="login-password">密码</label>
+            <input id="login-password" type="password" autocomplete="current-password" placeholder="请输入密码" />
+        </div>
+
+        <div class="form-row">
+            <label for="login-code">4位验证码</label>
+            <div class="code-row">
+                <input id="login-code" type="tel" inputmode="numeric" pattern="\\d{4}" placeholder="0000" maxlength="4" />
+                <button id="send-code-btn" class="btn secondary" type="button">发送验证码</button>
+            </div>
+            <div class="muted hint" id="send-code-note">点击“发送验证码”获取一次性验证码（仅用于演示）</div>
+        </div>
+
+        <div class="form-row row-between">
+            <div class="muted">记住我</div>
+            <button id="login-btn" class="btn" type="button">登录</button>
+        </div>
+
+        <div id="login-message" class="notice" style="display:none;"></div>
+    </div>
+
+    <script>
+        // 简单前端登录逻辑（示例）
+        (function() {
+            const usernameEl = document.getElementById('login-username');
+            const passwordEl = document.getElementById('login-password');
+            const codeEl = document.getElementById('login-code');
+            const sendBtn = document.getElementById('send-code-btn');
+            const loginBtn = document.getElementById('login-btn');
+            const msgEl = document.getElementById('login-message');
+
+            // 本地模拟的验证码存储键与过期时间（ms）
+            const CODE_KEY = 'login_demo_code';
+            const CODE_EXPIRY_KEY = 'login_demo_code_expiry';
+
+            function showMessage(text, isError) {
+                msgEl.style.display = 'block';
+                msgEl.style.background = isError ? '#ffeeee' : '#fff8e1';
+                msgEl.style.color = isError ? '#8a0000' : '#8a6d00';
+                msgEl.textContent = text;
+                setTimeout(() => {
+                    msgEl.style.display = 'none';
+                }, 5000);
+            }
+
+            function generateCode() {
+                return String(Math.floor(1000 + Math.random() * 9000));
+            }
+
+            // 发送验证码（模拟）
+            sendBtn.addEventListener('click', function() {
+                const u = usernameEl.value.trim();
+                if (!u) {
+                    showMessage('请输入账号以接收验证码', true);
+                    return;
+                }
+                const code = generateCode();
+                // 存储 code 和过期时间（2 分钟）
+                try {
+                    localStorage.setItem(CODE_KEY, code);
+                    localStorage.setItem(CODE_EXPIRY_KEY, String(Date.now() + 2 * 60 * 1000));
+                } catch (e) {
+                    console.warn('localStorage 写入失败', e);
+                }
+                // 控制台输出用于测试（真实系统应通过后端短信/邮件发送）
+                console.log('【演示】验证码已发送给', u, ':', code);
+                showMessage('验证码已发送（演示环境将在控制台显示）。', false);
+                // 防止滥点 30s
+                sendBtn.disabled = true;
+                let countdown = 30;
+                const origText = sendBtn.textContent;
+                sendBtn.textContent = `重新发送 (${countdown}s)`;
+                const t = setInterval(() => {
+                    countdown--;
+                    if (countdown <= 0) {
+                        clearInterval(t);
+                        sendBtn.disabled = false;
+                        sendBtn.textContent = origText;
+                    } else {
+                        sendBtn.textContent = `重新发送 (${countdown}s)`;
+                    }
+                }, 1000);
+            });
+
+            // 登录按钮
+            loginBtn.addEventListener('click', function() {
+                const username = usernameEl.value.trim();
+                const password = passwordEl.value;
+                const code = codeEl.value.trim();
+
+                if (!username) { showMessage('请输入账号', true); usernameEl.focus(); return; }
+                if (!password) { showMessage('请输入密码', true); passwordEl.focus(); return; }
+                if (!/^[0-9]{4}$/.test(code)) { showMessage('请输入 4 位数字验证码', true); codeEl.focus(); return; }
+
+                // 验证码校验（本地演示）
+                const storedCode = localStorage.getItem(CODE_KEY);
+                const expiry = Number(localStorage.getItem(CODE_EXPIRY_KEY) || 0);
+                if (!storedCode || Date.now() > expiry) {
+                    showMessage('验证码不存在或已过期，请重新发送', true);
+                    return;
+                }
+                if (code !== storedCode) {
+                    showMessage('验证码错误，请检查后重试', true);
+                    return;
+                }
+
+                // 密码校验示例（演示版：accept any non-empty password）
+                // 在真实应用中应向后端验证用户名/密码
+                // 生成并保存一个简单 token，用于后续页面鉴权
+                const token = btoa(username + ':' + Date.now());
+                try {
+                    localStorage.setItem('auth_token', token);
+                    localStorage.setItem('auth_user', username);
+                } catch (e) {
+                    console.warn('localStorage 写入失败', e);
+                }
+
+                showMessage('登录成功，正在跳转...', false);
+                // 清除演示验证码
+                localStorage.removeItem(CODE_KEY);
+                localStorage.removeItem(CODE_EXPIRY_KEY);
+
+                setTimeout(() => {
+                    // 跳转回主页或另一个受保护页面
+                    window.location.href = 'index.html';
+                }, 800);
+            });
+
+            // 快捷回车支持
+            [usernameEl, passwordEl, codeEl].forEach(el => {
+                el && el.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        loginBtn.click();
+                    }
+                });
+            });
+        })();
+    </script>
+</body>
+</html>
+
+
