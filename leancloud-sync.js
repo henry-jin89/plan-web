@@ -135,8 +135,9 @@
                         return;
                     }
                     
-                    // 只同步计划相关数据
+                    // 只同步计划相关数据（兼容不同页面使用的存储键）
                     if (key.startsWith('planData_') || key.startsWith('habitData_') || 
+                        key === 'habitTrackerData' ||
                         key.startsWith('moodData_') || key.startsWith('gratitudeData_') ||
                         key === 'sync_test_data') { // 包含测试数据
                         console.log(`📝 检测到数据变化: ${key}`);
@@ -265,6 +266,7 @@
                 
                 // 收集所有需要同步的数据
                 if (key.startsWith('planData_') || key.startsWith('habitData_') || 
+                    key === 'habitTrackerData' ||
                     key.startsWith('moodData_') || key.startsWith('gratitudeData_') ||
                     key === 'sync_test_data' || key === 'gratitude_history') { // 包含测试数据与感恩日记历史
                     const value = localStorage.getItem(key);
