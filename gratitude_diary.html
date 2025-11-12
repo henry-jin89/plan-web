@@ -598,6 +598,16 @@
             // 初始化同步状态管理器
             SyncStatusManager.init();
             
+        // 诊断：检查 LeanCloud 同步对象与全局同步模块是否可用
+        try {
+            console.log('🔎 LeanCloud sync object present:', !!window.leanCloudSync);
+            console.log('🔎 leanCloudSync details:', window.leanCloudSync);
+            console.log('🔎 universalAutoSync present:', !!window.universalAutoSync);
+            console.log('🔎 syncService present:', !!window.syncService);
+        } catch (e) {
+            console.warn('⚠️ 诊断 LeanCloud 状态时出错:', e);
+        }
+
             // 设置每日引言
             setDailyQuote();
             
@@ -611,10 +621,15 @@
             loadGratitudeHistory();
             
             // 绑定总结文本框
-            document.getElementById('gratitude-summary').addEventListener('input', function() {
-                currentGratitudeData.summary = this.value;
-                autoSaveGratitude();
-            });
+            const summaryEl = document.getElementById('gratitude-summary');
+            if (summaryEl) {
+                summaryEl.addEventListener('input', function() {
+                    currentGratitudeData.summary = this.value;
+                    autoSaveGratitude();
+                });
+            } else {
+                console.warn('⚠️ 未找到 summary 文本框 (#gratitude-summary)，将在保存时忽略 summary');
+            }
         }
 
         function setDailyQuote() {
@@ -806,12 +821,19 @@
 
                 // 若 LeanCloud 同步可用，立即触发上传（清除防抖，直接同步）
                 try {
-                    if (window.leanCloudSync && window.leanCloudSync.isEnabled) {
+                    if (window.leanCloudSync && typeof window.leanCloudSync.syncToCloud === 'function') {
+                        console.log('🔧 准备通过 leanCloudSync 上传数据...');
                         if (window.leanCloudSync._syncDebounceTimer) {
                             clearTimeout(window.leanCloudSync._syncDebounceTimer);
                         }
-                        window.leanCloudSync.syncToCloud();
-                        console.log('📤 已触发 LeanCloud 同步');
+                        try {
+                            window.leanCloudSync.syncToCloud();
+                            console.log('📤 已触发 LeanCloud 同步');
+                        } catch (innerErr) {
+                            console.warn('⚠️ 调用 leanCloudSync.syncToCloud 时出错:', innerErr);
+                        }
+                    } else {
+                        console.warn('⚠️ leanCloudSync 无法使用或未实现 syncToCloud()，跳过直接上传');
                     }
                 } catch (e) {
                     console.warn('触发 LeanCloud 同步失败:', e);
