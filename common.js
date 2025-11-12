@@ -1845,6 +1845,31 @@ window.showModal = ModalUtils.show.bind(ModalUtils);
             root.id = 'auth-dropdown-root';
             root.style.cssText = 'position:fixed;top:12px;right:12px;z-index:10001;';
 
+            // Inject theme styles for auth dropdown (including mobile optimizations)
+            if (!document.getElementById('auth-dropdown-styles')) {
+                const style = document.createElement('style');
+                style.id = 'auth-dropdown-styles';
+                style.textContent = `
+                    #auth-dropdown-root { font-family: -apple-system,BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", "Microsoft Yahei", Arial, sans-serif; }
+                    #auth-badge-button { background: linear-gradient(135deg, rgba(102,126,234,0.12), rgba(118,75,162,0.06)); border: 1px solid rgba(102,126,234,0.12); }
+                    #auth-badge-button:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(102,126,234,0.12); }
+                    #auth-dropdown-menu { min-width: 220px; border: 1px solid rgba(38, 53, 92, 0.06); }
+                    #auth-dropdown-menu div, #auth-dropdown-menu button { transition: background 0.15s ease; }
+                    #auth-dropdown-menu button { background: transparent; border: none; text-align: left; }
+                    #auth-dropdown-menu button:hover { background: rgba(102,126,234,0.06); }
+                    #auth-dropdown-menu button.switch { color: #2563eb; font-weight:600; }
+                    #auth-dropdown-menu button.logout { color: #b02a2a; font-weight:600; }
+                    /* Mobile: make dropdown full width and larger touch targets */
+                    @media (max-width: 600px) {
+                        #auth-dropdown-root { top: 8px; right: 8px; left: 8px; display:flex; justify-content:flex-end; }
+                        #auth-dropdown-menu { position: fixed !important; top: 56px !important; right: 8px !important; left: 8px !important; min-width: auto !important; border-radius: 10px; padding: 12px; box-shadow: 0 20px 40px rgba(0,0,0,0.18); }
+                        #auth-badge-button { padding: 8px 12px; }
+                        #auth-dropdown-menu button { padding: 12px 10px; font-size: 16px; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
             const badge = document.createElement('button');
             badge.id = 'auth-badge-button';
             badge.setAttribute('aria-haspopup', 'true');
