@@ -1964,8 +1964,33 @@ window.showModal = ModalUtils.show.bind(ModalUtils);
                                     localStorage.removeItem('login_demo_code_expiry');
 
                                     MessageUtils.success('登录并切换成功');
-                                    // 刷新页面以应用新身份
-                                    setTimeout(() => window.location.reload(), 600);
+                                    // 不刷新页面：更新当前下拉与徽章显示
+                                    try {
+                                        // update nameSpan and avatar if present in scope
+                                        if (nameSpan && avatar) {
+                                            nameSpan.textContent = username;
+                                            avatar.textContent = (username[0] || '').toUpperCase();
+                                        } else {
+                                            // fallback: try to find existing elements
+                                            const ns = document.querySelector('#auth-badge-button span');
+                                            const av = document.querySelector('#auth-badge-button div');
+                                            if (ns) ns.textContent = username;
+                                            if (av) av.textContent = (username[0] || '').toUpperCase();
+                                        }
+                                    } catch (e) {
+                                        console.warn('更新徽章失败:', e);
+                                    }
+
+                                    // 关闭模态框并收起菜单
+                                    try {
+                                        if (typeof ModalUtils !== 'undefined' && modal) {
+                                            ModalUtils.hide(modal);
+                                        } else if (modal && modal.parentNode) {
+                                            modal.parentNode.removeChild(modal);
+                                        }
+                                    } catch (e) {
+                                        console.warn('关闭模态失败:', e);
+                                    }
                                 } catch (e) {
                                     console.warn('切换登录失败:', e);
                                     MessageUtils.error('登录失败');
