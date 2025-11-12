@@ -1,6 +1,45 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
+    <script>
+        // Inline auth guard — executes immediately to prevent cached pages from bypassing login
+        (function() {
+            try {
+                const publicFiles = [
+                    'login.html',
+                    'leancloud-test.html',
+                    'debug.html',
+                    'clear-cache.html',
+                    'sync-test.html',
+                    'mobile-debug.html'
+                ];
+
+                const pathname = window.location.pathname || '';
+                let filename = pathname.substring(pathname.lastIndexOf('/') + 1);
+                if (!filename) filename = 'index.html';
+
+                if (!publicFiles.includes(filename)) {
+                    try {
+                        const token = localStorage.getItem('auth_token');
+                        if (!token) {
+                            const redirectTo = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
+                            const loginUrl = window.location.origin + '/plan-web/login.html?redirect=' + redirectTo;
+                            console.log('📛 Inline guard: no auth_token, redirecting to', loginUrl);
+                            window.location.replace(loginUrl);
+                        } else {
+                            console.log('🔒 Inline guard: auth_token found, allow page');
+                        }
+                    } catch (e) {
+                        console.warn('⚠️ Inline guard check failed, allowing page to load:', e);
+                    }
+                } else {
+                    console.log('📢 Inline guard: public page, no redirect:', filename);
+                }
+            } catch (err) {
+                console.warn('⚠️ Inline guard initialization error:', err);
+            }
+        })();
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>多层级计划表 - 主页</title>
