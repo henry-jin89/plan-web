@@ -1926,26 +1926,7 @@ window.showModal = ModalUtils.show.bind(ModalUtils);
                                 <label style="font-weight:600;margin-bottom:6px;">密码</label>
                                 <input id="switch-password" type="password" placeholder="请输入密码" style="padding:8px;border:1px solid #e6eefc;border-radius:6px;">
                             </div>
-                    <div style="display:flex;gap:12px;align-items:center;">
-                                <div style="flex:1">
-                                    <div style="display:flex;flex-direction:column;">
-                                        <div style="display:flex;gap:8px;margin-bottom:6px;">
-                                            <div style="width:36px;height:36px;border-radius:6px;background:#f3f6ff;display:flex;align-items:center;justify-content:center;font-weight:800;color:#2b4db7;border:1px solid rgba(43,77,183,0.08);" id="switch-display-1">-</div>
-                                            <div style="width:36px;height:36px;border-radius:6px;background:#f3f6ff;display:flex;align-items:center;justify-content:center;font-weight:800;color:#2b4db7;border:1px solid rgba(43,77,183,0.08);" id="switch-display-2">-</div>
-                                            <div style="width:36px;height:36px;border-radius:6px;background:#f3f6ff;display:flex;align-items:center;justify-content:center;font-weight:800;color:#2b4db7;border:1px solid rgba(43,77,183,0.08);" id="switch-display-3">-</div>
-                                            <div style="width:36px;height:36px;border-radius:6px;background:#f3f6ff;display:flex;align-items:center;justify-content:center;font-weight:800;color:#2b4db7;border:1px solid rgba(43,77,183,0.08);" id="switch-display-4">-</div>
-                                        </div>
-                                        <div style="display:flex;gap:8px;">
-                                            <input id="switch-digit-1" type="tel" inputmode="numeric" maxlength="1" style="width:36px;height:36px;text-align:center;border-radius:6px;border:1px solid #e6eefc;">
-                                            <input id="switch-digit-2" type="tel" inputmode="numeric" maxlength="1" style="width:36px;height:36px;text-align:center;border-radius:6px;border:1px solid #e6eefc;">
-                                            <input id="switch-digit-3" type="tel" inputmode="numeric" maxlength="1" style="width:36px;height:36px;text-align:center;border-radius:6px;border:1px solid #e6eefc;">
-                                            <input id="switch-digit-4" type="tel" inputmode="numeric" maxlength="1" style="width:36px;height:36px;text-align:center;border-radius:6px;border:1px solid #e6eefc;">
-                                            <button id="switch-send-code-btn" class="btn secondary" type="button" style="padding:8px 10px;border-radius:6px;margin-left:8px;">发送验证码</button>
-                                        </div>
-                                    </div>
-                                    <div id="switch-note" style="color:#666;font-size:13px;margin-top:6px;">点击“发送验证码”生成四位数显示（仅演示）。请在下方分别输入4个数字。</div>
-                                </div>
-                            </div>
+                            <div style="color:#666;font-size:13px;">提示：切换账号仅需账号与密码。</div>
                         </div>
                     `;
 
@@ -1956,19 +1937,11 @@ window.showModal = ModalUtils.show.bind(ModalUtils);
                                 try {
                                     const uEl = document.getElementById('switch-username');
                                     const pEl = document.getElementById('switch-password');
-                                    const cEl = document.getElementById('switch-code');
                                     const username = uEl ? uEl.value.trim() : '';
                                     const password = pEl ? pEl.value : '';
-                                    const code = cEl ? cEl.value.trim() : '';
 
                                     if (!username) { MessageUtils.error('请输入账号'); return; }
                                     if (!password) { MessageUtils.error('请输入密码'); return; }
-                                    if (!/^[0-9]{4}$/.test(code)) { MessageUtils.error('请输入4位验证码'); return; }
-
-                                    const storedCode = localStorage.getItem('login_demo_code');
-                                    const expiry = Number(localStorage.getItem('login_demo_code_expiry') || 0);
-                                    if (!storedCode || Date.now() > expiry) { MessageUtils.error('验证码不存在或已过期'); return; }
-                                    if (code !== storedCode) { MessageUtils.error('验证码错误'); return; }
 
                                     // 登录成功：写入 token 和用户
                                     const token = btoa(username + ':' + Date.now());
@@ -2014,68 +1987,7 @@ window.showModal = ModalUtils.show.bind(ModalUtils);
                         ]
                     });
 
-                    // 设置发送验证码按钮行为
-                    setTimeout(() => {
-                        const sendBtn = document.getElementById('switch-send-code-btn');
-                        if (sendBtn) {
-                            sendBtn.addEventListener('click', () => {
-                                const uEl = document.getElementById('switch-username');
-                                const username = uEl ? uEl.value.trim() : '';
-                                if (!username) { MessageUtils.warning('请输入账号以接收验证码'); return; }
-                                const code = String(Math.floor(1000 + Math.random() * 9000));
-                                const expiry = Date.now() + 2 * 60 * 1000; // 2分钟
-                                try {
-                                    localStorage.setItem('login_demo_code', code);
-                                    localStorage.setItem('login_demo_code_expiry', String(expiry));
-                                } catch (e) { console.warn(e); }
-                                // 更新显示区（四个单元格）
-                                try {
-                                    for (let i=1;i<=4;i++){
-                                        const d = document.getElementById('switch-display-'+i);
-                                        if (d) d.textContent = code.charAt(i-1);
-                                    }
-                                    // clear inputs
-                                    for (let i=1;i<=4;i++){
-                                        const di = document.getElementById('switch-digit-'+i);
-                                        if (di) di.value = '';
-                                    }
-                                    // focus first input
-                                    const first = document.getElementById('switch-digit-1');
-                                    if (first) first.focus();
-                                } catch(e) { console.warn(e); }
-                                console.log('【演示】切换账号验证码：', username, code);
-                                MessageUtils.success('验证码已发送（演示环境将在控制台显示）');
-                            });
-                        }
-
-                        // wire up digit inputs to auto-advance/backspace
-                        for (let i=1;i<=4;i++){
-                            const el = document.getElementById('switch-digit-'+i);
-                            if (!el) continue;
-                            el.addEventListener('input', function(e){
-                                this.value = this.value.replace(/[^0-9]/g,'').slice(-1);
-                                if (this.value && i<4) {
-                                    const next = document.getElementById('switch-digit-'+(i+1));
-                                    if (next) next.focus();
-                                }
-                            });
-                            el.addEventListener('keydown', function(e){
-                                if (e.key === 'Backspace' && !this.value && i>1) {
-                                    const prev = document.getElementById('switch-digit-'+(i-1));
-                                    if (prev) prev.focus();
-                                }
-                            });
-                            // support paste
-                            el.addEventListener('paste', function(e){
-                                e.preventDefault();
-                                const paste = (e.clipboardData||window.clipboardData).getData('text').replace(/\\D/g,'').slice(0,4);
-                                for (let j=0;j<paste.length;j++){
-                                    const dst = document.getElementById('switch-digit-'+(j+1));
-                                    if (dst) dst.value = paste.charAt(j);
-                                }
-                            });
-                        }
-                    }, 60);
+                    // No verification UI for switch-account modal; nothing to wire here.
                 } catch (e) {
                     console.warn(e);
                 }
