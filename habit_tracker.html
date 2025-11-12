@@ -1963,6 +1963,32 @@
                 const jsonString = JSON.stringify(cleanedData, null, 0);
                 localStorage.setItem('habitTrackerData', jsonString);
                 habitsData = cleanedData;
+
+                // 立即更新本地修改时间戳以优先保护本地修改（兼容 leanCloudSync）
+                try {
+                    const nowISO = new Date().toISOString();
+                    if (window.leanCloudSync && window.leanCloudSync._originalSetItem) {
+                        window.leanCloudSync._originalSetItem.call(localStorage, 'leancloud_local_modified', nowISO);
+                    } else {
+                        localStorage.setItem('leancloud_local_modified', nowISO);
+                    }
+                    console.log('⏰ 已更新 leancloud_local_modified:', nowISO);
+                } catch (tsErr) {
+                    console.warn('⚠️ 更新 leancloud_local_modified 失败:', tsErr);
+                }
+
+                // 若 LeanCloud 同步可用，立即触发上传（清除防抖，直接同步）
+                try {
+                    if (window.leanCloudSync && typeof window.leanCloudSync.syncToCloud === 'function') {
+                        if (window.leanCloudSync._syncDebounceTimer) {
+                            clearTimeout(window.leanCloudSync._syncDebounceTimer);
+                        }
+                        window.leanCloudSync.syncToCloud();
+                        console.log('📤 已触发 leanCloudSync.syncToCloud()');
+                    }
+                } catch (syncErr) {
+                    console.warn('⚠️ 触发 leanCloudSync.syncToCloud 失败:', syncErr);
+                }
             } catch (error) {
                 console.error('❌ 保存习惯数据失败:', error);
                 MessageUtils.error('数据保存失败，请重试');
