@@ -139,6 +139,7 @@
                     if (key.startsWith('planData_') || key.startsWith('habitData_') || 
                         key === 'habitTrackerData' ||
                         key.startsWith('moodData_') || key.startsWith('gratitudeData_') ||
+                        key.startsWith('reflection_') || key === 'reflection_history' ||
                         key === 'sync_test_data') { // 包含测试数据
                         console.log(`📝 检测到数据变化: ${key}`);
                         
@@ -268,6 +269,7 @@
                 if (key.startsWith('planData_') || key.startsWith('habitData_') || 
                     key === 'habitTrackerData' ||
                     key.startsWith('moodData_') || key.startsWith('gratitudeData_') ||
+                    key.startsWith('reflection_') || key === 'reflection_history' ||
                     key === 'sync_test_data' || key === 'gratitude_history') { // 包含测试数据与感恩日记历史
                     const value = localStorage.getItem(key);
                     // 直接保存字符串值，在云端以字符串形式存储

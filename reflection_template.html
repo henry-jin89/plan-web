@@ -767,6 +767,19 @@
             const reflectionData = gatherReflectionData();
             const date = document.getElementById('reflection-date').value;
             localStorage.setItem(`reflection_${date}`, JSON.stringify(reflectionData));
+            
+            // 更新本地修改时间戳以便同步器检测到变更
+            try {
+                const now = new Date().toISOString();
+                if (window.leanCloudSync && window.leanCloudSync._originalSetItem) {
+                    window.leanCloudSync._originalSetItem.call(localStorage, 'leancloud_local_modified', now);
+                } else {
+                    localStorage.setItem('leancloud_local_modified', now);
+                }
+                console.log('⏰ 自动保存已更新 leancloud_local_modified (reflection):', now);
+            } catch (e) {
+                console.warn('自动保存更新时间戳失败（reflection）:', e);
+            }
         }
 
         function loadSavedReflection() {
@@ -834,6 +847,33 @@
             localStorage.setItem('reflection_history', JSON.stringify(history));
             
             MessageUtils.success('反思记录保存成功！');
+            
+            // 关键：立即更新本地修改时间戳并触发 LeanCloud 同步（如果可用）
+            try {
+                const now = new Date().toISOString();
+                if (window.leanCloudSync && window.leanCloudSync._originalSetItem) {
+                    window.leanCloudSync._originalSetItem.call(localStorage, 'leancloud_local_modified', now);
+                } else {
+                    localStorage.setItem('leancloud_local_modified', now);
+                }
+                console.log('⏰ 已更新 leancloud_local_modified (reflection):', now);
+            } catch (e) {
+                console.warn('更新时间戳失败（reflection）:', e);
+            }
+
+            try {
+                if (window.leanCloudSync && typeof window.leanCloudSync.syncToCloud === 'function') {
+                    if (window.leanCloudSync._syncDebounceTimer) {
+                        clearTimeout(window.leanCloudSync._syncDebounceTimer);
+                    }
+                    window.leanCloudSync.syncToCloud();
+                    console.log('📤 已触发 LeanCloud 同步（reflection）');
+                } else {
+                    console.log('ℹ️ leanCloudSync 不可用，跳过直接上传（reflection）');
+                }
+            } catch (e) {
+                console.warn('触发 LeanCloud 同步失败（reflection）:', e);
+            }
         });
 
         // 导出按钮
