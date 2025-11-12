@@ -1832,71 +1832,116 @@ window.loadPlan = StorageUtils.loadPlan.bind(StorageUtils);
 window.showMessage = MessageUtils.show.bind(MessageUtils);
 window.showModal = ModalUtils.show.bind(ModalUtils);
 
-// 在页面右上角显示当前登录用户并提供登出操作（适用于受保护页面）
+// 在页面右上角显示“个人中心”下拉（显示用户名、登出、切换账号）
 (function() {
-    function createAuthBadge() {
+    function createAuthDropdown() {
         try {
-            const existing = document.getElementById('auth-badge-container');
-            if (existing) return;
+            if (document.getElementById('auth-dropdown-root')) return;
 
             const user = localStorage.getItem('auth_user');
-            if (!user) return; // 未登录时不显示（页面会被守卫重定向）
+            if (!user) return; // 未登录则不显示
 
-            const container = document.createElement('div');
-            container.id = 'auth-badge-container';
-            container.style.cssText = `
-                position: fixed;
-                top: 12px;
-                right: 12px;
-                z-index: 10001;
-                display: flex;
-                gap: 8px;
-                align-items: center;
-                background: rgba(255,255,255,0.9);
-                padding: 6px 10px;
-                border-radius: 20px;
-                box-shadow: 0 6px 18px rgba(0,0,0,0.12);
-                font-size: 13px;
-                color: #333;
-            `;
+            const root = document.createElement('div');
+            root.id = 'auth-dropdown-root';
+            root.style.cssText = 'position:fixed;top:12px;right:12px;z-index:10001;';
 
-            const nameEl = document.createElement('div');
-            nameEl.textContent = user;
-            nameEl.style.fontWeight = '600';
+            const badge = document.createElement('button');
+            badge.id = 'auth-badge-button';
+            badge.setAttribute('aria-haspopup', 'true');
+            badge.setAttribute('aria-expanded', 'false');
+            badge.style.cssText = [
+                'display:flex','align-items:center','gap:8px',
+                'background:rgba(255,255,255,0.95)','border-radius:20px',
+                'padding:6px 10px','box-shadow:0 6px 18px rgba(0,0,0,0.12)',
+                'border:1px solid rgba(0,0,0,0.04)','cursor:pointer','font-size:13px'
+            ].join(';');
 
-            const logoutBtn = document.createElement('button');
-            logoutBtn.textContent = '退出';
-            logoutBtn.style.cssText = `
-                background: transparent;
-                border: 1px solid rgba(0,0,0,0.08);
-                padding: 6px 10px;
-                border-radius: 12px;
-                cursor: pointer;
-                font-weight: 600;
-                color: #333;
-            `;
-            logoutBtn.addEventListener('click', function() {
+            const avatar = document.createElement('div');
+            avatar.textContent = (user[0] || '').toUpperCase();
+            avatar.style.cssText = 'width:28px;height:28px;border-radius:50%;background:#eef2ff;color:#3b4db7;display:flex;align-items:center;justify-content:center;font-weight:700;';
+
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = user;
+            nameSpan.style.fontWeight = '600';
+
+            const caret = document.createElement('span');
+            caret.textContent = '▾';
+            caret.style.cssText = 'margin-left:6px;color:#888;font-size:12px';
+
+            badge.appendChild(avatar);
+            badge.appendChild(nameSpan);
+            badge.appendChild(caret);
+            root.appendChild(badge);
+
+            const menu = document.createElement('div');
+            menu.id = 'auth-dropdown-menu';
+            menu.style.cssText = [
+                'position:absolute','top:46px','right:0','min-width:180px',
+                'background:#fff','border-radius:8px','box-shadow:0 10px 30px rgba(0,0,0,0.12)',
+                'padding:8px','display:none','flex-direction:column','gap:6px','font-size:14px'
+            ].join(';');
+
+            const userRow = document.createElement('div');
+            userRow.textContent = `用户: ${user}`;
+            userRow.style.cssText = 'padding:8px 10px;border-radius:6px;color:#333;font-weight:600;';
+
+            const switchBtn = document.createElement('button');
+            switchBtn.textContent = '切换账号';
+            switchBtn.style.cssText = 'padding:8px 10px;border-radius:6px;border:none;background:#f5f7ff;color:#2b4db7;cursor:pointer;text-align:left;';
+            switchBtn.addEventListener('click', () => {
                 try {
                     localStorage.removeItem('auth_token');
                     localStorage.removeItem('auth_user');
-                } catch (e) {
-                    console.warn('清除登录信息失败', e);
-                }
-                // 强制刷新并跳回登录页
-                const loginUrl = window.location.origin + '/plan-web/login.html?redirect=' + encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
-                window.location.replace(loginUrl);
+                } catch (e) { console.warn(e); }
+                // 跳转到 login 页面，重定向回当前页面 after login
+                const redirect = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
+                window.location.replace(window.location.origin + '/plan-web/login.html?redirect=' + redirect);
             });
 
-            container.appendChild(nameEl);
-            container.appendChild(logoutBtn);
-            document.body.appendChild(container);
+            const logoutBtn = document.createElement('button');
+            logoutBtn.textContent = '退出登录';
+            logoutBtn.style.cssText = 'padding:8px 10px;border-radius:6px;border:none;background:#fff4f4;color:#b02a2a;cursor:pointer;text-align:left;';
+            logoutBtn.addEventListener('click', () => {
+                try {
+                    localStorage.removeItem('auth_token');
+                    localStorage.removeItem('auth_user');
+                } catch (e) { console.warn(e); }
+                const redirect = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
+                window.location.replace(window.location.origin + '/plan-web/login.html?redirect=' + redirect);
+            });
+
+            menu.appendChild(userRow);
+            menu.appendChild(switchBtn);
+            menu.appendChild(logoutBtn);
+            root.appendChild(menu);
+            document.body.appendChild(root);
+
+            // Toggle logic
+            function closeMenu() {
+                menu.style.display = 'none';
+                badge.setAttribute('aria-expanded', 'false');
+            }
+            function openMenu() {
+                menu.style.display = 'flex';
+                badge.setAttribute('aria-expanded', 'true');
+            }
+            badge.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (menu.style.display === 'flex') closeMenu(); else openMenu();
+            });
+            // click outside to close
+            document.addEventListener('click', (e) => {
+                if (!root.contains(e.target)) closeMenu();
+            }, { passive: true });
+            // Esc to close
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') closeMenu();
+            });
         } catch (e) {
-            console.warn('创建 auth badge 失败:', e);
+            console.warn('创建个人中心下拉失败:', e);
         }
     }
 
-    // 在 DOMContentLoaded 后尝试创建（若 common.js 在页面后加载）
-    document.addEventListener('DOMContentLoaded', createAuthBadge);
-    // 也在短延迟后尝试一次（防止加载顺序）
-    setTimeout(createAuthBadge, 800);
+    document.addEventListener('DOMContentLoaded', createAuthDropdown);
+    setTimeout(createAuthDropdown, 800);
 })();
