@@ -219,17 +219,44 @@
                 try {
                     const params = new URLSearchParams(window.location.search);
                     const redirect = params.get('redirect');
+                    let target = '';
                     if (redirect) {
                         // redirect 存储的是 path + search + hash; 需要构造完整 URL
-                        const target = window.location.origin + redirect;
+                        target = window.location.origin + redirect;
+                    } else {
+                        // 默认跳转到首页的绝对地址，避免相对路径问题
+                        target = window.location.origin + '/plan-web/index.html';
+                    }
+
+                    // 尝试 replace，若失败或因缓存/浏览器原因未跳转，则在短延迟后使用 href 作为后备
+                    try {
                         window.location.replace(target);
+                    } catch (e) {
+                        console.warn('replace 跳转失败，尝试 href:', e);
+                        window.location.href = target;
                         return;
                     }
+
+                    // 备用跳转（如果页面仍未在 600ms 内跳转）
+                    setTimeout(() => {
+                        try {
+                            const currentPath = window.location.pathname + window.location.search + window.location.hash;
+                            // 如果还在 login 页面，则强制使用 href
+                            if (currentPath.includes('login.html')) {
+                                window.location.href = target;
+                            }
+                        } catch (e) {
+                            console.warn('备用跳转检测失败:', e);
+                        }
+                    }, 600);
+
+                    return;
                 } catch (e) {
-                    // 忽略解析错误，回到首页
+                    // 忽略解析错误，尝试回到首页
                     console.warn('解析 redirect 参数失败:', e);
+                    try { window.location.replace(window.location.origin + '/plan-web/index.html'); } catch(err){ window.location.href = window.location.origin + '/plan-web/index.html'; }
+                    return;
                 }
-                window.location.replace('index.html');
             });
 
             // 快捷回车支持
