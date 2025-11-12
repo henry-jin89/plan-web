@@ -177,6 +177,9 @@
             const passwordEl = document.getElementById('login-password');
             const codeEl = document.getElementById('login-code');
             const sendBtn = document.getElementById('send-code-btn');
+            // Backward-compatible keys (ensure no ReferenceError if other code expects them)
+            const CODE_KEY = 'login_demo_code';
+            const CODE_EXPIRY_KEY = 'login_demo_code_expiry';
             const loginBtn = document.getElementById('login-btn');
             const msgEl = document.getElementById('login-message');
 
@@ -211,9 +214,11 @@
                 }
 
                 showMessage('登录成功，正在跳转...', false);
-                // 清除演示验证码
-                localStorage.removeItem(CODE_KEY);
-                localStorage.removeItem(CODE_EXPIRY_KEY);
+                // 清除演示验证码（若存在）
+                try {
+                    localStorage.removeItem('login_demo_code');
+                    localStorage.removeItem('login_demo_code_expiry');
+                } catch (e) { /* ignore */ }
 
                 // 立即跳转回登录前页面（若存在 redirect 参数），否则回到 index.html
                 try {
