@@ -1915,12 +1915,87 @@ window.showModal = ModalUtils.show.bind(ModalUtils);
             switchBtn.style.cssText = 'padding:8px 10px;border-radius:6px;border:none;background:#f5f7ff;color:#2b4db7;cursor:pointer;text-align:left;';
             switchBtn.addEventListener('click', () => {
                 try {
-                    localStorage.removeItem('auth_token');
-                    localStorage.removeItem('auth_user');
-                } catch (e) { console.warn(e); }
-                // 跳转到 login 页面，重定向回当前页面 after login
-                const redirect = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
-                window.location.replace(window.location.origin + '/plan-web/login.html?redirect=' + redirect);
+                    // 弹出内嵌登录模态，不离开当前页
+                    const content = `
+                        <div style="display:flex;flex-direction:column;gap:10px;min-width:260px;">
+                            <div style="display:flex;flex-direction:column;">
+                                <label style="font-weight:600;margin-bottom:6px;">账号</label>
+                                <input id="switch-username" type="text" placeholder="请输入账号" style="padding:8px;border:1px solid #e6eefc;border-radius:6px;">
+                            </div>
+                            <div style="display:flex;flex-direction:column;">
+                                <label style="font-weight:600;margin-bottom:6px;">密码</label>
+                                <input id="switch-password" type="password" placeholder="请输入密码" style="padding:8px;border:1px solid #e6eefc;border-radius:6px;">
+                            </div>
+                            <div style="display:flex;gap:8px;align-items:center;">
+                                <input id="switch-code" type="tel" inputmode="numeric" maxlength="4" placeholder="验证码" style="flex:1;padding:8px;border:1px solid #e6eefc;border-radius:6px;">
+                                <button id="switch-send-code-btn" class="btn secondary" type="button" style="padding:8px 10px;border-radius:6px;">发送验证码</button>
+                            </div>
+                            <div id="switch-note" style="color:#666;font-size:13px;">点击发送验证码，演示环境会在控制台显示。</div>
+                        </div>
+                    `;
+
+                    const modal = ModalUtils.show('切换账号', content, {
+                        buttons: [
+                            { text: '取消', class: 'btn-main' },
+                            { text: '登录并切换', class: 'btn-main', handler: function() {
+                                try {
+                                    const uEl = document.getElementById('switch-username');
+                                    const pEl = document.getElementById('switch-password');
+                                    const cEl = document.getElementById('switch-code');
+                                    const username = uEl ? uEl.value.trim() : '';
+                                    const password = pEl ? pEl.value : '';
+                                    const code = cEl ? cEl.value.trim() : '';
+
+                                    if (!username) { MessageUtils.error('请输入账号'); return; }
+                                    if (!password) { MessageUtils.error('请输入密码'); return; }
+                                    if (!/^[0-9]{4}$/.test(code)) { MessageUtils.error('请输入4位验证码'); return; }
+
+                                    const storedCode = localStorage.getItem('login_demo_code');
+                                    const expiry = Number(localStorage.getItem('login_demo_code_expiry') || 0);
+                                    if (!storedCode || Date.now() > expiry) { MessageUtils.error('验证码不存在或已过期'); return; }
+                                    if (code !== storedCode) { MessageUtils.error('验证码错误'); return; }
+
+                                    // 登录成功：写入 token 和用户
+                                    const token = btoa(username + ':' + Date.now());
+                                    localStorage.setItem('auth_token', token);
+                                    localStorage.setItem('auth_user', username);
+                                    // 清理临时验证码
+                                    localStorage.removeItem('login_demo_code');
+                                    localStorage.removeItem('login_demo_code_expiry');
+
+                                    MessageUtils.success('登录并切换成功');
+                                    // 刷新页面以应用新身份
+                                    setTimeout(() => window.location.reload(), 600);
+                                } catch (e) {
+                                    console.warn('切换登录失败:', e);
+                                    MessageUtils.error('登录失败');
+                                }
+                            } }
+                        ]
+                    });
+
+                    // 设置发送验证码按钮行为
+                    setTimeout(() => {
+                        const sendBtn = document.getElementById('switch-send-code-btn');
+                        if (sendBtn) {
+                            sendBtn.addEventListener('click', () => {
+                                const uEl = document.getElementById('switch-username');
+                                const username = uEl ? uEl.value.trim() : '';
+                                if (!username) { MessageUtils.warning('请输入账号以接收验证码'); return; }
+                                const code = String(Math.floor(1000 + Math.random() * 9000));
+                                const expiry = Date.now() + 2 * 60 * 1000; // 2分钟
+                                try {
+                                    localStorage.setItem('login_demo_code', code);
+                                    localStorage.setItem('login_demo_code_expiry', String(expiry));
+                                } catch (e) { console.warn(e); }
+                                console.log('【演示】切换账号验证码：', username, code);
+                                MessageUtils.success('验证码已发送（演示环境将在控制台显示）');
+                            });
+                        }
+                    }, 60);
+                } catch (e) {
+                    console.warn(e);
+                }
             });
 
             const logoutBtn = document.createElement('button');
