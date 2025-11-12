@@ -1926,24 +1926,24 @@ window.showModal = ModalUtils.show.bind(ModalUtils);
                                 <label style="font-weight:600;margin-bottom:6px;">密码</label>
                                 <input id="switch-password" type="password" placeholder="请输入密码" style="padding:8px;border:1px solid #e6eefc;border-radius:6px;">
                             </div>
-                            <div style="display:flex;gap:12px;align-items:center;">
-                                <div>
-                                    <div id="switch-display-code" style="display:flex;gap:8px;margin-bottom:6px;">
-                                        <div style="width:36px;height:36px;border-radius:6px;background:#f3f6ff;display:flex;align-items:center;justify-content:center;font-weight:800;color:#2b4db7;border:1px solid rgba(43,77,183,0.08);">-</div>
-                                        <div style="width:36px;height:36px;border-radius:6px;background:#f3f6ff;display:flex;align-items:center;justify-content:center;font-weight:800;color:#2b4db7;border:1px solid rgba(43,77,183,0.08);">-</div>
-                                        <div style="width:36px;height:36px;border-radius:6px;background:#f3f6ff;display:flex;align-items:center;justify-content:center;font-weight:800;color:#2b4db7;border:1px solid rgba(43,77,183,0.08);">-</div>
-                                        <div style="width:36px;height:36px;border-radius:6px;background:#f3f6ff;display:flex;align-items:center;justify-content:center;font-weight:800;color:#2b4db7;border:1px solid rgba(43,77,183,0.08);">-</div>
-                                    </div>
-                                </div>
+                    <div style="display:flex;gap:12px;align-items:center;">
                                 <div style="flex:1">
-                                    <div style="display:flex;gap:8px;">
-                                        <input id="switch-digit-1" type="tel" inputmode="numeric" maxlength="1" style="width:36px;height:36px;text-align:center;border-radius:6px;border:1px solid #e6eefc;">
-                                        <input id="switch-digit-2" type="tel" inputmode="numeric" maxlength="1" style="width:36px;height:36px;text-align:center;border-radius:6px;border:1px solid #e6eefc;">
-                                        <input id="switch-digit-3" type="tel" inputmode="numeric" maxlength="1" style="width:36px;height:36px;text-align:center;border-radius:6px;border:1px solid #e6eefc;">
-                                        <input id="switch-digit-4" type="tel" inputmode="numeric" maxlength="1" style="width:36px;height:36px;text-align:center;border-radius:6px;border:1px solid #e6eefc;">
-                                        <button id="switch-send-code-btn" class="btn secondary" type="button" style="padding:8px 10px;border-radius:6px;margin-left:8px;">发送验证码</button>
+                                    <div style="display:flex;flex-direction:column;">
+                                        <div style="display:flex;gap:8px;margin-bottom:6px;">
+                                            <div style="width:36px;height:36px;border-radius:6px;background:#f3f6ff;display:flex;align-items:center;justify-content:center;font-weight:800;color:#2b4db7;border:1px solid rgba(43,77,183,0.08);" id="switch-display-1">-</div>
+                                            <div style="width:36px;height:36px;border-radius:6px;background:#f3f6ff;display:flex;align-items:center;justify-content:center;font-weight:800;color:#2b4db7;border:1px solid rgba(43,77,183,0.08);" id="switch-display-2">-</div>
+                                            <div style="width:36px;height:36px;border-radius:6px;background:#f3f6ff;display:flex;align-items:center;justify-content:center;font-weight:800;color:#2b4db7;border:1px solid rgba(43,77,183,0.08);" id="switch-display-3">-</div>
+                                            <div style="width:36px;height:36px;border-radius:6px;background:#f3f6ff;display:flex;align-items:center;justify-content:center;font-weight:800;color:#2b4db7;border:1px solid rgba(43,77,183,0.08);" id="switch-display-4">-</div>
+                                        </div>
+                                        <div style="display:flex;gap:8px;">
+                                            <input id="switch-digit-1" type="tel" inputmode="numeric" maxlength="1" style="width:36px;height:36px;text-align:center;border-radius:6px;border:1px solid #e6eefc;">
+                                            <input id="switch-digit-2" type="tel" inputmode="numeric" maxlength="1" style="width:36px;height:36px;text-align:center;border-radius:6px;border:1px solid #e6eefc;">
+                                            <input id="switch-digit-3" type="tel" inputmode="numeric" maxlength="1" style="width:36px;height:36px;text-align:center;border-radius:6px;border:1px solid #e6eefc;">
+                                            <input id="switch-digit-4" type="tel" inputmode="numeric" maxlength="1" style="width:36px;height:36px;text-align:center;border-radius:6px;border:1px solid #e6eefc;">
+                                            <button id="switch-send-code-btn" class="btn secondary" type="button" style="padding:8px 10px;border-radius:6px;margin-left:8px;">发送验证码</button>
+                                        </div>
                                     </div>
-                                    <div id="switch-note" style="color:#666;font-size:13px;margin-top:6px;">点击“发送验证码”生成四位数显示，请在右侧分别输入4个数字。</div>
+                                    <div id="switch-note" style="color:#666;font-size:13px;margin-top:6px;">点击“发送验证码”生成四位数显示（仅演示）。请在下方分别输入4个数字。</div>
                                 </div>
                             </div>
                         </div>
@@ -2028,20 +2028,20 @@ window.showModal = ModalUtils.show.bind(ModalUtils);
                                     localStorage.setItem('login_demo_code', code);
                                     localStorage.setItem('login_demo_code_expiry', String(expiry));
                                 } catch (e) { console.warn(e); }
-                                // 更新显示区
+                                // 更新显示区（四个单元格）
                                 try {
-                                    const display = document.getElementById('switch-display-code');
-                                    if (display) {
-                                        const boxes = display.querySelectorAll('div');
-                                        for (let i = 0; i < 4; i++) {
-                                            boxes[i].textContent = code.charAt(i);
-                                        }
+                                    for (let i=1;i<=4;i++){
+                                        const d = document.getElementById('switch-display-'+i);
+                                        if (d) d.textContent = code.charAt(i-1);
                                     }
                                     // clear inputs
                                     for (let i=1;i<=4;i++){
                                         const di = document.getElementById('switch-digit-'+i);
                                         if (di) di.value = '';
                                     }
+                                    // focus first input
+                                    const first = document.getElementById('switch-digit-1');
+                                    if (first) first.focus();
                                 } catch(e) { console.warn(e); }
                                 console.log('【演示】切换账号验证码：', username, code);
                                 MessageUtils.success('验证码已发送（演示环境将在控制台显示）');
