@@ -1766,6 +1766,49 @@ const AIUtils = {
 
 // 页面加载时的初始化
 document.addEventListener('DOMContentLoaded', function() {
+    // --- 认证保护（静态站点前端门禁） ---
+    try {
+        (function() {
+            // 允许匿名访问的页面：登录页与若干诊断页（按需调整）
+            const publicFiles = [
+                'login.html',
+                'leancloud-test.html',
+                'debug.html',
+                'clear-cache.html',
+                'sync-test.html',
+                'mobile-debug.html'
+            ];
+
+            const pathname = window.location.pathname || '';
+            // 取出文件名（若路径以 / 结尾，视为 index.html）
+            let filename = pathname.substring(pathname.lastIndexOf('/') + 1);
+            if (!filename) filename = 'index.html';
+
+            // 如果当前页面不是公开页，则检查本地 auth_token
+            if (!publicFiles.includes(filename)) {
+                try {
+                    const token = localStorage.getItem('auth_token');
+                    if (!token) {
+                        // 跳转到登录页并携带当前页面作为 redirect 参数
+                        const redirectTo = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
+                        const loginUrl = window.location.origin + '/plan-web/login.html?redirect=' + redirectTo;
+                        console.log('📛 未检测到登录凭证，跳转到登录页：', loginUrl);
+                        window.location.replace(loginUrl);
+                        return; // 停止后续页面初始化，等待登录后重定向回来
+                    } else {
+                        console.log('🔒 已检测到 auth_token，允许访问页面');
+                    }
+                } catch (e) {
+                    console.warn('⚠️ 检查 auth_token 时出错，允许继续加载页面（降级安全）', e);
+                }
+            } else {
+                console.log('📢 公开页面，无需登录:', filename);
+            }
+        })();
+    } catch (err) {
+        console.warn('⚠️ 认证保护初始化失败:', err);
+    }
+
     // 初始化快捷键
     KeyboardUtils.init();
     

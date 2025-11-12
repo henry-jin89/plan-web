@@ -243,7 +243,20 @@
                 localStorage.removeItem(CODE_EXPIRY_KEY);
 
                 setTimeout(() => {
-                    // 跳转回主页或另一个受保护页面
+                    // 跳转回登录前页面（若存在 redirect 参数），否则回到 index.html
+                    try {
+                        const params = new URLSearchParams(window.location.search);
+                        const redirect = params.get('redirect');
+                        if (redirect) {
+                            // redirect 存储的是 path + search + hash; 需要构造完整 URL
+                            const target = window.location.origin + redirect;
+                            window.location.href = target;
+                            return;
+                        }
+                    } catch (e) {
+                        // 忽略解析错误，回到首页
+                        console.warn('解析 redirect 参数失败:', e);
+                    }
                     window.location.href = 'index.html';
                 }, 800);
             });
