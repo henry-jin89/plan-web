@@ -1831,3 +1831,72 @@ window.savePlan = StorageUtils.savePlan.bind(StorageUtils);
 window.loadPlan = StorageUtils.loadPlan.bind(StorageUtils);
 window.showMessage = MessageUtils.show.bind(MessageUtils);
 window.showModal = ModalUtils.show.bind(ModalUtils);
+
+// 在页面右上角显示当前登录用户并提供登出操作（适用于受保护页面）
+(function() {
+    function createAuthBadge() {
+        try {
+            const existing = document.getElementById('auth-badge-container');
+            if (existing) return;
+
+            const user = localStorage.getItem('auth_user');
+            if (!user) return; // 未登录时不显示（页面会被守卫重定向）
+
+            const container = document.createElement('div');
+            container.id = 'auth-badge-container';
+            container.style.cssText = `
+                position: fixed;
+                top: 12px;
+                right: 12px;
+                z-index: 10001;
+                display: flex;
+                gap: 8px;
+                align-items: center;
+                background: rgba(255,255,255,0.9);
+                padding: 6px 10px;
+                border-radius: 20px;
+                box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+                font-size: 13px;
+                color: #333;
+            `;
+
+            const nameEl = document.createElement('div');
+            nameEl.textContent = user;
+            nameEl.style.fontWeight = '600';
+
+            const logoutBtn = document.createElement('button');
+            logoutBtn.textContent = '退出';
+            logoutBtn.style.cssText = `
+                background: transparent;
+                border: 1px solid rgba(0,0,0,0.08);
+                padding: 6px 10px;
+                border-radius: 12px;
+                cursor: pointer;
+                font-weight: 600;
+                color: #333;
+            `;
+            logoutBtn.addEventListener('click', function() {
+                try {
+                    localStorage.removeItem('auth_token');
+                    localStorage.removeItem('auth_user');
+                } catch (e) {
+                    console.warn('清除登录信息失败', e);
+                }
+                // 强制刷新并跳回登录页
+                const loginUrl = window.location.origin + '/plan-web/login.html?redirect=' + encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
+                window.location.replace(loginUrl);
+            });
+
+            container.appendChild(nameEl);
+            container.appendChild(logoutBtn);
+            document.body.appendChild(container);
+        } catch (e) {
+            console.warn('创建 auth badge 失败:', e);
+        }
+    }
+
+    // 在 DOMContentLoaded 后尝试创建（若 common.js 在页面后加载）
+    document.addEventListener('DOMContentLoaded', createAuthBadge);
+    // 也在短延迟后尝试一次（防止加载顺序）
+    setTimeout(createAuthBadge, 800);
+})();
