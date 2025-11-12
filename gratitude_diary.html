@@ -2,21 +2,11 @@
 <html lang="zh-CN">
 
 <head>
-    <!-- 首先加载弹窗阻止脚本 -->
-    <script src="fix-all-pages-popups.js"></script>
+    <!-- 仅加载仓库中存在且被维护的脚本以避免 404（使用 LeanCloud 为主的同步） -->
     <script src="config.js"></script>
-    
-    <!-- Firebase配置 -->
-    <script src="firebase-config.js"></script>
-    
-    <!-- 同步修复工具 -->
-    <script src="sync-fix.js"></script>
-    
-    <!-- WebSocket 实时同步 -->
-    <script src="websocket-sync.js"></script>
-    
-    <!-- Firebase数据库同步 -->
-    <script src="firebase-database-sync.js"></script>
+    <script src="leancloud-config.js"></script>
+    <script src="leancloud-sync.js"></script>
+    <script src="universal-cloud-sync.js"></script>
     <script src="gemini-ai-assistant.js"></script>
     
     <meta charset="UTF-8">
@@ -800,7 +790,7 @@
                 const dataToSave = JSON.stringify(gratitudeHistory);
                 localStorage.setItem('gratitude_history', dataToSave);
                 console.log('✅ 感恩数据已保存到localStorage');
-
+                
                 // 关键修复：立即更新本地修改时间戳，优先使用原始 setItem 避免触发额外监听
                 try {
                     const now = new Date().toISOString();
@@ -1335,9 +1325,9 @@
         });
     </script>
     
-    <!-- 仅保留必要的脚本，其他同步脚本已被弹窗阻止器禁用 -->
+    <!-- 仅保留必要的脚本，避免引用不存在的文件导致 404 -->
     <!-- 全自动后台同步 -->
-    <script src="auto-background-sync.js"></script>
+    <script src="auto-cloud-sync.js"></script>
     <script src="add-ai-to-all-pages.js"></script>
     <script src="ai-fix-universal.js"></script>  <!-- AI分析功能修复 -->
 </body>
