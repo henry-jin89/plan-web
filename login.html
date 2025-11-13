@@ -571,15 +571,26 @@
                 }
             };
 
-            // 在手机端自动显示调试面板
-            if (debugUtils.isMobile()) {
+            // 调试面板显示控制（不再自动显示）
+            // 只在URL包含debug=true或双击标题时显示
+            const urlParams = new URLSearchParams(window.location.search);
+            const showDebug = urlParams.get('debug') === 'true';
+            
+            if (showDebug) {
                 setTimeout(() => debugUtils.showDebugPanel(), 1000);
-                debugUtils.addLog('📱 检测到移动设备，已启用调试模式');
-            } else {
-                // 桌面端也显示调试面板，方便清除数据重新注册
-                setTimeout(() => debugUtils.showDebugPanel(), 2000);
-                debugUtils.addLog('💻 桌面端调试模式已启用');
+                debugUtils.addLog(debugUtils.isMobile() ? '📱 移动端调试模式' : '💻 桌面端调试模式');
             }
+            
+            // 双击页面标题显示/隐藏调试面板
+            document.querySelector('h1')?.addEventListener('dblclick', function() {
+                const panel = document.getElementById('debug-panel');
+                if (panel.style.display === 'none') {
+                    debugUtils.showDebugPanel();
+                    debugUtils.addLog('🔧 调试面板已手动启用');
+                } else {
+                    panel.style.display = 'none';
+                }
+            });
 
             // 元素选择器
             const elements = {
