@@ -6,6 +6,11 @@
     <title>登录 - 计划管理器</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- LeanCloud 云同步支持 -->
+    <script src="leancloud-config.js"></script>
+    <script src="leancloud-sync.js"></script>
+    
     <style>
         /* 局部样式，配合全局 style.css 使用 */
         body.login-page {
@@ -560,6 +565,55 @@
                 resendCode: document.getElementById('resend-code')
             };
 
+            // 云同步工具函数
+            const cloudUtils = {
+                // 保存用户到云端
+                async saveUserToCloud(email, userData) {
+                    try {
+                        if (window.leanCloudSync && window.leanCloudSync.isEnabled) {
+                            const cloudKey = `user_account_${email}`;
+                            const result = await window.leanCloudSync.saveData(cloudKey, userData);
+                            console.log('✅ 用户信息已保存到云端:', email);
+                            return result;
+                        }
+                    } catch (error) {
+                        console.warn('⚠️ 云端保存失败，使用本地存储:', error);
+                    }
+                    return null;
+                },
+                
+                // 从云端加载用户信息
+                async loadUserFromCloud(email) {
+                    try {
+                        if (window.leanCloudSync && window.leanCloudSync.isEnabled) {
+                            const cloudKey = `user_account_${email}`;
+                            const result = await window.leanCloudSync.loadData(cloudKey);
+                            if (result) {
+                                console.log('✅ 从云端加载用户信息:', email);
+                                return result;
+                            }
+                        }
+                    } catch (error) {
+                        console.warn('⚠️ 云端加载失败，使用本地存储:', error);
+                    }
+                    return null;
+                },
+                
+                // 同步所有本地用户到云端
+                async syncAllUsersToCloud() {
+                    try {
+                        const localUsers = JSON.parse(localStorage.getItem('registered_users') || '{}');
+                        const syncPromises = Object.entries(localUsers).map(([email, userData]) => {
+                            return this.saveUserToCloud(email, userData);
+                        });
+                        await Promise.all(syncPromises);
+                        console.log('✅ 所有本地用户已同步到云端');
+                    } catch (error) {
+                        console.warn('⚠️ 用户同步失败:', error);
+                    }
+                }
+            };
+
             // 工具函数
             const utils = {
                 showAlert: function(alertEl, message, type = 'info') {
@@ -782,16 +836,40 @@
                 utils.setLoading(this, true);
                 
                 // 模拟登录请求
-                setTimeout(() => {
+                setTimeout(async () => {
                     utils.setLoading(this, false);
                     
-                    // 简单验证逻辑（实际应用中应该调用后端API）
+                    // 验证登录（本地+云端）
+                    let userFound = false;
+                    let userData = null;
+                    
+                    // 1. 先检查本地存储
                     const savedUsers = JSON.parse(localStorage.getItem('registered_users') || '{}');
                     if (savedUsers[email] && savedUsers[email].password === password) {
+                        userFound = true;
+                        userData = savedUsers[email];
+                        console.log('✅ 本地登录成功');
+                    }
+                    
+                    // 2. 如果本地没找到，尝试从云端加载
+                    if (!userFound) {
+                        const cloudUserData = await cloudUtils.loadUserFromCloud(email);
+                        if (cloudUserData && cloudUserData.password === password) {
+                            userFound = true;
+                            userData = cloudUserData;
+                            
+                            // 将云端用户信息同步到本地
+                            savedUsers[email] = cloudUserData;
+                            localStorage.setItem('registered_users', JSON.stringify(savedUsers));
+                            console.log('✅ 云端登录成功，已同步到本地');
+                        }
+                    }
+                    
+                    if (userFound) {
                         utils.showAlert(elements.loginAlert, '登录成功，正在跳转...', 'success');
                         setTimeout(() => utils.redirectAfterAuth(email), 1000);
                     } else {
-                        utils.showAlert(elements.loginAlert, '邮箱或密码错误', 'error');
+                        utils.showAlert(elements.loginAlert, '邮箱或密码错误，请检查或先注册账号', 'error');
                     }
                 }, 1500);
             });
@@ -807,23 +885,50 @@
                 utils.setLoading(this, true);
                 
                 // 模拟注册请求
-                setTimeout(() => {
+                setTimeout(async () => {
                     utils.setLoading(this, false);
                     
-                    // 检查邮箱是否已注册
+                    // 检查邮箱是否已注册（本地+云端）
                     const savedUsers = JSON.parse(localStorage.getItem('registered_users') || '{}');
+                    let emailExists = false;
+                    
+                    // 1. 检查本地存储
                     if (savedUsers[email]) {
+                        emailExists = true;
+                        console.log('邮箱已在本地注册');
+                    }
+                    
+                    // 2. 检查云端存储
+                    if (!emailExists) {
+                        const cloudUserData = await cloudUtils.loadUserFromCloud(email);
+                        if (cloudUserData) {
+                            emailExists = true;
+                            console.log('邮箱已在云端注册');
+                            // 同步云端用户到本地
+                            savedUsers[email] = cloudUserData;
+                            localStorage.setItem('registered_users', JSON.stringify(savedUsers));
+                        }
+                    }
+                    
+                    if (emailExists) {
                         utils.showAlert(elements.registerAlert, '该邮箱已注册，请直接登录', 'error');
                         return;
                     }
                     
-                    // 保存用户信息
-                    savedUsers[email] = {
+                    // 保存用户信息到本地和云端
+                    const newUserData = {
                         username: username,
                         password: password,
-                        registeredAt: new Date().toISOString()
+                        registeredAt: new Date().toISOString(),
+                        deviceRegistered: navigator.userAgent.includes('Mobile') ? 'mobile' : 'desktop'
                     };
+                    
+                    // 保存到本地
+                    savedUsers[email] = newUserData;
                     localStorage.setItem('registered_users', JSON.stringify(savedUsers));
+                    
+                    // 保存到云端
+                    await cloudUtils.saveUserToCloud(email, newUserData);
                     
                     utils.showAlert(elements.registerAlert, '注册成功，正在登录...', 'success');
                     setTimeout(() => utils.redirectAfterAuth(email), 1000);
@@ -895,16 +1000,35 @@
                     
                     utils.setLoading(this, true);
                     
-                    setTimeout(() => {
+                    setTimeout(async () => {
                         utils.setLoading(this, false);
                         
-                        // 更新密码
+                        // 更新密码（本地+云端）
                         const email = localStorage.getItem('reset_email');
                         const savedUsers = JSON.parse(localStorage.getItem('registered_users') || '{}');
                         
                         if (savedUsers[email]) {
+                            // 更新本地密码
                             savedUsers[email].password = newPassword;
+                            savedUsers[email].passwordResetAt = new Date().toISOString();
                             localStorage.setItem('registered_users', JSON.stringify(savedUsers));
+                            
+                            // 更新云端密码
+                            await cloudUtils.saveUserToCloud(email, savedUsers[email]);
+                            console.log('✅ 密码已更新到本地和云端');
+                        } else {
+                            // 尝试从云端加载用户并更新
+                            const cloudUserData = await cloudUtils.loadUserFromCloud(email);
+                            if (cloudUserData) {
+                                cloudUserData.password = newPassword;
+                                cloudUserData.passwordResetAt = new Date().toISOString();
+                                
+                                // 同步到本地和云端
+                                savedUsers[email] = cloudUserData;
+                                localStorage.setItem('registered_users', JSON.stringify(savedUsers));
+                                await cloudUtils.saveUserToCloud(email, cloudUserData);
+                                console.log('✅ 从云端更新密码并同步到本地');
+                            }
                         }
                         
                         // 清理临时数据
@@ -939,7 +1063,41 @@
                 }
             });
 
-            console.log('✅ 增强的登录注册系统已加载');
+            // 页面加载时初始化云同步
+            function initializeCloudSync() {
+                // 等待LeanCloud加载完成
+                const checkLeanCloud = setInterval(() => {
+                    if (window.leanCloudSync && window.leanCloudSync.isEnabled) {
+                        clearInterval(checkLeanCloud);
+                        console.log('✅ LeanCloud已连接，开始同步用户数据...');
+                        
+                        // 延迟同步，避免阻塞页面加载
+                        setTimeout(() => {
+                            cloudUtils.syncAllUsersToCloud().then(() => {
+                                console.log('✅ 用户数据云同步完成');
+                            }).catch(err => {
+                                console.warn('⚠️ 用户数据云同步失败:', err);
+                            });
+                        }, 2000);
+                    } else if (window.leanCloudSync && window.leanCloudSync.initError) {
+                        clearInterval(checkLeanCloud);
+                        console.warn('⚠️ LeanCloud初始化失败:', window.leanCloudSync.initError);
+                        console.log('ℹ️ 将使用本地存储模式，跨设备功能受限');
+                    }
+                }, 500);
+                
+                // 10秒后停止检查
+                setTimeout(() => clearInterval(checkLeanCloud), 10000);
+            }
+            
+            // 页面加载完成后初始化
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initializeCloudSync);
+            } else {
+                initializeCloudSync();
+            }
+
+            console.log('✅ 增强的登录注册系统已加载（支持跨设备同步）');
         })();
     </script>
 </body>
