@@ -532,6 +532,7 @@
                 <button id="test-cloud-btn" style="background:#5352ed; color:white; border:none; border-radius:4px; padding:2px 6px; font-size:10px; margin-right:2px;">测试云端</button>
                 <button id="sync-users-btn" style="background:#ff6b35; color:white; border:none; border-radius:4px; padding:2px 6px; font-size:10px; margin-right:2px;">同步用户</button>
                 <button id="clear-data-btn" style="background:#ff4757; color:white; border:none; border-radius:4px; padding:2px 6px; font-size:10px; margin-right:2px;">清除数据</button>
+                <button id="emergency-recovery-btn" style="background:#f39c12; color:white; border:none; border-radius:4px; padding:2px 6px; font-size:10px; margin-right:2px;">🆘紧急恢复</button>
                 <button onclick="document.getElementById('debug-panel').style.display='none'" style="background:#333; color:white; border:none; border-radius:4px; padding:2px 8px; font-size:10px;">关闭</button>
             </div>
         </div>
@@ -1045,8 +1046,11 @@
                         setTimeout(() => utils.redirectAfterAuth(email), 1000);
                     } else {
                         debugUtils.addLog('❌ 登录失败 - 用户名或密码错误', 'error');
-                        debugUtils.addLog('💡 解决方案: 1)检查密码是否正确 2)点击"同步用户"按钮 3)在电脑端重新注册', 'info');
-                        utils.showAlert(elements.loginAlert, '登录失败！如果是电脑端注册的账号，请点击调试面板中的"同步用户"按钮，或在电脑端重新注册', 'error');
+                        debugUtils.addLog('💡 解决方案: 1)检查密码是否正确 2)点击"🆘紧急恢复"按钮 3)点击"同步用户"按钮', 'info');
+                        utils.showAlert(elements.loginAlert, '登录失败！如果删除了浏览器数据，请双击页面标题打开调试面板，然后点击"🆘紧急恢复"按钮', 'error');
+                        
+                        // 自动显示调试面板，方便用户使用紧急恢复
+                        debugUtils.showDebugPanel();
                     }
                     
                 } catch (error) {
@@ -1369,6 +1373,65 @@
                     debugUtils.addLog(`❌ 云端连接测试失败: ${error.message}`, 'error');
                 }
             }
+
+            // 紧急恢复访问功能
+            function emergencyRecovery() {
+                debugUtils.addLog('🆘 启动紧急恢复模式...');
+                
+                const email = document.getElementById('login-email').value.trim();
+                const password = document.getElementById('login-password').value.trim();
+                
+                if (!email || !password) {
+                    debugUtils.addLog('❌ 请先输入邮箱和密码', 'error');
+                    return;
+                }
+                
+                try {
+                    // 创建临时用户数据
+                    const tempUserData = {
+                        email: email,
+                        password: password, // 实际应用中应该加密
+                        createdAt: new Date().toISOString(),
+                        loginCount: 1,
+                        lastLogin: new Date().toISOString(),
+                        isEmergencyRecovery: true
+                    };
+                    
+                    // 保存到本地存储
+                    const localUsers = JSON.parse(localStorage.getItem('users') || '[]');
+                    
+                    // 检查是否已存在
+                    const existingIndex = localUsers.findIndex(u => u.email === email);
+                    if (existingIndex >= 0) {
+                        localUsers[existingIndex] = tempUserData;
+                        debugUtils.addLog('✅ 更新现有用户数据', 'success');
+                    } else {
+                        localUsers.push(tempUserData);
+                        debugUtils.addLog('✅ 创建新用户数据', 'success');
+                    }
+                    
+                    localStorage.setItem('users', JSON.stringify(localUsers));
+                    
+                    // 设置当前登录用户
+                    localStorage.setItem('currentUser', JSON.stringify({
+                        email: email,
+                        loginTime: new Date().toISOString(),
+                        isEmergencyRecovery: true
+                    }));
+                    
+                    debugUtils.addLog('🎉 紧急恢复成功！正在跳转...', 'success');
+                    
+                    // 跳转到主页面
+                    setTimeout(() => {
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const redirect = urlParams.get('redirect') || 'index.html';
+                        window.location.href = redirect;
+                    }, 1500);
+                    
+                } catch (error) {
+                    debugUtils.addLog(`❌ 紧急恢复失败: ${error.message}`, 'error');
+                }
+            }
             
             // 页面加载时初始化云同步
             function initializeCloudSync() {
@@ -1403,6 +1466,7 @@
             document.getElementById('test-cloud-btn')?.addEventListener('click', testCloudConnection);
             document.getElementById('sync-users-btn')?.addEventListener('click', manualSyncUsers);
             document.getElementById('clear-data-btn')?.addEventListener('click', clearAllLocalData);
+            document.getElementById('emergency-recovery-btn')?.addEventListener('click', emergencyRecovery);
             
             // 页面加载完成后初始化
             if (document.readyState === 'loading') {
