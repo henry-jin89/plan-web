@@ -9467,18 +9467,35 @@ window.submitAndClassifyTasks = function() {
                 tasks.forEach(task => {
                     // 创建任务项
                     const taskItem = document.createElement('div');
-                    taskItem.className = 'todo-item';
-                    taskItem.innerHTML = `<input type="checkbox" class="todo-checkbox"> <span class="todo-text">${task}</span>`;
+                    taskItem.className = 'task-item';
+                    taskItem.innerHTML = `
+                        <div class="task-content">
+                            <div class="custom-checkbox"></div>
+                            <div class="task-text" contenteditable="true">${task}</div>
+                        </div>
+                    `;
                     
                     container.appendChild(taskItem);
                     addedCount++;
                     
                     // 为新复选框添加事件监听
-                    const checkbox = taskItem.querySelector('.todo-checkbox');
-                    checkbox.addEventListener('change', function() {
-                        updateProgress();
-                        savePlan();
-                    });
+                    const checkbox = taskItem.querySelector('.custom-checkbox');
+                    if (checkbox) {
+                        checkbox.addEventListener('click', function() {
+                            this.classList.toggle('checked');
+                            taskItem.classList.toggle('completed');
+                            updateProgress();
+                            savePlan();
+                        });
+                    }
+                    
+                    // 为任务文本添加事件监听
+                    const taskText = taskItem.querySelector('.task-text');
+                    if (taskText) {
+                        taskText.addEventListener('blur', function() {
+                            savePlan();
+                        });
+                    }
                 });
             }
         }
@@ -9527,18 +9544,35 @@ window.submitQuickTasks = function() {
                 tasks.forEach(task => {
                     // 创建任务项
                     const taskItem = document.createElement('div');
-                    taskItem.className = 'todo-item';
-                    taskItem.innerHTML = `<input type="checkbox" class="todo-checkbox"> <span class="todo-text">${task}</span>`;
+                    taskItem.className = 'task-item';
+                    taskItem.innerHTML = `
+                        <div class="task-content">
+                            <div class="custom-checkbox"></div>
+                            <div class="task-text" contenteditable="true">${task}</div>
+                        </div>
+                    `;
                     
                     container.appendChild(taskItem);
                     addedCount++;
                     
                     // 为新复选框添加事件监听
-                    const checkbox = taskItem.querySelector('.todo-checkbox');
-                    checkbox.addEventListener('change', function() {
-                        updateProgress();
-                        savePlan();
-                    });
+                    const checkbox = taskItem.querySelector('.custom-checkbox');
+                    if (checkbox) {
+                        checkbox.addEventListener('click', function() {
+                            this.classList.toggle('checked');
+                            taskItem.classList.toggle('completed');
+                            updateProgress();
+                            savePlan();
+                        });
+                    }
+                    
+                    // 为任务文本添加事件监听
+                    const taskText = taskItem.querySelector('.task-text');
+                    if (taskText) {
+                        taskText.addEventListener('blur', function() {
+                            savePlan();
+                        });
+                    }
                 });
             }
         }
