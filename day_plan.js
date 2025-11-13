@@ -9791,19 +9791,30 @@ function initHabitClickSelection() {
         const taskItem = e.target.closest('.task-item');
         if (!taskItem) return;
         
-        // 排除复选框、删除按钮、编辑文本的点击
-        if (e.target.classList.contains('custom-checkbox') ||
-            e.target.classList.contains('task-delete-btn') ||
-            e.target.contentEditable === 'true' ||
-            e.target.tagName === 'INPUT') {
-            return;
+        // 检查点击的具体元素
+        const clickedElement = e.target;
+        
+        // 排除特定功能元素的点击
+        if (clickedElement.classList.contains('custom-checkbox') ||
+            clickedElement.classList.contains('task-delete-btn') ||
+            clickedElement.contentEditable === 'true' ||
+            clickedElement.tagName === 'INPUT' ||
+            clickedElement.closest('.custom-checkbox') ||
+            clickedElement.closest('.task-delete-btn')) {
+            return; // 让这些元素保持原有功能
         }
         
-        e.preventDefault();
-        e.stopPropagation();
-        
-        // 调用选择功能
-        selectHabitForTop3(taskItem);
+        // 只有点击任务文本区域或空白区域时才触发选择
+        if (clickedElement.classList.contains('task-text') ||
+            clickedElement.classList.contains('task-content') ||
+            clickedElement === taskItem) {
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // 调用选择功能
+            selectHabitForTop3(taskItem);
+        }
     });
 }
 
