@@ -614,9 +614,9 @@
                 resendCode: document.getElementById('resend-code')
             };
 
-            // 云同步工具函数
+            // 云同步工具函数  
             const cloudUtils = {
-                // 保存用户到云端
+                // 保存用户到云端（修复版）
                 async saveUserToCloud(email, userData) {
                     console.log('💾 开始保存用户到云端:', email);
                     try {
@@ -633,11 +633,19 @@
                         });
                         
                         if (window.leanCloudSync.isEnabled) {
-                            const cloudKey = `user_account_${email}`;
+                            // LeanCloud同步系统通过监听localStorage变化自动同步
+                            // 我们需要使用它监听的键名格式
+                            const cloudKey = `planData_user_${email}`;
                             console.log('🔑 使用云端键名:', cloudKey);
-                            const result = await window.leanCloudSync.saveData(cloudKey, userData);
-                            console.log('✅ 用户信息已保存到云端:', email, result);
-                            return result;
+                            
+                            // 直接保存到localStorage，LeanCloud会自动监听并同步
+                            localStorage.setItem(cloudKey, JSON.stringify(userData));
+                            
+                            // 等待一小段时间让LeanCloud处理同步
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                            
+                            console.log('✅ 用户信息已保存并触发云端同步:', email);
+                            return true;
                         } else {
                             console.warn('⚠️ LeanCloud未启用或初始化失败');
                         }
@@ -647,7 +655,7 @@
                     return null;
                 },
                 
-                // 从云端加载用户信息
+                // 从云端加载用户信息（修复版）
                 async loadUserFromCloud(email) {
                     console.log('📥 开始从云端加载用户:', email);
                     try {
@@ -657,9 +665,39 @@
                         }
                         
                         if (window.leanCloudSync.isEnabled) {
-                            const cloudKey = `user_account_${email}`;
+                            const cloudKey = `planData_user_${email}`;
                             console.log('🔑 使用云端键名:', cloudKey);
-                            const result = await window.leanCloudSync.loadData(cloudKey);
+                            
+                            // 先尝试从本地localStorage读取（可能已被LeanCloud同步）
+                            let result = null;
+                            const localData = localStorage.getItem(cloudKey);
+                            
+                            if (localData) {
+                                try {
+                                    result = JSON.parse(localData);
+                                    console.log('📱 从本地缓存获取用户数据');
+                                } catch (e) {
+                                    console.warn('⚠️ 本地数据解析失败:', e);
+                                }
+                            }
+                            
+                            // 如果本地没有，尝试强制从云端恢复
+                            if (!result && window.leanCloudSync.forceRestore) {
+                                console.log('🔄 强制从云端恢复数据...');
+                                await window.leanCloudSync.forceRestore();
+                                
+                                // 恢复后再次尝试读取
+                                const updatedLocalData = localStorage.getItem(cloudKey);
+                                if (updatedLocalData) {
+                                    try {
+                                        result = JSON.parse(updatedLocalData);
+                                        console.log('☁️ 从云端恢复用户数据成功');
+                                    } catch (e) {
+                                        console.warn('⚠️ 云端数据解析失败:', e);
+                                    }
+                                }
+                            }
+                            
                             console.log('☁️ 云端查询原始结果:', result);
                             
                             if (result) {
