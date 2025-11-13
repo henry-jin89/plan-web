@@ -299,10 +299,10 @@ input[type="number"]:focus {
 
 /* 待办事项列表样式 */
 .custom-checkbox {
-    width: 18px;
-    height: 18px;
-    border: 2px solid var(--theme-color);
-    border-radius: 4px;
+    width: 20px;
+    height: 20px;
+    border: 2.5px solid var(--theme-color);
+    border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -312,6 +312,8 @@ input[type="number"]:focus {
     margin-right: 12px;
     position: relative;
     overflow: hidden;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .custom-checkbox::before {
@@ -355,41 +357,61 @@ input[type="number"]:focus {
 
 .task-text {
     outline: none;
-    line-height: 1.7;
+    line-height: 1.6;
     flex: 1;
-    padding: 4px 8px;
-    border-radius: 4px;
+    padding: 6px 10px;
+    border-radius: 6px;
     transition: all 0.3s ease;
-    min-height: 20px;
+    min-height: 22px;
     cursor: text;
     user-select: text;
     -webkit-user-select: text;
     -moz-user-select: text;
     -ms-user-select: text;
+    color: #333;
+    font-size: 0.95em;
+    font-weight: 500;
 }
 
 .task-text:focus {
-    background: rgba(25, 118, 210, 0.05);
-    box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
+    background: rgba(25, 118, 210, 0.08);
+    box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.15);
 }
 
 .task-item {
     display: flex;
     flex-direction: row;
     align-items: center;
-    padding: 8px 12px;
-    transition: all 0.3s ease;
-    border-radius: 8px;
-    margin: 4px 0;
+    padding: 12px 16px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 10px;
+    margin: 8px 0;
     position: relative;
-    background: rgba(255, 255, 255, 0.6);
-    border: 1px solid rgba(0, 0, 0, 0.05);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 252, 0.8));
+    border: 1.5px solid rgba(25, 118, 210, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .task-item:hover {
-    background: rgba(25, 118, 210, 0.05);
-    transform: translateX(2px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 1), rgba(227, 242, 253, 0.9));
+    transform: translateX(4px) translateY(-1px);
+    box-shadow: 0 6px 16px rgba(25, 118, 210, 0.15);
+    border-color: rgba(25, 118, 210, 0.2);
+}
+
+/* 已完成任务样式 */
+.task-item.completed {
+    opacity: 0.7;
+    background: linear-gradient(135deg, rgba(240, 245, 250, 0.9), rgba(230, 240, 250, 0.8));
+}
+
+.task-item.completed .task-text {
+    text-decoration: line-through;
+    color: #999;
+}
+
+.task-item.completed:hover {
+    opacity: 0.85;
 }
 
 .task-delete-btn {
