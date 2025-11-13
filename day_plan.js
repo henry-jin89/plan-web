@@ -9496,13 +9496,88 @@ window.submitAndClassifyTasks = function() {
 }
 
 /**
+ * 快速输入框提交处理
+ */
+window.submitQuickTasks = function() {
+    const quickInput = document.getElementById('quick-task-input');
+    const inputText = quickInput.value.trim();
+    
+    if (!inputText) {
+        return;
+    }
+    
+    const classified = classifyTasks(inputText);
+    
+    // 添加任务到对应的容器
+    const containerMap = {
+        important: 'day_top3',
+        habits: 'day_must_dos',
+        general: 'day_tasks',
+        schedule: 'day_schedule'
+    };
+    
+    let addedCount = 0;
+    
+    Object.entries(classified).forEach(([category, tasks]) => {
+        if (tasks.length > 0) {
+            const containerId = containerMap[category];
+            const container = document.getElementById(containerId);
+            
+            if (container) {
+                tasks.forEach(task => {
+                    // 创建任务项
+                    const taskItem = document.createElement('div');
+                    taskItem.className = 'todo-item';
+                    taskItem.innerHTML = `<input type="checkbox" class="todo-checkbox"> <span class="todo-text">${task}</span>`;
+                    
+                    container.appendChild(taskItem);
+                    addedCount++;
+                    
+                    // 为新复选框添加事件监听
+                    const checkbox = taskItem.querySelector('.todo-checkbox');
+                    checkbox.addEventListener('change', function() {
+                        updateProgress();
+                        savePlan();
+                    });
+                });
+            }
+        }
+    });
+    
+    // 清空输入框
+    quickInput.value = '';
+    quickInput.focus();
+    
+    // 显示成功提示
+    if (addedCount > 0) {
+        MessageUtils.success(`✨ 成功添加 ${addedCount} 个任务！`);
+    }
+    
+    // 保存计划
+    savePlan();
+    updateProgress();
+}
+
+/**
  * 初始化对话框事件监听
  */
 document.addEventListener('DOMContentLoaded', function() {
-    // 打开对话框按钮
-    const openBtn = document.getElementById('open-task-input-btn');
-    if (openBtn) {
-        openBtn.addEventListener('click', openTaskInputModal);
+    // 快速输入框事件
+    const quickInput = document.getElementById('quick-task-input');
+    const quickSubmitBtn = document.getElementById('quick-submit-btn');
+    
+    if (quickInput) {
+        // 按 Enter 提交
+        quickInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                submitQuickTasks();
+            }
+        });
+    }
+    
+    if (quickSubmitBtn) {
+        quickSubmitBtn.addEventListener('click', submitQuickTasks);
     }
     
     // 关闭按钮
@@ -9541,7 +9616,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // 在对话框中按 Enter 提交
+    // 在对话框中按 Ctrl+Enter 提交
     const inputField = document.getElementById('task-input-field');
     if (inputField) {
         inputField.addEventListener('keydown', function(e) {
