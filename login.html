@@ -531,7 +531,8 @@
             <div>
                 <button id="test-cloud-btn" style="background:#5352ed; color:white; border:none; border-radius:4px; padding:2px 6px; font-size:10px; margin-right:2px;">测试云端</button>
                 <button id="sync-users-btn" style="background:#ff6b35; color:white; border:none; border-radius:4px; padding:2px 6px; font-size:10px; margin-right:2px;">同步用户</button>
-                <button onclick="document.getElementById('debug-panel').style.display='none'" style="background:#ff4757; color:white; border:none; border-radius:4px; padding:2px 8px; font-size:10px;">关闭</button>
+                <button id="clear-data-btn" style="background:#ff4757; color:white; border:none; border-radius:4px; padding:2px 6px; font-size:10px; margin-right:2px;">清除数据</button>
+                <button onclick="document.getElementById('debug-panel').style.display='none'" style="background:#333; color:white; border:none; border-radius:4px; padding:2px 8px; font-size:10px;">关闭</button>
             </div>
         </div>
         <div id="debug-content"></div>
@@ -574,6 +575,10 @@
             if (debugUtils.isMobile()) {
                 setTimeout(() => debugUtils.showDebugPanel(), 1000);
                 debugUtils.addLog('📱 检测到移动设备，已启用调试模式');
+            } else {
+                // 桌面端也显示调试面板，方便清除数据重新注册
+                setTimeout(() => debugUtils.showDebugPanel(), 2000);
+                debugUtils.addLog('💻 桌面端调试模式已启用');
             }
 
             // 元素选择器
@@ -1229,6 +1234,48 @@
                 }
             });
 
+            // 清除所有本地数据
+            function clearAllLocalData() {
+                debugUtils.addLog('🗑️ 开始清除本地数据...');
+                
+                try {
+                    const keysToRemove = [
+                        'registered_users',
+                        'auth_token', 
+                        'auth_user'
+                    ];
+                    
+                    // 清除注册用户数据
+                    keysToRemove.forEach(key => {
+                        if (localStorage.getItem(key)) {
+                            localStorage.removeItem(key);
+                            debugUtils.addLog(`🗑️ 已清除: ${key}`);
+                        }
+                    });
+                    
+                    // 清除所有planData_user_开头的云端用户数据
+                    const allKeys = Object.keys(localStorage);
+                    const userDataKeys = allKeys.filter(key => key.startsWith('planData_user_'));
+                    userDataKeys.forEach(key => {
+                        localStorage.removeItem(key);
+                        debugUtils.addLog(`🗑️ 已清除云端数据: ${key}`);
+                    });
+                    
+                    debugUtils.addLog('✅ 本地数据清除完成！', 'success');
+                    debugUtils.addLog('💡 现在可以重新注册了', 'info');
+                    
+                    // 3秒后提示用户刷新页面
+                    setTimeout(() => {
+                        if (confirm('数据已清除完成！是否刷新页面开始重新注册？')) {
+                            window.location.reload();
+                        }
+                    }, 1000);
+                    
+                } catch (error) {
+                    debugUtils.addLog(`❌ 清除数据失败: ${error.message}`, 'error');
+                }
+            }
+
             // 手动同步所有用户到云端
             async function manualSyncUsers() {
                 debugUtils.addLog('🔄 开始手动同步本地用户到云端...');
@@ -1344,6 +1391,7 @@
             // 绑定调试按钮事件
             document.getElementById('test-cloud-btn')?.addEventListener('click', testCloudConnection);
             document.getElementById('sync-users-btn')?.addEventListener('click', manualSyncUsers);
+            document.getElementById('clear-data-btn')?.addEventListener('click', clearAllLocalData);
             
             // 页面加载完成后初始化
             if (document.readyState === 'loading') {
