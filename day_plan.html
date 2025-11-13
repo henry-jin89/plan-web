@@ -134,6 +134,61 @@
             </div>
         </div>
 
+        <!-- 智能任务输入对话框 -->
+        <div id="smart-task-input-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
+            <div style="background: white; border-radius: 16px; padding: 32px; max-width: 600px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3); animation: slideUp 0.3s ease;">
+                <!-- 标题 -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <h2 style="margin: 0; color: #333; font-size: 1.5em;">📝 今日计划</h2>
+                    <button type="button" id="close-task-modal" style="background: none; border: none; font-size: 1.5em; cursor: pointer; color: #999;">✕</button>
+                </div>
+
+                <!-- 输入区域 -->
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; color: #666; font-weight: 600;">输入你今天想要完成的内容：</label>
+                    <textarea id="task-input-field" placeholder="例如：完成项目报告、健身30分钟、学习英语、下午3点开会..." 
+                              style="width: 100%; min-height: 120px; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 1em; font-family: inherit; resize: vertical; box-sizing: border-box; transition: border-color 0.3s;">
+                    </textarea>
+                    <div style="margin-top: 8px; font-size: 0.85em; color: #999;">
+                        💡 提示：可以输入多个任务，用逗号或换行分隔
+                    </div>
+                </div>
+
+                <!-- 分类预览 -->
+                <div style="background: #f5f5f5; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+                    <h4 style="margin: 0 0 12px 0; color: #333; font-size: 0.95em;">📊 任务分类预览：</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.9em;">
+                        <div style="background: white; padding: 10px; border-radius: 6px; border-left: 3px solid #1976d2;">
+                            <div style="color: #1976d2; font-weight: 600; margin-bottom: 4px;">🎯 重要任务</div>
+                            <div id="preview-important" style="color: #666; font-size: 0.85em; min-height: 20px;">等待输入...</div>
+                        </div>
+                        <div style="background: white; padding: 10px; border-radius: 6px; border-left: 3px solid #4caf50;">
+                            <div style="color: #4caf50; font-weight: 600; margin-bottom: 4px;">🔄 日常习惯</div>
+                            <div id="preview-habits" style="color: #666; font-size: 0.85em; min-height: 20px;">等待输入...</div>
+                        </div>
+                        <div style="background: white; padding: 10px; border-radius: 6px; border-left: 3px solid #ff9800;">
+                            <div style="color: #ff9800; font-weight: 600; margin-bottom: 4px;">📝 一般任务</div>
+                            <div id="preview-general" style="color: #666; font-size: 0.85em; min-height: 20px;">等待输入...</div>
+                        </div>
+                        <div style="background: white; padding: 10px; border-radius: 6px; border-left: 3px solid #9c27b0;">
+                            <div style="color: #9c27b0; font-weight: 600; margin-bottom: 4px;">⏰ 时间安排</div>
+                            <div id="preview-schedule" style="color: #666; font-size: 0.85em; min-height: 20px;">等待输入...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 按钮组 -->
+                <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                    <button type="button" id="cancel-task-btn" style="padding: 10px 24px; border: 2px solid #ddd; background: white; border-radius: 6px; cursor: pointer; font-size: 1em; color: #666; transition: all 0.3s;">
+                        取消
+                    </button>
+                    <button type="button" id="submit-task-btn" style="padding: 10px 24px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 1em; font-weight: 600; transition: all 0.3s;">
+                        ✨ 完成并分类
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- 使用说明 -->
         <div style="background: linear-gradient(135deg, #e8f5e9, #f1f8e9); border-radius: 12px; padding: 20px; margin-bottom: 20px; border-left: 4px solid #4caf50; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
             <h4 style="margin: 0 0 12px 0; color: #2e7d32; font-size: 1.1em; font-weight: 600; display: flex; align-items: center; gap: 8px;">
@@ -192,6 +247,9 @@
 
         <!-- 操作栏 -->
         <div class="save-bar">
+            <button type="button" id="open-task-input-btn" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 6px; padding: 8px 16px; cursor: pointer; font-weight: 600; transition: all 0.3s;">
+                ✨ 快速添加任务 (Ctrl+I)
+            </button>
             <button type="button" class="save-btn" data-type="day">💾 保存计划</button>
             <button type="button" class="save-view-btn" data-type="day">📚 历史记录</button>
             <button type="button" id="smart-insights-btn" style="background: linear-gradient(135deg, #e3f2fd, #bbdefb); color: #1976d2;">🧠 智能洞察</button>

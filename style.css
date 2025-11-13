@@ -18,6 +18,27 @@
     }
 }
 
+/* 任务输入对话框动画 */
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
 body {
     font-family: 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);

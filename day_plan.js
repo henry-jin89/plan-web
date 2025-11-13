@@ -9312,3 +9312,242 @@ window.resetProductivityData = function() {
         ModalUtils.hide();
     }
 }
+
+// ============================================
+// 🆕 智能任务输入对话框功能
+// ============================================
+
+/**
+ * 任务分类关键词库
+ */
+const taskClassificationKeywords = {
+    important: [
+        '重要', '紧急', '关键', '项目', '报告', '汇报', '会议', '演讲', '截止', 
+        'deadline', 'urgent', 'important', '完成', '提交', '交付', '核心', '主要',
+        '必须', '一定', '务必', '非常', '特别', '最', '首先', '优先'
+    ],
+    habits: [
+        '健身', '运动', '锻炼', '跑步', '瑜伽', '冥想', '冥想', '阅读', '学习',
+        '复习', '练习', '背诵', '记忆', '每天', '每日', '坚持', '习惯', '养成',
+        '晨间', '晚间', '睡前', '起床', '早起', '打卡', '打卡', '英语', '日语',
+        '编程', '代码', '算法', '刷题', '喝水', '吃饭', '休息', '放松'
+    ],
+    schedule: [
+        '点', '点钟', '时间', '会议', '约', '预约', '安排', '计划', '下午', '上午',
+        '早上', '晚上', '中午', '明天', '后天', '周', '月', '日期', '时段', '时刻',
+        '开会', '见面', '通话', '电话', '视频', '直播', '录制', '发布', '更新'
+    ],
+    general: [
+        '任务', '工作', '事情', '做', '完成', '处理', '解决', '整理', '收拾',
+        '清理', '打扫', '购物', '买', '准备', '检查', '验证', '测试', '修复',
+        '改进', '优化', '更新', '维护', '备份', '同步', '上传', '下载'
+    ]
+};
+
+/**
+ * 智能分类任务
+ */
+function classifyTasks(inputText) {
+    const tasks = inputText
+        .split(/[,，\n]/)
+        .map(t => t.trim())
+        .filter(t => t.length > 0);
+    
+    const classified = {
+        important: [],
+        habits: [],
+        schedule: [],
+        general: []
+    };
+    
+    tasks.forEach(task => {
+        let category = 'general';
+        const lowerTask = task.toLowerCase();
+        
+        // 检查是否包含时间相关关键词（优先级最高）
+        if (taskClassificationKeywords.schedule.some(keyword => 
+            lowerTask.includes(keyword) || task.includes(keyword))) {
+            category = 'schedule';
+        }
+        // 检查是否包含习惯相关关键词
+        else if (taskClassificationKeywords.habits.some(keyword => 
+            lowerTask.includes(keyword) || task.includes(keyword))) {
+            category = 'habits';
+        }
+        // 检查是否包含重要相关关键词
+        else if (taskClassificationKeywords.important.some(keyword => 
+            lowerTask.includes(keyword) || task.includes(keyword))) {
+            category = 'important';
+        }
+        
+        classified[category].push(task);
+    });
+    
+    return classified;
+}
+
+/**
+ * 打开任务输入对话框
+ */
+window.openTaskInputModal = function() {
+    const modal = document.getElementById('smart-task-input-modal');
+    const inputField = document.getElementById('task-input-field');
+    
+    modal.style.display = 'flex';
+    inputField.focus();
+    inputField.value = '';
+    
+    // 重置预览
+    document.getElementById('preview-important').textContent = '等待输入...';
+    document.getElementById('preview-habits').textContent = '等待输入...';
+    document.getElementById('preview-general').textContent = '等待输入...';
+    document.getElementById('preview-schedule').textContent = '等待输入...';
+}
+
+/**
+ * 关闭任务输入对话框
+ */
+window.closeTaskInputModal = function() {
+    const modal = document.getElementById('smart-task-input-modal');
+    modal.style.display = 'none';
+}
+
+/**
+ * 实时更新分类预览
+ */
+document.addEventListener('DOMContentLoaded', function() {
+    const inputField = document.getElementById('task-input-field');
+    
+    if (inputField) {
+        inputField.addEventListener('input', function() {
+            const classified = classifyTasks(this.value);
+            
+            document.getElementById('preview-important').textContent = 
+                classified.important.length > 0 ? classified.important.join(', ') : '无';
+            document.getElementById('preview-habits').textContent = 
+                classified.habits.length > 0 ? classified.habits.join(', ') : '无';
+            document.getElementById('preview-general').textContent = 
+                classified.general.length > 0 ? classified.general.join(', ') : '无';
+            document.getElementById('preview-schedule').textContent = 
+                classified.schedule.length > 0 ? classified.schedule.join(', ') : '无';
+        });
+    }
+});
+
+/**
+ * 提交任务并自动分类
+ */
+window.submitAndClassifyTasks = function() {
+    const inputField = document.getElementById('task-input-field');
+    const inputText = inputField.value.trim();
+    
+    if (!inputText) {
+        alert('请输入至少一个任务');
+        return;
+    }
+    
+    const classified = classifyTasks(inputText);
+    
+    // 添加任务到对应的容器
+    const containerMap = {
+        important: 'day_top3',
+        habits: 'day_must_dos',
+        general: 'day_tasks',
+        schedule: 'day_schedule'
+    };
+    
+    let addedCount = 0;
+    
+    Object.entries(classified).forEach(([category, tasks]) => {
+        if (tasks.length > 0) {
+            const containerId = containerMap[category];
+            const container = document.getElementById(containerId);
+            
+            if (container) {
+                tasks.forEach(task => {
+                    // 创建任务项
+                    const taskItem = document.createElement('div');
+                    taskItem.className = 'todo-item';
+                    taskItem.innerHTML = `<input type="checkbox" class="todo-checkbox"> <span class="todo-text">${task}</span>`;
+                    
+                    container.appendChild(taskItem);
+                    addedCount++;
+                    
+                    // 为新复选框添加事件监听
+                    const checkbox = taskItem.querySelector('.todo-checkbox');
+                    checkbox.addEventListener('change', function() {
+                        updateProgress();
+                        savePlan();
+                    });
+                });
+            }
+        }
+    });
+    
+    // 关闭对话框
+    closeTaskInputModal();
+    
+    // 显示成功提示
+    MessageUtils.success(`✨ 成功添加 ${addedCount} 个任务！`);
+    
+    // 保存计划
+    savePlan();
+    updateProgress();
+}
+
+/**
+ * 初始化对话框事件监听
+ */
+document.addEventListener('DOMContentLoaded', function() {
+    // 打开对话框按钮
+    const openBtn = document.getElementById('open-task-input-btn');
+    if (openBtn) {
+        openBtn.addEventListener('click', openTaskInputModal);
+    }
+    
+    // 关闭按钮
+    const closeBtn = document.getElementById('close-task-modal');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeTaskInputModal);
+    }
+    
+    // 取消按钮
+    const cancelBtn = document.getElementById('cancel-task-btn');
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', closeTaskInputModal);
+    }
+    
+    // 提交按钮
+    const submitBtn = document.getElementById('submit-task-btn');
+    if (submitBtn) {
+        submitBtn.addEventListener('click', submitAndClassifyTasks);
+    }
+    
+    // 点击背景关闭
+    const modal = document.getElementById('smart-task-input-modal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeTaskInputModal();
+            }
+        });
+    }
+    
+    // 快捷键 Ctrl+I 打开对话框
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.key === 'i') {
+            e.preventDefault();
+            openTaskInputModal();
+        }
+    });
+    
+    // 在对话框中按 Enter 提交
+    const inputField = document.getElementById('task-input-field');
+    if (inputField) {
+        inputField.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                submitAndClassifyTasks();
+            }
+        });
+    }
+});
