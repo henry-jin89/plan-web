@@ -9472,6 +9472,7 @@ window.submitAndClassifyTasks = function() {
                         <div class="task-content">
                             <div class="custom-checkbox"></div>
                             <div class="task-text" contenteditable="true">${task}</div>
+                            <button class="task-delete-btn" title="删除此项">×</button>
                         </div>
                     `;
                     
@@ -9493,6 +9494,16 @@ window.submitAndClassifyTasks = function() {
                     const taskText = taskItem.querySelector('.task-text');
                     if (taskText) {
                         taskText.addEventListener('blur', function() {
+                            savePlan();
+                        });
+                    }
+                    
+                    // 为删除按钮添加事件监听
+                    const deleteBtn = taskItem.querySelector('.task-delete-btn');
+                    if (deleteBtn) {
+                        deleteBtn.addEventListener('click', function() {
+                            taskItem.remove();
+                            updateProgress();
                             savePlan();
                         });
                     }
@@ -9549,6 +9560,7 @@ window.submitQuickTasks = function() {
                         <div class="task-content">
                             <div class="custom-checkbox"></div>
                             <div class="task-text" contenteditable="true">${task}</div>
+                            <button class="task-delete-btn" title="删除此项">×</button>
                         </div>
                     `;
                     
@@ -9570,6 +9582,16 @@ window.submitQuickTasks = function() {
                     const taskText = taskItem.querySelector('.task-text');
                     if (taskText) {
                         taskText.addEventListener('blur', function() {
+                            savePlan();
+                        });
+                    }
+                    
+                    // 为删除按钮添加事件监听
+                    const deleteBtn = taskItem.querySelector('.task-delete-btn');
+                    if (deleteBtn) {
+                        deleteBtn.addEventListener('click', function() {
+                            taskItem.remove();
+                            updateProgress();
                             savePlan();
                         });
                     }
