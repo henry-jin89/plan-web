@@ -246,16 +246,45 @@
         </div>
 
         <!-- 快速输入任务区域 -->
-        <div id="quick-task-input-area" style="background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);">
-            <div style="display: flex; gap: 12px; align-items: center;">
-                <input type="text" id="quick-task-input" placeholder="✨ 输入今天想完成的任务（按Enter提交）..." 
-                       style="flex: 1; padding: 12px 16px; border: none; border-radius: 8px; font-size: 1em; box-sizing: border-box; background: white; color: #333;">
-                <button type="button" id="quick-submit-btn" style="background: white; color: #667eea; border: none; border-radius: 8px; padding: 12px 24px; cursor: pointer; font-weight: 600; transition: all 0.3s; white-space: nowrap;">
-                    完成 ✨
-                </button>
-            </div>
-            <div style="margin-top: 8px; font-size: 0.85em; color: rgba(255,255,255,0.8);">
-                💡 提示：可输入多个任务，用逗号或换行分隔。系统会自动分类到对应区域
+        <div id="quick-task-input-area" style="background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 16px; padding: 24px; margin-bottom: 24px; box-shadow: 0 15px 40px rgba(102, 126, 234, 0.25); position: relative; overflow: hidden;">
+            <!-- 背景装饰 -->
+            <div style="position: absolute; top: -50%; right: -10%; width: 300px; height: 300px; background: rgba(255,255,255,0.1); border-radius: 50%; pointer-events: none;"></div>
+            <div style="position: absolute; bottom: -30%; left: -5%; width: 200px; height: 200px; background: rgba(255,255,255,0.05); border-radius: 50%; pointer-events: none;"></div>
+            
+            <div style="position: relative; z-index: 1;">
+                <!-- 标题 -->
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+                    <span style="font-size: 1.3em;">✨</span>
+                    <h3 style="margin: 0; color: white; font-size: 1.1em; font-weight: 600;">快速添加任务</h3>
+                </div>
+                
+                <!-- 输入框容器 -->
+                <div style="display: flex; gap: 12px; align-items: stretch;">
+                    <div style="flex: 1; position: relative;">
+                        <input type="text" id="quick-task-input" placeholder="输入任务内容（支持多行，按Enter提交）" 
+                               style="width: 100%; padding: 14px 18px; border: 2px solid rgba(255,255,255,0.3); border-radius: 10px; font-size: 1em; box-sizing: border-box; background: rgba(255,255,255,0.95); color: #333; font-family: inherit; transition: all 0.3s ease; outline: none;">
+                        <style>
+                            #quick-task-input:focus {
+                                background: white;
+                                border-color: white;
+                                box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+                            }
+                            #quick-task-input::placeholder {
+                                color: #999;
+                            }
+                        </style>
+                    </div>
+                    <button type="button" id="quick-submit-btn" style="background: white; color: #667eea; border: none; border-radius: 10px; padding: 14px 32px; cursor: pointer; font-weight: 700; font-size: 1em; transition: all 0.3s ease; white-space: nowrap; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 6px;">
+                        <span>✓</span>
+                        <span>完成</span>
+                    </button>
+                </div>
+                
+                <!-- 提示信息 -->
+                <div style="margin-top: 12px; display: flex; align-items: center; gap: 8px; font-size: 0.9em; color: rgba(255,255,255,0.9);">
+                    <span>💡</span>
+                    <span>输入多个任务用逗号或换行分隔，系统自动分类到对应区域</span>
+                </div>
             </div>
         </div>
 
