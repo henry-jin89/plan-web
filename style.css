@@ -414,6 +414,53 @@ input[type="number"]:focus {
     opacity: 0.85;
 }
 
+/* 优先任务特殊样式 */
+.task-item.priority-task {
+    background: linear-gradient(135deg, rgba(25, 118, 210, 0.1), rgba(25, 118, 210, 0.05));
+    border-left: 4px solid var(--theme-color);
+    box-shadow: 0 4px 12px rgba(25, 118, 210, 0.15);
+}
+
+.task-item.priority-task:hover {
+    background: linear-gradient(135deg, rgba(25, 118, 210, 0.15), rgba(25, 118, 210, 0.08));
+    box-shadow: 0 6px 20px rgba(25, 118, 210, 0.2);
+}
+
+/* 日常习惯区域点击提示 */
+#day_must_dos .task-item {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+#day_must_dos .task-item:hover {
+    transform: translateX(4px) translateY(-1px);
+    box-shadow: 0 6px 16px rgba(76, 175, 80, 0.2);
+    border-left: 3px solid #4caf50;
+}
+
+#day_must_dos .task-item::after {
+    content: "点击选择到 Top 3";
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(76, 175, 80, 0.9);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75em;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 10;
+}
+
+#day_must_dos .task-item:hover::after {
+    opacity: 1;
+}
+
 .task-delete-btn {
     background: none;
     border: none;

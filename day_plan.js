@@ -9682,3 +9682,135 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// ============================================
+// 🎯 日常习惯选择到Top 3功能
+// ============================================
+
+/**
+ * 从日常习惯选择任务到Top 3
+ */
+window.selectHabitForTop3 = function(habitTask) {
+    const top3Container = document.getElementById('day_top3');
+    if (!top3Container) {
+        MessageUtils.warning('找不到Top 3容器');
+        return;
+    }
+    
+    // 检查Top 3数量限制
+    const currentTop3Count = top3Container.querySelectorAll('.task-item').length;
+    if (currentTop3Count >= 3) {
+        MessageUtils.warning('⚠️ Top 3 已满！最多只能选择3个重要任务');
+        return;
+    }
+    
+    // 获取任务内容
+    const taskText = habitTask.querySelector('.task-text');
+    if (!taskText) return;
+    
+    const taskContent = taskText.textContent.trim();
+    if (!taskContent) return;
+    
+    // 检查是否已存在
+    const existingTasks = Array.from(top3Container.querySelectorAll('.task-text'));
+    const isDuplicate = existingTasks.some(task => task.textContent.trim() === taskContent);
+    
+    if (isDuplicate) {
+        MessageUtils.info('💡 该任务已在 Top 3 中');
+        return;
+    }
+    
+    // 创建新的Top 3任务
+    const newTask = document.createElement('div');
+    newTask.className = 'task-item priority-task';
+    newTask.innerHTML = `
+        <div class="task-content">
+            <div class="custom-checkbox"></div>
+            <div class="task-text" contenteditable="true">${taskContent}</div>
+            <button class="task-delete-btn" title="删除此项">×</button>
+        </div>
+    `;
+    
+    // 添加动画效果
+    newTask.style.animation = 'fadeInUp 0.5s ease-out';
+    top3Container.appendChild(newTask);
+    
+    // 添加事件监听
+    const checkbox = newTask.querySelector('.custom-checkbox');
+    if (checkbox) {
+        checkbox.addEventListener('click', function() {
+            this.classList.toggle('checked');
+            newTask.classList.toggle('completed');
+            updateProgress();
+            savePlan();
+        });
+    }
+    
+    const taskTextEl = newTask.querySelector('.task-text');
+    if (taskTextEl) {
+        taskTextEl.addEventListener('blur', function() {
+            savePlan();
+        });
+    }
+    
+    const deleteBtn = newTask.querySelector('.task-delete-btn');
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', function() {
+            newTask.remove();
+            updateProgress();
+            savePlan();
+        });
+    }
+    
+    // 原任务高亮反馈
+    habitTask.style.background = 'linear-gradient(135deg, rgba(76,175,80,0.3), rgba(76,175,80,0.1))';
+    habitTask.style.transform = 'scale(1.02)';
+    
+    setTimeout(() => {
+        habitTask.style.background = '';
+        habitTask.style.transform = '';
+    }, 2000);
+    
+    // 成功提示
+    MessageUtils.success(`✨ "${taskContent}" 已添加到今日 Top 3！`);
+    
+    // 保存数据
+    savePlan();
+    updateProgress();
+};
+
+/**
+ * 初始化日常习惯点击功能
+ */
+function initHabitClickSelection() {
+    const habitContainer = document.getElementById('day_must_dos');
+    if (!habitContainer) return;
+    
+    // 使用事件委托监听点击
+    habitContainer.addEventListener('click', function(e) {
+        const taskItem = e.target.closest('.task-item');
+        if (!taskItem) return;
+        
+        // 排除复选框、删除按钮、编辑文本的点击
+        if (e.target.classList.contains('custom-checkbox') ||
+            e.target.classList.contains('task-delete-btn') ||
+            e.target.contentEditable === 'true' ||
+            e.target.tagName === 'INPUT') {
+            return;
+        }
+        
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // 调用选择功能
+        selectHabitForTop3(taskItem);
+    });
+}
+
+// 页面加载后初始化
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+        initHabitClickSelection();
+        console.log('✅ 日常习惯选择功能已初始化');
+    }, 1000);
+});
