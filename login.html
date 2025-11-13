@@ -529,7 +529,8 @@
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
             <strong>🔍 调试信息</strong>
             <div>
-                <button id="test-cloud-btn" style="background:#5352ed; color:white; border:none; border-radius:4px; padding:2px 6px; font-size:10px; margin-right:4px;">测试云端</button>
+                <button id="test-cloud-btn" style="background:#5352ed; color:white; border:none; border-radius:4px; padding:2px 6px; font-size:10px; margin-right:2px;">测试云端</button>
+                <button id="sync-users-btn" style="background:#ff6b35; color:white; border:none; border-radius:4px; padding:2px 6px; font-size:10px; margin-right:2px;">同步用户</button>
                 <button onclick="document.getElementById('debug-panel').style.display='none'" style="background:#ff4757; color:white; border:none; border-radius:4px; padding:2px 8px; font-size:10px;">关闭</button>
             </div>
         </div>
@@ -990,7 +991,8 @@
                         setTimeout(() => utils.redirectAfterAuth(email), 1000);
                     } else {
                         debugUtils.addLog('❌ 登录失败 - 用户名或密码错误', 'error');
-                        utils.showAlert(elements.loginAlert, '邮箱或密码错误。如果是电脑端注册的账号，请等待数据同步完成后重试', 'error');
+                        debugUtils.addLog('💡 解决方案: 1)检查密码是否正确 2)点击"同步用户"按钮 3)在电脑端重新注册', 'info');
+                        utils.showAlert(elements.loginAlert, '登录失败！如果是电脑端注册的账号，请点击调试面板中的"同步用户"按钮，或在电脑端重新注册', 'error');
                     }
                     
                 } catch (error) {
@@ -1189,6 +1191,44 @@
                 }
             });
 
+            // 手动同步所有用户到云端
+            async function manualSyncUsers() {
+                debugUtils.addLog('🔄 开始手动同步本地用户到云端...');
+                
+                try {
+                    const localUsers = JSON.parse(localStorage.getItem('registered_users') || '{}');
+                    const userEmails = Object.keys(localUsers);
+                    
+                    debugUtils.addLog(`📊 发现本地用户: ${userEmails.length}个`);
+                    
+                    if (userEmails.length === 0) {
+                        debugUtils.addLog('ℹ️ 没有本地用户需要同步');
+                        return;
+                    }
+                    
+                    // 逐个同步用户
+                    for (const email of userEmails) {
+                        const userData = localUsers[email];
+                        debugUtils.addLog(`📤 同步用户: ${email}`);
+                        
+                        const result = await cloudUtils.saveUserToCloud(email, userData);
+                        if (result) {
+                            debugUtils.addLog(`✅ ${email} 同步成功`, 'success');
+                        } else {
+                            debugUtils.addLog(`❌ ${email} 同步失败`, 'error');
+                        }
+                        
+                        // 添加小延迟避免请求过快
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    }
+                    
+                    debugUtils.addLog('🎉 用户同步完成！', 'success');
+                    
+                } catch (error) {
+                    debugUtils.addLog(`❌ 手动同步失败: ${error.message}`, 'error');
+                }
+            }
+
             // 测试云端连接
             async function testCloudConnection() {
                 debugUtils.addLog('🧪 开始测试云端连接...');
@@ -1263,8 +1303,9 @@
                 setTimeout(() => clearInterval(checkLeanCloud), 10000);
             }
             
-            // 绑定测试按钮事件
+            // 绑定调试按钮事件
             document.getElementById('test-cloud-btn')?.addEventListener('click', testCloudConnection);
+            document.getElementById('sync-users-btn')?.addEventListener('click', manualSyncUsers);
             
             // 页面加载完成后初始化
             if (document.readyState === 'loading') {
