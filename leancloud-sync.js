@@ -881,6 +881,23 @@
         async manualSync() {
             console.log('🔄 手动触发同步...');
             
+            // 🔄 等待初始化完成
+            if (!this.isInitialized) {
+                console.log('⏳ 等待 LeanCloud 初始化完成...');
+                
+                let attempts = 0;
+                const maxAttempts = 30; // 最多等待15秒
+                
+                while (!this.isInitialized && attempts < maxAttempts) {
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    attempts++;
+                }
+                
+                if (!this.isInitialized) {
+                    throw new Error('LeanCloud 初始化超时');
+                }
+            }
+            
             if (!this.isEnabled) {
                 throw new Error('同步服务未启用');
             }

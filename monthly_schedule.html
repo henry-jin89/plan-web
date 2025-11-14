@@ -2000,9 +2000,11 @@
                 // 调用 LeanCloud 的强制恢复功能
                 if (window.syncService.restoreFromCloud) {
                     await window.syncService.restoreFromCloud(true); // true = 强制恢复
-                } else {
+                } else if (window.syncService.manualSync && typeof window.syncService.manualSync === 'function') {
                     // 如果没有 restoreFromCloud 方法，使用 manualSync 作为替代
                     await window.syncService.manualSync();
+                } else {
+                    throw new Error('同步服务方法不可用');
                 }
                 
                 // 重新加载数据并更新界面
@@ -7057,6 +7059,21 @@
                     // 🔄 启动时主动从云端拉取最新数据
                     setTimeout(() => {
                         console.log('🔄 启动时检查云端最新数据...');
+                        
+                        // 🔍 调试：检查 syncService 的状态
+                        console.log('📊 window.syncService:', window.syncService);
+                        console.log('📊 syncService.manualSync:', window.syncService ? window.syncService.manualSync : 'syncService不存在');
+                        console.log('📊 syncService类型:', typeof window.syncService);
+                        if (window.syncService) {
+                            console.log('📊 syncService方法列表:', Object.getOwnPropertyNames(window.syncService));
+                            console.log('📊 syncService原型方法:', Object.getOwnPropertyNames(Object.getPrototypeOf(window.syncService)));
+                        }
+                        
+                        if (!window.syncService || typeof window.syncService.manualSync !== 'function') {
+                            console.error('❌ manualSync 方法不可用，跳过启动同步');
+                            return;
+                        }
+                        
                         window.syncService.manualSync().then(() => {
                             console.log('✅ 启动同步完成');
                             // 同步完成后重新渲染界面，确保显示最新数据
