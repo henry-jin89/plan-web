@@ -2187,6 +2187,61 @@
 
             initMonthlySchedule();
 
+            // 🛡️ 页面加载后立即验证数据完整性（特别针对手机端刷新问题）
+            setTimeout(() => {
+                const currentData = localStorage.getItem('monthlyEvents');
+                const cloudData = localStorage.getItem('planData_monthlyEvents');
+                
+                if (!currentData && cloudData) {
+                    console.log('🔄 检测到本地数据丢失，从云同步键恢复...');
+                    localStorage.setItem('monthlyEvents', cloudData);
+                    monthlyEvents = loadAndCleanData();
+                    renderCalendar();
+                    updateEventStats();
+                    MessageUtils.info('已自动从云端恢复数据');
+                } else if (currentData) {
+                    console.log('✅ 数据完整性检查通过');
+                } else {
+                    console.log('💡 没有发现本地数据');
+                }
+            }, 100);
+
+        });
+
+        // 🛡️ 页面卸载保护 - 确保数据在页面关闭前保存
+        window.addEventListener('beforeunload', function(e) {
+            if (Object.keys(monthlyEvents).length > 0) {
+                try {
+                    // 强制保存当前数据到本地和云同步键
+                    const jsonString = JSON.stringify(monthlyEvents);
+                    localStorage.setItem('monthlyEvents', jsonString);
+                    localStorage.setItem('planData_monthlyEvents', jsonString);
+                    console.log('🛡️ 页面卸载前强制保存数据');
+                } catch (error) {
+                    console.error('❌ 页面卸载保存失败:', error);
+                }
+            }
+        });
+
+        // 🔄 页面隐藏时保存数据（移动端特别重要）
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden && Object.keys(monthlyEvents).length > 0) {
+                try {
+                    const jsonString = JSON.stringify(monthlyEvents);
+                    localStorage.setItem('monthlyEvents', jsonString);
+                    localStorage.setItem('planData_monthlyEvents', jsonString);
+                    console.log('📱 页面隐藏时保存数据');
+                    
+                    // 如果同步服务可用，立即同步
+                    if (window.syncService && window.syncService.getSyncStatus().enabled) {
+                        window.syncService.manualSync().catch(error => {
+                            console.warn('⚠️ 页面隐藏时同步失败:', error);
+                        });
+                    }
+                } catch (error) {
+                    console.error('❌ 页面隐藏保存失败:', error);
+                }
+            }
         });
 
         
@@ -4595,7 +4650,31 @@
 
                 console.log('✅ 数据保存成功');
 
-                
+                // 🔄 立即触发云端同步（特别重要：确保手机端数据及时上传）
+                if (window.syncService && window.syncService.getSyncStatus().enabled) {
+                    console.log('🚀 立即触发云端同步...');
+                    
+                    // 取消之前的防抖定时器，立即同步
+                    if (window.syncTimeout) {
+                        clearTimeout(window.syncTimeout);
+                    }
+                    
+                    // 立即执行同步，不等待防抖
+                    window.syncService.manualSync().then(() => {
+                        console.log('✅ 立即同步完成');
+                        MessageUtils.success('✅ 数据已保存并同步完成！可以放心刷新页面。');
+                    }).catch(error => {
+                        console.warn('⚠️ 立即同步失败，将在后台重试:', error);
+                        // 同步失败时设置重试
+                        window.syncTimeout = setTimeout(() => {
+                            window.syncService.manualSync().catch(retryError => {
+                                console.error('❌ 重试同步也失败:', retryError);
+                            });
+                        }, 1000);
+                    });
+                } else {
+                    console.log('💡 同步服务未启用或不可用');
+                }
 
                 // 创建多重备份（异步执行，不影响用户体验）
 
