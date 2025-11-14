@@ -20,6 +20,10 @@
     <!-- 同步修复工具 -->
     <script src="sync-fix.js"></script>
 
+    <!-- LeanCloud 云端同步 - 必须先加载 -->
+    <script src="leancloud-config.js"></script>
+    <script src="leancloud-sync.js"></script>
+
     <title>月度日程 - 智能计划管理系统</title>
 
     <link rel="stylesheet" href="style.css">
@@ -2185,7 +2189,8 @@
                 }
             }, 500);
 
-            initMonthlySchedule();
+            // 🔄 等待同步服务完全加载后再初始化月度日程
+            waitForSyncServiceThenInit();
 
             // 🛡️ 页面加载后立即验证数据完整性（特别针对手机端刷新问题）
             setTimeout(() => {
@@ -2207,6 +2212,29 @@
             }, 100);
 
         });
+
+        // 🔄 等待同步服务加载完成后初始化
+        function waitForSyncServiceThenInit() {
+            let attempts = 0;
+            const maxAttempts = 20; // 最多等待10秒
+
+            function checkSyncService() {
+                attempts++;
+                
+                if (window.syncService) {
+                    console.log('✅ 同步服务已加载，开始初始化月度日程');
+                    initMonthlySchedule();
+                } else if (attempts < maxAttempts) {
+                    console.log(`⏳ 等待同步服务加载... (${attempts}/${maxAttempts})`);
+                    setTimeout(checkSyncService, 500);
+                } else {
+                    console.warn('⚠️ 同步服务加载超时，使用离线模式初始化');
+                    initMonthlySchedule();
+                }
+            }
+
+            checkSyncService();
+        }
 
         // 🛡️ 页面卸载保护 - 确保数据在页面关闭前保存
         window.addEventListener('beforeunload', function(e) {
@@ -7151,9 +7179,6 @@
 
     <script src="add-ai-to-all-pages.js"></script>
     <script src="ai-fix-universal.js"></script>  <!-- AI分析功能修复 -->
-    <!-- LeanCloud 云端同步 -->
-    <script src="leancloud-config.js"></script>
-    <script src="leancloud-sync.js"></script>
 </body>
 
 
