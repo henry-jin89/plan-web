@@ -874,6 +874,29 @@
                 syncInProgress: this.syncInProgress
             };
         }
+        
+        /**
+         * 手动同步 (兼容月度页面调用)
+         */
+        async manualSync() {
+            console.log('🔄 手动触发同步...');
+            
+            if (!this.isEnabled) {
+                throw new Error('同步服务未启用');
+            }
+            
+            if (!navigator.onLine) {
+                throw new Error('网络连接不可用');
+            }
+            
+            // 先同步到云端
+            await this.syncToCloud();
+            
+            // 然后从云端恢复（确保获取最新数据）
+            await this.restoreFromCloud(false); // false = 不强制覆盖，只在云端更新时恢复
+            
+            console.log('✅ 手动同步完成');
+        }
     }
     
     // 创建全局实例（注意：使用大写C以匹配index.html中的引用）

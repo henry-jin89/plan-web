@@ -6948,6 +6948,12 @@
 
             
 
+            // 检查按钮是否存在，避免DOM元素不存在时的错误
+            if (!syncBtn) {
+                console.log('💡 sync-data-btn 元素不存在，跳过状态更新');
+                return;
+            }
+
             if (status.enabled) {
 
                 if (status.online) {
