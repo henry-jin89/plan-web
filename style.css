@@ -440,19 +440,31 @@ input[type="number"]:focus {
     background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(76, 175, 80, 0.05));
 }
 
-/* 让任务文本区域更明显可点击 */
+/* 让任务文本区域保持编辑功能 */
 #day_must_dos .task-item .task-text {
-    cursor: pointer;
+    cursor: text;
     border-radius: 4px;
     transition: all 0.2s ease;
 }
 
 #day_must_dos .task-item:hover .task-text {
-    background: rgba(76, 175, 80, 0.1);
+    background: rgba(76, 175, 80, 0.05);
+}
+
+/* 让任务项的空白区域显示可点击 */
+#day_must_dos .task-item .task-content {
+    cursor: pointer;
+    position: relative;
+}
+
+/* 悬停时增加空白区域的可见性 */
+#day_must_dos .task-item:hover .task-content {
+    background: rgba(76, 175, 80, 0.03);
+    border-radius: 8px;
 }
 
 #day_must_dos .task-item::after {
-    content: "点击选择到 Top 3";
+    content: "点击空白处选择到 Top 3";
     position: absolute;
     right: 40px;
     top: 50%;

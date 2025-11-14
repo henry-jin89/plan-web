@@ -9818,19 +9818,18 @@ function initHabitClickSelection() {
         // 检查点击的具体元素
         const clickedElement = e.target;
         
-        // 排除特定功能元素的点击
+        // 排除以下元素的点击：复选框、删除按钮、文本编辑区域
         if (clickedElement.classList.contains('custom-checkbox') ||
             clickedElement.classList.contains('task-delete-btn') ||
-            clickedElement.contentEditable === 'true' ||
-            clickedElement.tagName === 'INPUT' ||
+            clickedElement.classList.contains('task-text') ||
             clickedElement.closest('.custom-checkbox') ||
-            clickedElement.closest('.task-delete-btn')) {
+            clickedElement.closest('.task-delete-btn') ||
+            clickedElement.closest('.task-text')) {
             return; // 让这些元素保持原有功能
         }
         
-        // 只有点击任务文本区域或空白区域时才触发选择
-        if (clickedElement.classList.contains('task-text') ||
-            clickedElement.classList.contains('task-content') ||
+        // 点击任务项的空白区域或task-content容器时触发选择
+        if (clickedElement.classList.contains('task-content') ||
             clickedElement === taskItem) {
             
             e.preventDefault();
