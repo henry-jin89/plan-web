@@ -2321,7 +2321,9 @@
 
                         const finalJson = JSON.stringify(deepCleanedData);
 
+                        // 同时保存到本地键和云同步键
                         localStorage.setItem('monthlyEvents', finalJson);
+                        localStorage.setItem('planData_monthlyEvents', finalJson);
 
                         
 
@@ -2553,7 +2555,9 @@
 
                         const repairedJson = JSON.stringify(repairedData);
 
+                        // 同时保存到本地键和云同步键
                         localStorage.setItem('monthlyEvents', repairedJson);
+                        localStorage.setItem('planData_monthlyEvents', repairedJson);
 
                         
 
@@ -4497,9 +4501,10 @@
 
                 
 
-                // 主要存储
+                // 主要存储（同时写入本地键和云同步键）
 
                 localStorage.setItem('monthlyEvents', jsonString);
+                localStorage.setItem('planData_monthlyEvents', jsonString);
 
                 monthlyEvents = cleanedEvents;
 
@@ -4519,7 +4524,9 @@
 
                     try {
 
+                        // 重新保存到本地键和云同步键
                         localStorage.setItem('monthlyEvents', jsonString);
+                        localStorage.setItem('planData_monthlyEvents', jsonString);
 
                         console.log('✅ 重新保存成功');
 

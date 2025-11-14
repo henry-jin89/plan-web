@@ -137,10 +137,10 @@
                     
                     // 只同步计划相关数据（兼容不同页面使用的存储键）
                     if (key.startsWith('planData_') || key.startsWith('habitData_') || 
-                        key === 'habitTrackerData' ||
+                        key === 'habitTrackerData' || key === 'monthlyEvents' ||
                         key.startsWith('moodData_') || key.startsWith('gratitudeData_') ||
                         key.startsWith('reflection_') || key === 'reflection_history' ||
-                        key === 'sync_test_data') { // 包含测试数据
+                        key === 'sync_test_data') { // 包含测试数据和月度日程
                         console.log(`📝 检测到数据变化: ${key}`);
                         
                         // 立即更新本地修改时间戳（关键修复：防止刷新时丢失修改）
@@ -267,10 +267,10 @@
                 
                 // 收集所有需要同步的数据
                 if (key.startsWith('planData_') || key.startsWith('habitData_') || 
-                    key === 'habitTrackerData' ||
+                    key === 'habitTrackerData' || key === 'monthlyEvents' ||
                     key.startsWith('moodData_') || key.startsWith('gratitudeData_') ||
                     key.startsWith('reflection_') || key === 'reflection_history' ||
-                    key === 'sync_test_data' || key === 'gratitude_history') { // 包含测试数据与感恩日记历史
+                    key === 'sync_test_data' || key === 'gratitude_history') { // 包含测试数据、月度日程与感恩日记历史
                     const value = localStorage.getItem(key);
                     // 直接保存字符串值，在云端以字符串形式存储
                     // 恢复时也会以字符串形式写回 localStorage
