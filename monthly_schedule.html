@@ -1971,6 +1971,53 @@
             }
         }
 
+        // 强制从云端恢复数据（适用于清除浏览器数据后）
+        async function forceRestoreFromCloud() {
+            if (!window.syncService) {
+                MessageUtils.error('同步服务未加载，请刷新页面重试');
+                return;
+            }
+
+            const confirmed = confirm(
+                '☁️ 强制云端恢复\n\n' +
+                '此功能将从云端强制恢复所有月度数据，适用于：\n' +
+                '• 清除了浏览器数据后\n' +
+                '• 本地数据丢失或损坏\n' +
+                '• 需要恢复之前的云端备份\n\n' +
+                '⚠️ 注意：这将覆盖当前本地数据！\n\n' +
+                '确定要继续吗？'
+            );
+
+            if (!confirmed) return;
+
+            try {
+                MessageUtils.info('🔄 正在从云端强制恢复数据...');
+                
+                // 调用 LeanCloud 的强制恢复功能
+                if (window.syncService.restoreFromCloud) {
+                    await window.syncService.restoreFromCloud(true); // true = 强制恢复
+                } else {
+                    // 如果没有 restoreFromCloud 方法，使用 manualSync 作为替代
+                    await window.syncService.manualSync();
+                }
+                
+                // 重新加载数据并更新界面
+                monthlyEvents = loadAndCleanData();
+                renderCalendar();
+                updateEventStats();
+                
+                if (selectedDate) {
+                    displaySelectedDayEvents(selectedDate);
+                }
+                
+                MessageUtils.success('✅ 云端数据恢复完成！');
+                
+            } catch (error) {
+                console.error('❌ 云端恢复失败:', error);
+                MessageUtils.error('云端恢复失败: ' + error.message);
+            }
+        }
+
         // 数据清理和验证函数 - 增强版本
         function sanitizeText(text) {
             if (typeof text !== 'string') {
