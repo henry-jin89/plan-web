@@ -1917,10 +1917,24 @@
 
         let monthlyEvents = loadAndCleanData();
 
-        // 安全的数据加载函数
+        // 安全的数据加载函数（支持从云同步键恢复）
         function loadAndCleanData() {
             try {
-                const rawData = localStorage.getItem('monthlyEvents');
+                // 优先使用本地 monthlyEvents，如果不存在则尝试从云同步键恢复
+                let rawData = localStorage.getItem('monthlyEvents');
+                if (!rawData) {
+                    const cloudData = localStorage.getItem('planData_monthlyEvents');
+                    if (cloudData) {
+                        console.log('☁️ 从云同步键恢复 monthlyEvents 数据');
+                        rawData = cloudData;
+                        // 将云端数据写回本地主键，方便后续使用
+                        try {
+                            localStorage.setItem('monthlyEvents', rawData);
+                        } catch (e) {
+                            console.warn('⚠️ 将云端数据写回 monthlyEvents 失败:', e);
+                        }
+                    }
+                }
                 if (!rawData) {
                     console.log('🔄 没有找到本地数据，初始化为空对象');
                     return {};
@@ -2096,7 +2110,10 @@
         function validateAndCleanData() {
             try {
                 monthlyEvents = cleanupEventData(monthlyEvents);
-                localStorage.setItem('monthlyEvents', JSON.stringify(monthlyEvents));
+                const jsonForValidate = JSON.stringify(monthlyEvents);
+                // 同步写入本地键和云同步键
+                localStorage.setItem('monthlyEvents', jsonForValidate);
+                localStorage.setItem('planData_monthlyEvents', jsonForValidate);
                 console.log('✅ 数据已清理和验证');
             } catch (error) {
                 console.error('❌ 数据清理失败:', error);
