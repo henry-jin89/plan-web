@@ -4151,11 +4151,11 @@
 
                             
 
-                            // 再次验证本地数据（防止同步覆盖）
+                            // 再次验证同步后的数据（从云端获取最新数据）
 
                             setTimeout(() => {
 
-                                const afterSyncData = JSON.parse(localStorage.getItem('monthlyEvents') || '{}');
+                                const afterSyncData = loadAndCleanData();
 
                                 const hasCorruptedData = JSON.stringify(afterSyncData).includes('Â');
 
@@ -4189,7 +4189,7 @@
 
                                     console.log('✅ 同步验证通过，数据保存成功');
 
-                                    MessageUtils.success('✅ 保存成功！');
+                                    MessageUtils.success('✅ 数据已保存并同步到云端！刷新页面不会丢失。');
 
                                 }
 
@@ -5194,7 +5194,8 @@
 
             try {
 
-                const localData = JSON.parse(localStorage.getItem('monthlyEvents') || '{}');
+                // 使用统一的数据加载函数，支持从云同步键恢复
+                const localData = loadAndCleanData();
 
                 const hasLocalData = Object.keys(localData).length > 0;
 
@@ -5202,9 +5203,10 @@
 
                 if (hasLocalData) {
 
-                    // 如果本地数据存在，直接使用
+                    // 如果加载到数据，直接使用（可能来自本地或云端）
 
                     monthlyEvents = localData;
+                    console.log('✅ 从本地或云端加载到月度数据');
 
                     return;
 
@@ -5617,11 +5619,9 @@
                 const deletedEvents = JSON.parse(localStorage.getItem('deletedEvents') || '[]');
                 console.log('📝 本地删除记录:', deletedEvents.length, '个');
                 
-                // 重新加载数据
-                const rawData = localStorage.getItem('monthlyEvents');
-                if (rawData) {
-                    const parsedData = JSON.parse(rawData);
-                    let cleanedData = cleanupEventData(parsedData);
+                // 重新加载数据（优先从云同步数据加载最新数据）
+                let cleanedData = loadAndCleanData();
+                if (Object.keys(cleanedData).length > 0) {
                     
                     // 特别检查并清理损坏数据（如15号的编码错误）
                     monthlyEvents = cleanedData;
@@ -5677,8 +5677,13 @@
                     
                     monthlyEvents = cleanedData;
                     
-                    // 保存应用删除记录后的数据
-                    saveEvents();
+                    // 只有应用了删除记录时才需要保存数据
+                    if (deletedEvents.length > 0) {
+                        console.log('💾 保存应用删除记录后的数据...');
+                        saveEvents();
+                    } else {
+                        console.log('✅ 无删除记录需要应用，跳过保存');
+                    }
                     
                     // 重新渲染视图
                     renderCalendar();
