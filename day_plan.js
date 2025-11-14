@@ -9486,7 +9486,9 @@ window.submitAndClassifyTasks = function() {
                             this.classList.toggle('checked');
                             taskItem.classList.toggle('completed');
                             updateProgress();
-                            savePlan();
+                            if (typeof savePlanData === 'function') {
+                                savePlanData('day');
+                            }
                         });
                     }
                     
@@ -9494,7 +9496,9 @@ window.submitAndClassifyTasks = function() {
                     const taskText = taskItem.querySelector('.task-text');
                     if (taskText) {
                         taskText.addEventListener('blur', function() {
-                            savePlan();
+                            if (typeof savePlanData === 'function') {
+                                savePlanData('day');
+                            }
                         });
                     }
                     
@@ -9504,7 +9508,9 @@ window.submitAndClassifyTasks = function() {
                         deleteBtn.addEventListener('click', function() {
                             taskItem.remove();
                             updateProgress();
-                            savePlan();
+                            if (typeof savePlanData === 'function') {
+                                savePlanData('day');
+                            }
                         });
                     }
                 });
@@ -9519,7 +9525,9 @@ window.submitAndClassifyTasks = function() {
     MessageUtils.success(`✨ 成功添加 ${addedCount} 个任务！`);
     
     // 保存计划
-    savePlan();
+    if (typeof savePlanData === 'function') {
+        savePlanData('day');
+    }
     updateProgress();
 }
 
@@ -9574,7 +9582,9 @@ window.submitQuickTasks = function() {
                             this.classList.toggle('checked');
                             taskItem.classList.toggle('completed');
                             updateProgress();
-                            savePlan();
+                            if (typeof savePlanData === 'function') {
+                                savePlanData('day');
+                            }
                         });
                     }
                     
@@ -9582,7 +9592,9 @@ window.submitQuickTasks = function() {
                     const taskText = taskItem.querySelector('.task-text');
                     if (taskText) {
                         taskText.addEventListener('blur', function() {
-                            savePlan();
+                            if (typeof savePlanData === 'function') {
+                                savePlanData('day');
+                            }
                         });
                     }
                     
@@ -9592,7 +9604,9 @@ window.submitQuickTasks = function() {
                         deleteBtn.addEventListener('click', function() {
                             taskItem.remove();
                             updateProgress();
-                            savePlan();
+                            if (typeof savePlanData === 'function') {
+                                savePlanData('day');
+                            }
                         });
                     }
                 });
@@ -9610,7 +9624,9 @@ window.submitQuickTasks = function() {
     }
     
     // 保存计划
-    savePlan();
+    if (typeof savePlanData === 'function') {
+        savePlanData('day');
+    }
     updateProgress();
 }
 
@@ -9742,14 +9758,18 @@ window.selectHabitForTop3 = function(habitTask) {
             this.classList.toggle('checked');
             newTask.classList.toggle('completed');
             updateProgress();
-            savePlan();
+            if (typeof savePlanData === 'function') {
+                savePlanData('day');
+            }
         });
     }
     
     const taskTextEl = newTask.querySelector('.task-text');
     if (taskTextEl) {
         taskTextEl.addEventListener('blur', function() {
-            savePlan();
+            if (typeof savePlanData === 'function') {
+                savePlanData('day');
+            }
         });
     }
     
@@ -9758,7 +9778,9 @@ window.selectHabitForTop3 = function(habitTask) {
         deleteBtn.addEventListener('click', function() {
             newTask.remove();
             updateProgress();
-            savePlan();
+            if (typeof savePlanData === 'function') {
+                savePlanData('day');
+            }
         });
     }
     
@@ -9775,7 +9797,9 @@ window.selectHabitForTop3 = function(habitTask) {
     MessageUtils.success(`✨ "${taskContent}" 已添加到今日 Top 3！`);
     
     // 保存数据
-    savePlan();
+    if (typeof savePlanData === 'function') {
+        savePlanData('day');
+    }
     updateProgress();
 };
 
