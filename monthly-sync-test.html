@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>月度日程同步测试</title>
+    
+    <!-- 必需的脚本 - 按正确顺序加载 -->
+    <script src="config.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="sync-fix.js"></script>
+    <script src="leancloud-config.js"></script>
+    <script src="leancloud-sync.js"></script>
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .success { background: #e8f5e8; color: #2e7d32; border: 2px solid #4caf50; }
+        .error { background: #ffebee; color: #c62828; border: 2px solid #f44336; }
+        .warning { background: #fff3e0; color: #ef6c00; border: 2px solid #ff9800; }
+        .info { background: #e3f2fd; color: #1976d2; border: 2px solid #2196f3; }
+        
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+        
+        button {
+            padding: 12px 24px;
+            margin: 8px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        .btn-success:hover {
+            background: #1e7e34;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        
+        .data-display {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            border: 1px solid #dee2e6;
+        }
+        
+        .sync-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 2px solid #e9ecef;
+        }
+        
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        .stat-label {
+            color: #6c757d;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱💻 月度日程跨设备同步测试</h1>
+        
+        <div id="sync-status" class="status info">
+            🔄 正在检查同步服务状态...
+        </div>
+        
+        <div class="test-section">
+            <h2>🔍 系统状态检查</h2>
+            <button class="btn-primary" onclick="checkSystemStatus()">检查系统状态</button>
+            <button class="btn-primary" onclick="checkSyncService()">检查同步服务</button>
+            <button class="btn-primary" onclick="checkDataKeys()">检查数据键</button>
+            
+            <div id="system-status"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>💾 数据操作测试</h2>
+            <button class="btn-success" onclick="saveTestData()">保存测试数据</button>
+            <button class="btn-success" onclick="triggerSync()">手动同步</button>
+            <button class="btn-danger" onclick="clearTestData()">清除测试数据</button>
+            
+            <div class="sync-stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="local-events">0</div>
+                    <div class="stat-label">本地事件数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="cloud-events">0</div>
+                    <div class="stat-label">云端事件数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="last-sync">未同步</div>
+                    <div class="stat-label">最后同步</div>
+                </div>
+            </div>
+            
+            <h3>📋 当前数据状态</h3>
+            <div id="data-display" class="data-display">点击"检查数据键"查看数据状态</div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🔧 问题修复工具</h2>
+            <button class="btn-primary" onclick="autoFix()">一键自动修复</button>
+            <button class="btn-primary" onclick="reinitSync()">重新初始化同步</button>
+            <button class="btn-success" onclick="forceRestore()">强制云端恢复</button>
+            
+            <div id="fix-results"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>📱 测试说明</h2>
+            <p><strong>测试步骤：</strong></p>
+            <ol>
+                <li><strong>检查状态</strong>：点击"检查系统状态"确认所有服务正常</li>
+                <li><strong>保存数据</strong>：点击"保存测试数据"添加测试事件</li>
+                <li><strong>跨设备验证</strong>：在另一设备打开此页面，检查数据是否同步</li>
+                <li><strong>双向测试</strong>：在两个设备分别保存数据，验证双向同步</li>
+            </ol>
+            
+            <p><strong>预期结果：</strong></p>
+            <ul>
+                <li>✅ 同步服务状态：已启用</li>
+                <li>✅ 保存后立即同步到云端</li>
+                <li>✅ 其他设备能看到最新数据</li>
+                <li>✅ 数据修改时间戳正确更新</li>
+            </ul>
+        </div>
+    </div>
+    
+    <script>
+        let testData = {};
+        
+        // 等待同步服务加载
+        function waitForSyncService(callback) {
+            let attempts = 0;
+            const maxAttempts = 20;
+            
+            function check() {
+                attempts++;
+                if (window.syncService) {
+                    callback(true);
+                } else if (attempts < maxAttempts) {
+                    setTimeout(check, 500);
+                } else {
+                    callback(false);
+                }
+            }
+            check();
+        }
+        
+        // 更新同步状态显示
+        function updateSyncStatus() {
+            const statusDiv = document.getElementById('sync-status');
+            
+            if (!window.syncService) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ 同步服务未加载';
+                return;
+            }
+            
+            const status = window.syncService.getSyncStatus();
+            if (status.enabled && status.online) {
+                statusDiv.className = 'status success';
+                statusDiv.textContent = '✅ 同步服务正常 - 已启用并在线';
+            } else if (status.enabled) {
+                statusDiv.className = 'status warning';
+                statusDiv.textContent = '⚠️ 同步服务已启用但离线';
+            } else {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ 同步服务未启用';
+            }
+        }
+        
+        // 检查系统状态
+        function checkSystemStatus() {
+            const resultDiv = document.getElementById('system-status');
+            let report = [];
+            
+            // 检查 localStorage
+            try {
+                localStorage.setItem('test', 'test');
+                localStorage.removeItem('test');
+                report.push('✅ localStorage 可用');
+            } catch (e) {
+                report.push('❌ localStorage 不可用: ' + e.message);
+            }
+            
+            // 检查网络
+            report.push(navigator.onLine ? '✅ 网络连接正常' : '❌ 网络连接异常');
+            
+            // 检查同步服务
+            if (window.syncService) {
+                const status = window.syncService.getSyncStatus();
+                report.push('✅ 同步服务已加载');
+                report.push(`📊 同步状态: ${status.enabled ? '已启用' : '未启用'}`);
+                report.push(`🌐 在线状态: ${status.online ? '在线' : '离线'}`);
+            } else {
+                report.push('❌ 同步服务未加载');
+            }
+            
+            // 检查 LeanCloud 配置
+            report.push(window.leancloudConfig ? '✅ LeanCloud 配置已加载' : '❌ LeanCloud 配置缺失');
+            
+            resultDiv.innerHTML = `<div class="data-display">${report.join('\n')}</div>`;
+        }
+        
+        // 检查同步服务
+        function checkSyncService() {
+            if (!window.syncService) {
+                alert('❌ 同步服务未加载');
+                return;
+            }
+            
+            try {
+                const status = window.syncService.getSyncStatus();
+                const info = [
+                    `启用状态: ${status.enabled}`,
+                    `在线状态: ${status.online}`,
+                    `最后同步: ${status.lastSync || '从未同步'}`,
+                    `错误信息: ${status.error || '无'}`
+                ];
+                
+                alert('📊 同步服务状态:\n\n' + info.join('\n'));
+            } catch (error) {
+                alert('❌ 检查同步服务失败: ' + error.message);
+            }
+        }
+        
+        // 检查数据键
+        function checkDataKeys() {
+            const keys = ['monthlyEvents', 'planData_monthlyEvents'];
+            let report = [];
+            
+            keys.forEach(key => {
+                const data = localStorage.getItem(key);
+                if (data) {
+                    try {
+                        const parsed = JSON.parse(data);
+                        const eventCount = Object.keys(parsed).length;
+                        report.push(`📋 ${key}: ${eventCount} 个日期的数据`);
+                    } catch (e) {
+                        report.push(`❌ ${key}: 数据格式错误`);
+                    }
+                } else {
+                    report.push(`💡 ${key}: 无数据`);
+                }
+            });
+            
+            // 更新统计
+            updateStats();
+            
+            document.getElementById('data-display').textContent = report.join('\n');
+        }
+        
+        // 保存测试数据
+        function saveTestData() {
+            const today = new Date().toISOString().split('T')[0];
+            const testEvent = {
+                title: `测试事件 ${new Date().toLocaleTimeString()}`,
+                time: new Date().toTimeString().split(' ')[0].substring(0, 5),
+                category: 'work',
+                description: '跨设备同步测试事件',
+                createdAt: new Date().toISOString()
+            };
+            
+            // 获取现有数据
+            const existing = JSON.parse(localStorage.getItem('monthlyEvents') || '{}');
+            if (!existing[today]) {
+                existing[today] = [];
+            }
+            existing[today].push(testEvent);
+            
+            // 保存到本地和云同步键
+            const jsonString = JSON.stringify(existing);
+            localStorage.setItem('monthlyEvents', jsonString);
+            localStorage.setItem('planData_monthlyEvents', jsonString);
+            
+            alert('✅ 测试数据已保存！\n\n事件: ' + testEvent.title + '\n时间: ' + testEvent.time);
+            updateStats();
+        }
+        
+        // 手动触发同步
+        async function triggerSync() {
+            if (!window.syncService) {
+                alert('❌ 同步服务未加载');
+                return;
+            }
+            
+            try {
+                await window.syncService.manualSync();
+                alert('✅ 手动同步完成！');
+                updateStats();
+            } catch (error) {
+                alert('❌ 同步失败: ' + error.message);
+            }
+        }
+        
+        // 清除测试数据
+        function clearTestData() {
+            if (confirm('确定要清除所有测试数据吗？')) {
+                localStorage.removeItem('monthlyEvents');
+                localStorage.removeItem('planData_monthlyEvents');
+                alert('✅ 测试数据已清除');
+                updateStats();
+            }
+        }
+        
+        // 更新统计信息
+        function updateStats() {
+            const localData = localStorage.getItem('monthlyEvents');
+            const cloudData = localStorage.getItem('planData_monthlyEvents');
+            
+            let localCount = 0, cloudCount = 0;
+            
+            if (localData) {
+                try {
+                    const parsed = JSON.parse(localData);
+                    localCount = Object.values(parsed).reduce((sum, events) => sum + events.length, 0);
+                } catch (e) {
+                    localCount = '错误';
+                }
+            }
+            
+            if (cloudData) {
+                try {
+                    const parsed = JSON.parse(cloudData);
+                    cloudCount = Object.values(parsed).reduce((sum, events) => sum + events.length, 0);
+                } catch (e) {
+                    cloudCount = '错误';
+                }
+            }
+            
+            document.getElementById('local-events').textContent = localCount;
+            document.getElementById('cloud-events').textContent = cloudCount;
+            
+            const lastSync = localStorage.getItem('leancloud_last_sync');
+            if (lastSync) {
+                const date = new Date(lastSync);
+                document.getElementById('last-sync').textContent = date.toLocaleTimeString();
+            }
+        }
+        
+        // 自动修复
+        function autoFix() {
+            if (window.SyncFixer) {
+                const success = window.SyncFixer.diagnosSync();
+                document.getElementById('fix-results').innerHTML = 
+                    `<div class="status ${success ? 'success' : 'error'}">
+                        ${success ? '✅ 自动修复完成' : '❌ 修复失败，请检查控制台'}
+                    </div>`;
+            } else {
+                document.getElementById('fix-results').innerHTML = 
+                    '<div class="status error">❌ 修复工具未加载</div>';
+            }
+        }
+        
+        // 重新初始化同步
+        function reinitSync() {
+            if (window.SyncFixer) {
+                window.SyncFixer.reinitializeSync();
+                setTimeout(updateSyncStatus, 1000);
+            }
+        }
+        
+        // 强制云端恢复
+        async function forceRestore() {
+            if (!window.syncService) {
+                alert('❌ 同步服务未加载');
+                return;
+            }
+            
+            if (confirm('确定要从云端强制恢复数据吗？这将覆盖本地数据。')) {
+                try {
+                    if (window.syncService.restoreFromCloud) {
+                        await window.syncService.restoreFromCloud(true);
+                    } else {
+                        await window.syncService.manualSync();
+                    }
+                    alert('✅ 云端恢复完成！');
+                    updateStats();
+                } catch (error) {
+                    alert('❌ 云端恢复失败: ' + error.message);
+                }
+            }
+        }
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            waitForSyncService((loaded) => {
+                if (loaded) {
+                    console.log('✅ 同步服务已加载');
+                    updateSyncStatus();
+                    updateStats();
+                } else {
+                    console.warn('⚠️ 同步服务加载超时');
+                    updateSyncStatus();
+                }
+            });
+        });
+        
+        // 定期更新状态
+        setInterval(updateStats, 5000);
+    </script>
+</body>
+</html>
