@@ -1722,6 +1722,7 @@
                     <button type="button" id="sync-settings-btn" class="btn-main">⚙️ 同步设置</button>
 
                     <button type="button" id="force-save-btn" class="btn-main" style="background: #4caf50; color: white;">💾 保存</button>
+                    <button type="button" id="cloud-restore-btn" class="btn-main" style="background: #2196f3; color: white;">☁️ 云端恢复</button>
                     <button type="button" id="reset-help-btn" class="btn-main" style="background: #2196f3; color: white; display: none;">🔄 重置助手</button>
 
                 </div>
@@ -3030,6 +3031,7 @@
             document.getElementById('clear-day-btn')?.addEventListener('click', clearDayEvents);
 
             document.getElementById('copy-day-btn')?.addEventListener('click', copyDayEvents);
+            document.getElementById('cloud-restore-btn')?.addEventListener('click', forceRestoreFromCloud);
             document.getElementById('reset-help-btn')?.addEventListener('click', resetRecoveryHelp);
 
             
@@ -6870,11 +6872,43 @@
 
                     });
 
+                    // 监听云端数据恢复完成事件
+                    window.addEventListener('data-restored', function(event) {
+                        console.log('🎉 检测到数据恢复完成:', event.detail);
+                        
+                        // 重新加载月度数据并渲染界面
+                        monthlyEvents = loadAndCleanData();
+                        renderCalendar();
+                        updateEventStats();
+                        
+                        if (selectedDate) {
+                            displaySelectedDayEvents(selectedDate);
+                        }
+                        
+                        MessageUtils.success(`✅ 已从云端恢复 ${event.detail.count} 条月度数据！`);
+                    });
+
                     
 
                     // 监听数据变化，触发自动同步
 
                     setupDataChangeSync();
+
+                    // 🔄 启动时主动从云端拉取最新数据
+                    setTimeout(() => {
+                        console.log('🔄 启动时检查云端最新数据...');
+                        window.syncService.manualSync().then(() => {
+                            console.log('✅ 启动同步完成');
+                            // 同步完成后重新渲染界面，确保显示最新数据
+                            renderCalendar();
+                            if (selectedDate) {
+                                displaySelectedDayEvents(selectedDate);
+                            }
+                        }).catch(error => {
+                            console.warn('⚠️ 启动时云端同步失败:', error);
+                            // 同步失败不影响正常使用，继续使用本地数据
+                        });
+                    }, 2000); // 等待2秒确保同步服务完全初始化
 
                     
 
