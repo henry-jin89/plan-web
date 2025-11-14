@@ -861,29 +861,58 @@
                 syncInProgress: this.syncInProgress
             };
         }
+        
+        /**
+         * 获取同步状态 (兼容月度页面调用)
+         */
+        getSyncStatus() {
+            return {
+                enabled: this.isEnabled,
+                online: navigator.onLine && this.isEnabled,
+                lastSync: this.lastSync,
+                error: this.initError,
+                syncInProgress: this.syncInProgress
+            };
+        }
     }
     
     // 创建全局实例（注意：使用大写C以匹配index.html中的引用）
     try {
         console.log('📦 准备创建 LeanCloudSync 全局实例...');
-        window.leanCloudSync = new LeanCloudSync();
+        const leanCloudSyncInstance = new LeanCloudSync();
+        window.leanCloudSync = leanCloudSyncInstance;
+        
+        // 🔑 关键修复：同时暴露为 window.syncService，供月度页面等其他页面使用
+        window.syncService = leanCloudSyncInstance;
+        
         console.log('✅ LeanCloud 同步系统已加载，全局实例已创建');
+        console.log('🔄 window.syncService 已映射到 LeanCloud 同步服务');
     } catch (error) {
         console.error('❌ 创建 LeanCloudSync 实例失败:', error);
         // 创建一个带错误信息的占位对象
-        window.leanCloudSync = {
+        const errorPlaceholder = {
             isInitialized: false,
             isEnabled: false,
             initError: error.message,
-            getStatus: function() {
+            getSyncStatus: function() {
                 return {
-                    isInitialized: false,
-                    isEnabled: false,
+                    enabled: false,
+                    online: false,
                     lastSync: null,
                     error: this.initError
                 };
+            },
+            manualSync: function() {
+                return Promise.reject(new Error('同步服务初始化失败: ' + this.initError));
+            },
+            restoreFromCloud: function() {
+                return Promise.reject(new Error('同步服务初始化失败: ' + this.initError));
             }
         };
+        
+        window.leanCloudSync = errorPlaceholder;
+        // 🔑 同样暴露错误占位对象为 window.syncService
+        window.syncService = errorPlaceholder;
     }
     
 })();
