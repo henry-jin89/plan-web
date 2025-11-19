@@ -428,20 +428,25 @@
                                 console.log(`   云端更新: ${new Date(cloudTime).toLocaleString()}`);
                                 console.log(`   相差: ${diffSeconds} 秒`);
 
-                                // 🔑 关键修复：如果云端时间 <= 本地同步时间，说明本地已有最新数据
+                                // 检查是否有未同步的本地修改 (Local Modified > Local Last Sync)
+                                // 这是解决时钟偏差的关键：只比较本地时间
+                                if (localModified && localLastSync && new Date(localModified) > new Date(localLastSync)) {
+                                    console.log('⚠️ 本地有未同步的修改 (Local Modified > Last Sync)，跳过拉取，触发上传...');
+                                    console.log(`   本地修改: ${new Date(localModified).toLocaleString()}`);
+                                    console.log(`   上次同步: ${new Date(localLastSync).toLocaleString()}`);
+
+                                    // 触发上传
+                                    this.syncToCloud();
+                                    return;
+                                }
+
+                                // 如果本地没有未同步的修改，且云端更新，则拉取
                                 if (cloudTime <= localSyncTime) {
                                     console.log('✅ 本地数据已是最新（云端时间 <= 本地同步时间），跳过自动恢复');
                                     console.log('=========================');
                                     return;
                                 } else {
                                     console.log(`🆕 云端有更新（云端比本地同步晚 ${diffSeconds} 秒），开始恢复...`);
-
-                                    // 检查是否有未同步的本地修改
-                                    if (localModified && new Date(localModified) > new Date(localLastSync)) {
-                                        console.warn('⚠️ 警告：本地有未同步的修改，但云端数据更新，将使用云端数据');
-                                        console.warn(`   本地修改时间: ${localModified}`);
-                                        console.warn(`   本地同步时间: ${localLastSync}`);
-                                    }
                                 }
                             } else if (!localLastSync) {
                                 console.log('ℹ️ 本地从未同步过，将恢复云端数据');

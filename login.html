@@ -1,20 +1,21 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>登录 - 计划管理器</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
+
     <!-- LeanCloud 云同步支持 -->
     <script src="leancloud-config.js"></script>
     <script src="leancloud-sync.js"></script>
-    
+
     <style>
         /* 局部样式，配合全局 style.css 使用 */
         body.login-page {
-            background: linear-gradient(180deg,#f5f7fa 0%, #e8eef8 100%);
+            background: linear-gradient(180deg, #f5f7fa 0%, #e8eef8 100%);
             font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", "Microsoft Yahei", Arial, sans-serif;
             min-height: 100vh;
             display: flex;
@@ -34,7 +35,7 @@
             position: relative;
             overflow: hidden;
         }
-        
+
         .auth-container::before {
             content: '';
             position: absolute;
@@ -49,7 +50,7 @@
             text-align: center;
             margin-bottom: 32px;
         }
-        
+
         .auth-header h1 {
             margin: 0 0 8px 0;
             font-size: 1.8rem;
@@ -59,13 +60,13 @@
             background-clip: text;
             color: transparent;
         }
-        
+
         .auth-header p {
             margin: 0;
             color: #6b7280;
             font-size: 0.95rem;
         }
-        
+
         .auth-tabs {
             display: flex;
             background: #f8fafc;
@@ -73,7 +74,7 @@
             padding: 4px;
             margin-bottom: 24px;
         }
-        
+
         .auth-tab {
             flex: 1;
             padding: 12px 16px;
@@ -84,21 +85,21 @@
             font-weight: 500;
             font-size: 0.9rem;
         }
-        
+
         .auth-tab.active {
             background: white;
             color: #667eea;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
-        
+
         .auth-tab:not(.active) {
             color: #6b7280;
         }
-        
+
         .form-section {
             display: none;
         }
-        
+
         .form-section.active {
             display: block;
         }
@@ -133,19 +134,19 @@
             transition: all 0.3s ease;
             background: #fafbfc;
         }
-        
+
         .form-group input:focus {
             outline: none;
             border-color: #667eea;
             background: white;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
-        
+
         .form-group input.error {
             border-color: #ef4444;
             background: #fef2f2;
         }
-        
+
         .input-icon {
             position: absolute;
             right: 14px;
@@ -154,14 +155,14 @@
             color: #9ca3af;
             cursor: pointer;
         }
-        
+
         .error-message {
             color: #ef4444;
             font-size: 0.8rem;
             margin-top: 6px;
             display: none;
         }
-        
+
         .success-message {
             color: #10b981;
             font-size: 0.8rem;
@@ -193,29 +194,29 @@
             position: relative;
             overflow: hidden;
         }
-        
+
         .btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
         }
-        
+
         .btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
             transform: none;
         }
-        
+
         .btn-secondary {
             background: #f8fafc;
             color: #667eea;
             border: 2px solid #e5e7eb;
         }
-        
+
         .btn-secondary:hover {
             background: #f1f5f9;
             border-color: #667eea;
         }
-        
+
         .btn-link {
             background: none;
             border: none;
@@ -225,7 +226,7 @@
             font-size: 0.9rem;
             text-decoration: underline;
         }
-        
+
         .loading {
             display: inline-block;
             width: 16px;
@@ -235,14 +236,19 @@
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
-        
+
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         .row-between {
-            display:flex;
+            display: flex;
             justify-content: space-between;
             align-items: center;
         }
@@ -267,30 +273,30 @@
             align-items: center;
             gap: 8px;
         }
-        
+
         .alert.success {
             background: #f0fdf4;
             color: #166534;
             border: 1px solid #bbf7d0;
         }
-        
+
         .alert.error {
             background: #fef2f2;
             color: #991b1b;
             border: 1px solid #fecaca;
         }
-        
+
         .alert.info {
             background: #f0f9ff;
             color: #1e40af;
             border: 1px solid #bae6fd;
         }
-        
+
         .password-strength {
             margin-top: 8px;
             font-size: 0.8rem;
         }
-        
+
         .strength-meter {
             height: 4px;
             background: #e5e7eb;
@@ -298,61 +304,66 @@
             overflow: hidden;
             margin-top: 4px;
         }
-        
+
         .strength-fill {
             height: 100%;
             width: 0%;
             transition: all 0.3s ease;
         }
-        
+
         .strength-weak .strength-fill {
             width: 33%;
             background: #ef4444;
         }
-        
+
         .strength-medium .strength-fill {
             width: 66%;
             background: #f59e0b;
         }
-        
+
         .strength-strong .strength-fill {
             width: 100%;
             background: #10b981;
         }
+
         /* 验证码显示与输入样式 */
         .code-display {
-            display:flex;
-            gap:8px;
-            margin-bottom:8px;
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
         }
+
         .code-box {
-            width:42px;
-            height:42px;
-            border-radius:8px;
-            background:#f3f6ff;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            font-weight:800;
-            color:#2b4db7;
-            font-size:1.1rem;
-            border:1px solid rgba(43,77,183,0.08);
+            width: 42px;
+            height: 42px;
+            border-radius: 8px;
+            background: #f3f6ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            color: #2b4db7;
+            font-size: 1.1rem;
+            border: 1px solid rgba(43, 77, 183, 0.08);
         }
+
         .code-inputs {
-            display:flex;
-            gap:8px;
+            display: flex;
+            gap: 8px;
         }
+
         .code-inputs input {
-            width:42px;
-            height:42px;
-            text-align:center;
-            font-size:1.05rem;
-            border-radius:8px;
-            border:1px solid #e1e8f0;
-            outline:none;
+            width: 42px;
+            height: 42px;
+            text-align: center;
+            font-size: 1.05rem;
+            border-radius: 8px;
+            border: 1px solid #e1e8f0;
+            outline: none;
         }
     </style>
 </head>
+
 <body class="login-page">
     <div class="auth-container" role="main" aria-labelledby="auth-title">
         <div class="auth-header">
@@ -387,7 +398,8 @@
             <div class="form-group">
                 <label for="login-password">密码</label>
                 <div class="input-wrapper">
-                    <input id="login-password" type="password" autocomplete="current-password" placeholder="请输入密码" required />
+                    <input id="login-password" type="password" autocomplete="current-password" placeholder="请输入密码"
+                        required />
                     <i class="fas fa-eye-slash input-icon" id="login-toggle-password"></i>
                 </div>
                 <div class="error-message" id="login-password-error"></div>
@@ -456,7 +468,7 @@
 
             <div class="form-group">
                 <label>
-                    <input type="checkbox" id="agree-terms" required> 
+                    <input type="checkbox" id="agree-terms" required>
                     我已阅读并同意 <a href="#" class="btn-link">用户协议</a> 和 <a href="#" class="btn-link">隐私政策</a>
                 </label>
                 <div class="error-message" id="terms-error"></div>
@@ -525,15 +537,21 @@
     </div>
 
     <!-- 手机端调试面板 -->
-    <div id="debug-panel" style="display:none; position:fixed; bottom:10px; left:10px; right:10px; background:#f8f9fa; border:1px solid #ddd; border-radius:8px; padding:10px; font-size:12px; max-height:300px; overflow-y:auto; z-index:9999;">
+    <div id="debug-panel"
+        style="display:none; position:fixed; bottom:10px; left:10px; right:10px; background:#f8f9fa; border:1px solid #ddd; border-radius:8px; padding:10px; font-size:12px; max-height:300px; overflow-y:auto; z-index:9999;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
             <strong>🔍 调试信息</strong>
             <div>
-                <button id="test-cloud-btn" style="background:#5352ed; color:white; border:none; border-radius:4px; padding:2px 6px; font-size:10px; margin-right:2px;">测试云端</button>
-                <button id="sync-users-btn" style="background:#ff6b35; color:white; border:none; border-radius:4px; padding:2px 6px; font-size:10px; margin-right:2px;">同步用户</button>
-                <button id="clear-data-btn" style="background:#ff4757; color:white; border:none; border-radius:4px; padding:2px 6px; font-size:10px; margin-right:2px;">清除数据</button>
-                <button id="emergency-recovery-btn" style="background:#f39c12; color:white; border:none; border-radius:4px; padding:2px 6px; font-size:10px; margin-right:2px;">🆘紧急恢复</button>
-                <button onclick="document.getElementById('debug-panel').style.display='none'" style="background:#333; color:white; border:none; border-radius:4px; padding:2px 8px; font-size:10px;">关闭</button>
+                <button id="test-cloud-btn"
+                    style="background:#5352ed; color:white; border:none; border-radius:4px; padding:2px 6px; font-size:10px; margin-right:2px;">测试云端</button>
+                <button id="sync-users-btn"
+                    style="background:#ff6b35; color:white; border:none; border-radius:4px; padding:2px 6px; font-size:10px; margin-right:2px;">同步用户</button>
+                <button id="clear-data-btn"
+                    style="background:#ff4757; color:white; border:none; border-radius:4px; padding:2px 6px; font-size:10px; margin-right:2px;">清除数据</button>
+                <button id="emergency-recovery-btn"
+                    style="background:#f39c12; color:white; border:none; border-radius:4px; padding:2px 6px; font-size:10px; margin-right:2px;">🆘紧急恢复</button>
+                <button onclick="document.getElementById('debug-panel').style.display='none'"
+                    style="background:#333; color:white; border:none; border-radius:4px; padding:2px 8px; font-size:10px;">关闭</button>
             </div>
         </div>
         <div id="debug-content"></div>
@@ -541,33 +559,33 @@
 
     <script>
         // 完善的登录注册系统
-        (function() {
+        (function () {
             // 调试工具
             const debugUtils = {
                 logs: [],
-                addLog: function(message, type = 'info') {
+                addLog: function (message, type = 'info') {
                     const timestamp = new Date().toLocaleTimeString();
-                    this.logs.push({timestamp, message, type});
+                    this.logs.push({ timestamp, message, type });
                     console.log(`${timestamp} [${type.toUpperCase()}] ${message}`);
                     this.updateDebugPanel();
                 },
-                
-                updateDebugPanel: function() {
+
+                updateDebugPanel: function () {
                     const debugContent = document.getElementById('debug-content');
                     if (debugContent) {
-                        debugContent.innerHTML = this.logs.slice(-10).map(log => 
+                        debugContent.innerHTML = this.logs.slice(-10).map(log =>
                             `<div style="margin:2px 0; color:${log.type === 'error' ? '#ff4757' : log.type === 'success' ? '#2ed573' : '#57606f'}">
                                 ${log.timestamp} ${log.message}
                             </div>`
                         ).join('');
                     }
                 },
-                
-                showDebugPanel: function() {
+
+                showDebugPanel: function () {
                     document.getElementById('debug-panel').style.display = 'block';
                 },
-                
-                isMobile: function() {
+
+                isMobile: function () {
                     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
                 }
             };
@@ -576,14 +594,14 @@
             // 只在URL包含debug=true或双击标题时显示
             const urlParams = new URLSearchParams(window.location.search);
             const showDebug = urlParams.get('debug') === 'true';
-            
+
             if (showDebug) {
                 setTimeout(() => debugUtils.showDebugPanel(), 1000);
                 debugUtils.addLog(debugUtils.isMobile() ? '📱 移动端调试模式' : '💻 桌面端调试模式');
             }
-            
+
             // 双击页面标题显示/隐藏调试面板
-            document.querySelector('h1')?.addEventListener('dblclick', function() {
+            document.querySelector('h1')?.addEventListener('dblclick', function () {
                 const panel = document.getElementById('debug-panel');
                 if (panel.style.display === 'none') {
                     debugUtils.showDebugPanel();
@@ -598,7 +616,7 @@
                 // 标签
                 tabs: document.querySelectorAll('.auth-tab'),
                 sections: document.querySelectorAll('.form-section'),
-                
+
                 // 登录表单
                 loginEmail: document.getElementById('login-email'),
                 loginPassword: document.getElementById('login-password'),
@@ -606,7 +624,7 @@
                 loginAlert: document.getElementById('login-alert'),
                 loginTogglePassword: document.getElementById('login-toggle-password'),
                 rememberMe: document.getElementById('remember-me'),
-                
+
                 // 注册表单
                 registerEmail: document.getElementById('register-email'),
                 registerUsername: document.getElementById('register-username'),
@@ -615,7 +633,7 @@
                 registerBtn: document.getElementById('register-btn'),
                 registerAlert: document.getElementById('register-alert'),
                 agreeTerms: document.getElementById('agree-terms'),
-                
+
                 // 找回密码表单
                 forgotEmail: document.getElementById('forgot-email'),
                 forgotBtn: document.getElementById('forgot-btn'),
@@ -623,7 +641,7 @@
                 verificationCode: document.getElementById('verification-code'),
                 newPassword: document.getElementById('new-password'),
                 confirmNewPassword: document.getElementById('confirm-new-password'),
-                
+
                 // 其他元素
                 verificationSection: document.getElementById('verification-section'),
                 newPasswordSection: document.getElementById('new-password-section'),
@@ -641,26 +659,26 @@
                             console.warn('⚠️ LeanCloud未初始化');
                             return null;
                         }
-                        
+
                         console.log('📊 LeanCloud状态检查:', {
                             exists: !!window.leanCloudSync,
                             isInitialized: window.leanCloudSync.isInitialized,
                             isEnabled: window.leanCloudSync.isEnabled,
                             initError: window.leanCloudSync.initError
                         });
-                        
+
                         if (window.leanCloudSync.isEnabled) {
                             // LeanCloud同步系统通过监听localStorage变化自动同步
                             // 我们需要使用它监听的键名格式
                             const cloudKey = `planData_user_${email}`;
                             console.log('🔑 使用云端键名:', cloudKey);
-                            
+
                             // 直接保存到localStorage，LeanCloud会自动监听并同步
                             localStorage.setItem(cloudKey, JSON.stringify(userData));
-                            
+
                             // 等待一小段时间让LeanCloud处理同步
                             await new Promise(resolve => setTimeout(resolve, 1000));
-                            
+
                             console.log('✅ 用户信息已保存并触发云端同步:', email);
                             return true;
                         } else {
@@ -671,7 +689,7 @@
                     }
                     return null;
                 },
-                
+
                 // 从云端加载用户信息（修复版）
                 async loadUserFromCloud(email) {
                     console.log('📥 开始从云端加载用户:', email);
@@ -680,15 +698,15 @@
                             console.warn('⚠️ LeanCloud未初始化');
                             return null;
                         }
-                        
+
                         if (window.leanCloudSync.isEnabled) {
                             const cloudKey = `planData_user_${email}`;
                             console.log('🔑 使用云端键名:', cloudKey);
-                            
+
                             // 先尝试从本地localStorage读取（可能已被LeanCloud同步）
                             let result = null;
                             const localData = localStorage.getItem(cloudKey);
-                            
+
                             if (localData) {
                                 try {
                                     result = JSON.parse(localData);
@@ -697,12 +715,12 @@
                                     console.warn('⚠️ 本地数据解析失败:', e);
                                 }
                             }
-                            
+
                             // 如果本地没有，尝试强制从云端恢复
                             if (!result && window.leanCloudSync.forceRestore) {
                                 console.log('🔄 强制从云端恢复数据...');
                                 await window.leanCloudSync.forceRestore();
-                                
+
                                 // 恢复后再次尝试读取
                                 const updatedLocalData = localStorage.getItem(cloudKey);
                                 if (updatedLocalData) {
@@ -714,9 +732,47 @@
                                     }
                                 }
                             }
-                            
+
+                            // 3. [新增] 如果标准恢复仍未找到，尝试直接查询云端 (Fallback)
+                            if (!result) {
+                                debugUtils?.addLog('⚠️ 标准恢复未找到，尝试直接查询云端...', 'info');
+                                console.log('⚠️ 标准恢复未找到，尝试直接查询云端...');
+                                try {
+                                    // 确保 AV 对象存在
+                                    if (typeof AV !== 'undefined' && window.leanCloudSync.sharedUserId) {
+                                        const query = new AV.Query('PlanData');
+                                        query.equalTo('userId', window.leanCloudSync.sharedUserId);
+                                        const planObject = await query.first();
+
+                                        if (planObject) {
+                                            const cloudData = planObject.get('data');
+                                            if (cloudData && cloudData[cloudKey]) {
+                                                const userDataStr = cloudData[cloudKey];
+                                                try {
+                                                    result = JSON.parse(userDataStr);
+                                                    console.log('✅ 直接查询找到用户:', email);
+                                                    debugUtils?.addLog('✅ 直接查询找到用户数据', 'success');
+
+                                                    // 立即保存到本地
+                                                    localStorage.setItem(cloudKey, userDataStr);
+                                                } catch (e) {
+                                                    console.warn('⚠️ 用户数据解析失败:', e);
+                                                }
+                                            } else {
+                                                console.log('ℹ️ 云端数据对象中未找到该用户Key');
+                                            }
+                                        } else {
+                                            console.log('ℹ️ 云端未找到PlanData对象');
+                                        }
+                                    }
+                                } catch (e) {
+                                    console.warn('⚠️ 直接查询过程出错:', e);
+                                    debugUtils?.addLog(`⚠️ 直接查询出错: ${e.message}`, 'error');
+                                }
+                            }
+
                             console.log('☁️ 云端查询原始结果:', result);
-                            
+
                             if (result) {
                                 console.log('✅ 从云端加载用户信息成功:', email);
                                 console.log('📄 用户数据:', {
@@ -736,7 +792,7 @@
                     }
                     return null;
                 },
-                
+
                 // 同步所有本地用户到云端
                 async syncAllUsersToCloud() {
                     try {
@@ -754,14 +810,14 @@
 
             // 工具函数
             const utils = {
-                showAlert: function(alertEl, message, type = 'info') {
+                showAlert: function (alertEl, message, type = 'info') {
                     alertEl.className = `alert ${type}`;
                     alertEl.innerHTML = `<i class="fas fa-${type === 'error' ? 'exclamation-circle' : type === 'success' ? 'check-circle' : 'info-circle'}"></i> ${message}`;
                     alertEl.style.display = 'flex';
                     setTimeout(() => { alertEl.style.display = 'none'; }, 5000);
                 },
-                
-                showFieldError: function(field, message) {
+
+                showFieldError: function (field, message) {
                     field.classList.add('error');
                     const errorEl = field.parentNode.parentNode.querySelector('.error-message');
                     if (errorEl) {
@@ -769,14 +825,14 @@
                         errorEl.style.display = 'block';
                     }
                 },
-                
-                clearFieldError: function(field) {
+
+                clearFieldError: function (field) {
                     field.classList.remove('error');
                     const errorEl = field.parentNode.parentNode.querySelector('.error-message');
                     if (errorEl) errorEl.style.display = 'none';
                 },
-                
-                showFieldSuccess: function(field, message) {
+
+                showFieldSuccess: function (field, message) {
                     field.classList.remove('error');
                     const successEl = field.parentNode.parentNode.querySelector('.success-message');
                     if (successEl) {
@@ -784,50 +840,50 @@
                         successEl.style.display = 'block';
                     }
                 },
-                
-                validateEmail: function(email) {
+
+                validateEmail: function (email) {
                     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
                 },
-                
-                validatePassword: function(password) {
+
+                validatePassword: function (password) {
                     return password.length >= 8;
                 },
-                
-                validateUsername: function(username) {
+
+                validateUsername: function (username) {
                     return username.length >= 3 && username.length <= 20 && /^[a-zA-Z0-9_\u4e00-\u9fa5]+$/.test(username);
                 },
-                
-                checkPasswordStrength: function(password) {
+
+                checkPasswordStrength: function (password) {
                     let score = 0;
                     let feedback = [];
-                    
+
                     if (password.length >= 8) score += 1;
                     else feedback.push('至少8个字符');
-                    
+
                     if (/[a-z]/.test(password)) score += 1;
                     else feedback.push('包含小写字母');
-                    
+
                     if (/[A-Z]/.test(password)) score += 1;
                     else feedback.push('包含大写字母');
-                    
+
                     if (/[0-9]/.test(password)) score += 1;
                     else feedback.push('包含数字');
-                    
+
                     if (/[^a-zA-Z0-9]/.test(password)) score += 1;
                     else feedback.push('包含特殊字符');
-                    
+
                     let strength = 'weak';
                     let text = '弱';
                     if (score >= 4) { strength = 'strong'; text = '强'; }
                     else if (score >= 3) { strength = 'medium'; text = '中'; }
-                    
+
                     return { strength, text, feedback: feedback.slice(0, 2) };
                 },
-                
-                setLoading: function(btn, loading) {
+
+                setLoading: function (btn, loading) {
                     const textEl = btn.querySelector('.btn-text');
                     const loadingEl = btn.querySelector('.loading');
-                    
+
                     if (loading) {
                         btn.disabled = true;
                         textEl.style.display = 'none';
@@ -838,8 +894,8 @@
                         loadingEl.style.display = 'none';
                     }
                 },
-                
-                redirectAfterAuth: function(email) {
+
+                redirectAfterAuth: function (email) {
                     const token = btoa(email + ':' + Date.now());
                     try {
                         localStorage.setItem('auth_token', token);
@@ -847,7 +903,7 @@
                     } catch (e) {
                         console.warn('localStorage 写入失败', e);
                     }
-                    
+
                     try {
                         const params = new URLSearchParams(window.location.search);
                         const redirect = params.get('redirect');
@@ -863,11 +919,11 @@
             elements.tabs.forEach(tab => {
                 tab.addEventListener('click', () => {
                     const targetTab = tab.dataset.tab;
-                    
+
                     // 更新标签状态
                     elements.tabs.forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
-                    
+
                     // 更新表单显示
                     elements.sections.forEach(section => {
                         section.classList.remove('active');
@@ -889,11 +945,11 @@
                 togglePasswordVisibility(elements.loginPassword, elements.loginTogglePassword);
             });
 
-            document.getElementById('register-toggle-password')?.addEventListener('click', function() {
+            document.getElementById('register-toggle-password')?.addEventListener('click', function () {
                 togglePasswordVisibility(elements.registerPassword, this);
             });
 
-            document.getElementById('register-toggle-confirm')?.addEventListener('click', function() {
+            document.getElementById('register-toggle-confirm')?.addEventListener('click', function () {
                 togglePasswordVisibility(elements.registerConfirmPassword, this);
             });
 
@@ -901,11 +957,11 @@
             function updatePasswordStrength(password, strengthEl) {
                 const result = utils.checkPasswordStrength(password);
                 strengthEl.className = `password-strength strength-${result.strength}`;
-                strengthEl.querySelector('.strength-text').textContent = 
+                strengthEl.querySelector('.strength-text').textContent =
                     `密码强度: ${result.text}${result.feedback.length ? ' - 建议: ' + result.feedback.join(', ') : ''}`;
             }
 
-            elements.registerPassword?.addEventListener('input', function() {
+            elements.registerPassword?.addEventListener('input', function () {
                 updatePasswordStrength(this.value, document.getElementById('password-strength'));
                 validateRegisterForm();
             });
@@ -913,7 +969,7 @@
             // 实时验证
             function validateRegisterForm() {
                 let isValid = true;
-                
+
                 // 验证邮箱
                 if (elements.registerEmail.value && !utils.validateEmail(elements.registerEmail.value)) {
                     utils.showFieldError(elements.registerEmail, '请输入有效的邮箱地址');
@@ -922,7 +978,7 @@
                     utils.clearFieldError(elements.registerEmail);
                     utils.showFieldSuccess(elements.registerEmail, '邮箱格式正确');
                 }
-                
+
                 // 验证用户名
                 if (elements.registerUsername.value && !utils.validateUsername(elements.registerUsername.value)) {
                     utils.showFieldError(elements.registerUsername, '用户名长度3-20字符，只能包含字母、数字、下划线和中文');
@@ -931,7 +987,7 @@
                     utils.clearFieldError(elements.registerUsername);
                     utils.showFieldSuccess(elements.registerUsername, '用户名格式正确');
                 }
-                
+
                 // 验证密码确认
                 if (elements.registerConfirmPassword.value && elements.registerPassword.value !== elements.registerConfirmPassword.value) {
                     utils.showFieldError(elements.registerConfirmPassword, '两次输入的密码不一致');
@@ -940,11 +996,11 @@
                     utils.clearFieldError(elements.registerConfirmPassword);
                     utils.showFieldSuccess(elements.registerConfirmPassword, '密码确认正确');
                 }
-                
+
                 // 更新注册按钮状态
-                const allFieldsFilled = elements.registerEmail.value && elements.registerUsername.value && 
-                                      elements.registerPassword.value && elements.registerConfirmPassword.value &&
-                                      elements.agreeTerms.checked;
+                const allFieldsFilled = elements.registerEmail.value && elements.registerUsername.value &&
+                    elements.registerPassword.value && elements.registerConfirmPassword.value &&
+                    elements.agreeTerms.checked;
                 elements.registerBtn.disabled = !(isValid && allFieldsFilled);
             }
 
@@ -957,37 +1013,37 @@
             elements.agreeTerms?.addEventListener('change', validateRegisterForm);
 
             // 登录功能
-            elements.loginBtn?.addEventListener('click', async function() {
+            elements.loginBtn?.addEventListener('click', async function () {
                 const email = elements.loginEmail.value.trim();
                 const password = elements.loginPassword.value;
-                
+
                 debugUtils.addLog(`🔐 开始登录流程: ${email}`);
-                
+
                 if (!email || !password) {
                     debugUtils.addLog('❌ 邮箱或密码为空', 'error');
                     utils.showAlert(elements.loginAlert, '请填写邮箱和密码', 'error');
                     return;
                 }
-                
+
                 if (!utils.validateEmail(email)) {
                     debugUtils.addLog('❌ 邮箱格式无效', 'error');
                     utils.showAlert(elements.loginAlert, '请输入有效的邮箱地址', 'error');
                     return;
                 }
-                
+
                 const loginBtn = this; // 保存this引用
                 utils.setLoading(loginBtn, true);
-                
+
                 try {
                     // 验证登录（本地+云端）
                     let userFound = false;
                     let userData = null;
-                    
+
                     debugUtils.addLog('🔍 检查本地存储...');
                     // 1. 先检查本地存储
                     const savedUsers = JSON.parse(localStorage.getItem('registered_users') || '{}');
                     debugUtils.addLog(`📱 本地已保存用户数量: ${Object.keys(savedUsers).length}`);
-                    
+
                     if (savedUsers[email]) {
                         debugUtils.addLog('👤 找到本地用户信息');
                         if (savedUsers[email].password === password) {
@@ -1000,11 +1056,11 @@
                     } else {
                         debugUtils.addLog(`ℹ️ 本地未找到用户: ${email}`);
                     }
-                    
+
                     // 2. 如果本地没找到，尝试从云端加载
                     if (!userFound) {
                         debugUtils.addLog('☁️ 尝试从云端加载用户信息...');
-                        
+
                         // 检查LeanCloud状态
                         if (window.leanCloudSync) {
                             debugUtils.addLog(`📡 LeanCloud状态: 初始化=${window.leanCloudSync.isInitialized}, 启用=${window.leanCloudSync.isEnabled}`);
@@ -1014,16 +1070,16 @@
                         } else {
                             debugUtils.addLog('⚠️ LeanCloud未加载', 'error');
                         }
-                        
+
                         try {
                             const cloudUserData = await cloudUtils.loadUserFromCloud(email);
                             debugUtils.addLog(`☁️ 云端查询结果: ${cloudUserData ? '找到用户' : '未找到用户'}`);
-                            
+
                             if (cloudUserData) {
                                 if (cloudUserData.password === password) {
                                     userFound = true;
                                     userData = cloudUserData;
-                                    
+
                                     // 将云端用户信息同步到本地
                                     savedUsers[email] = cloudUserData;
                                     localStorage.setItem('registered_users', JSON.stringify(savedUsers));
@@ -1036,10 +1092,10 @@
                             debugUtils.addLog(`❌ 云端登录失败: ${error.message}`, 'error');
                         }
                     }
-                    
+
                     // 3. 显示结果
                     utils.setLoading(loginBtn, false);
-                    
+
                     if (userFound) {
                         debugUtils.addLog('🎉 登录成功！', 'success');
                         utils.showAlert(elements.loginAlert, '登录成功，正在跳转...', 'success');
@@ -1048,11 +1104,11 @@
                         debugUtils.addLog('❌ 登录失败 - 用户名或密码错误', 'error');
                         debugUtils.addLog('💡 解决方案: 1)检查密码是否正确 2)点击"🆘紧急恢复"按钮 3)点击"同步用户"按钮', 'info');
                         utils.showAlert(elements.loginAlert, '登录失败！如果删除了浏览器数据，请双击页面标题打开调试面板，然后点击"🆘紧急恢复"按钮', 'error');
-                        
+
                         // 自动显示调试面板，方便用户使用紧急恢复
                         debugUtils.showDebugPanel();
                     }
-                    
+
                 } catch (error) {
                     debugUtils.addLog(`💥 登录过程出错: ${error.message}`, 'error');
                     utils.setLoading(loginBtn, false);
@@ -1061,29 +1117,29 @@
             });
 
             // 注册功能
-            elements.registerBtn?.addEventListener('click', async function() {
+            elements.registerBtn?.addEventListener('click', async function () {
                 if (this.disabled) return;
-                
+
                 const email = elements.registerEmail.value.trim();
                 const username = elements.registerUsername.value.trim();
                 const password = elements.registerPassword.value;
-                
+
                 utils.setLoading(this, true);
-                
+
                 // 模拟注册请求
                 setTimeout(async () => {
                     utils.setLoading(this, false);
-                    
+
                     // 检查邮箱是否已注册（本地+云端）
                     const savedUsers = JSON.parse(localStorage.getItem('registered_users') || '{}');
                     let emailExists = false;
-                    
+
                     // 1. 检查本地存储
                     if (savedUsers[email]) {
                         emailExists = true;
                         console.log('邮箱已在本地注册');
                     }
-                    
+
                     // 2. 检查云端存储
                     if (!emailExists) {
                         const cloudUserData = await cloudUtils.loadUserFromCloud(email);
@@ -1095,12 +1151,12 @@
                             localStorage.setItem('registered_users', JSON.stringify(savedUsers));
                         }
                     }
-                    
+
                     if (emailExists) {
                         utils.showAlert(elements.registerAlert, '该邮箱已注册，请直接登录', 'error');
                         return;
                     }
-                    
+
                     // 保存用户信息到本地和云端
                     const newUserData = {
                         username: username,
@@ -1108,14 +1164,14 @@
                         registeredAt: new Date().toISOString(),
                         deviceRegistered: navigator.userAgent.includes('Mobile') ? 'mobile' : 'desktop'
                     };
-                    
+
                     // 保存到本地
                     savedUsers[email] = newUserData;
                     localStorage.setItem('registered_users', JSON.stringify(savedUsers));
-                    
+
                     // 保存到云端
                     await cloudUtils.saveUserToCloud(email, newUserData);
-                    
+
                     utils.showAlert(elements.registerAlert, '注册成功，正在登录...', 'success');
                     setTimeout(() => utils.redirectAfterAuth(email), 1000);
                 }, 2000);
@@ -1123,8 +1179,8 @@
 
             // 找回密码功能
             let forgotStep = 1; // 1: 输入邮箱, 2: 输入验证码, 3: 设置新密码
-            
-            elements.forgotBtn?.addEventListener('click', function() {
+
+            elements.forgotBtn?.addEventListener('click', function () {
                 if (forgotStep === 1) {
                     // 发送验证码
                     const email = elements.forgotEmail.value.trim();
@@ -1132,73 +1188,73 @@
                         utils.showAlert(elements.forgotAlert, '请输入有效的邮箱地址', 'error');
                         return;
                     }
-                    
+
                     utils.setLoading(this, true);
-                    
+
                     setTimeout(() => {
                         utils.setLoading(this, false);
-                        
+
                         // 生成验证码（演示用）
                         const code = Math.floor(100000 + Math.random() * 900000);
                         localStorage.setItem('reset_code', code);
                         localStorage.setItem('reset_email', email);
-                        
+
                         utils.showAlert(elements.forgotAlert, `验证码已发送到 ${email}（演示码: ${code}）`, 'success');
-                        
+
                         // 显示验证码输入框
                         elements.verificationSection.style.display = 'block';
                         this.querySelector('.btn-text').textContent = '验证并继续';
                         forgotStep = 2;
                     }, 1500);
-                    
+
                 } else if (forgotStep === 2) {
                     // 验证验证码
                     const code = elements.verificationCode.value.trim();
                     const savedCode = localStorage.getItem('reset_code');
-                    
+
                     if (code !== savedCode) {
                         utils.showAlert(elements.forgotAlert, '验证码错误', 'error');
                         return;
                     }
-                    
+
                     utils.showAlert(elements.forgotAlert, '验证成功，请设置新密码', 'success');
-                    
+
                     // 显示密码设置区域
                     elements.newPasswordSection.style.display = 'block';
                     elements.confirmNewPasswordSection.style.display = 'block';
                     this.querySelector('.btn-text').textContent = '重置密码';
                     forgotStep = 3;
-                    
+
                 } else if (forgotStep === 3) {
                     // 重置密码
                     const newPassword = elements.newPassword.value;
                     const confirmPassword = elements.confirmNewPassword.value;
-                    
+
                     if (!utils.validatePassword(newPassword)) {
                         utils.showAlert(elements.forgotAlert, '密码长度至少8位', 'error');
                         return;
                     }
-                    
+
                     if (newPassword !== confirmPassword) {
                         utils.showAlert(elements.forgotAlert, '两次输入的密码不一致', 'error');
                         return;
                     }
-                    
+
                     utils.setLoading(this, true);
-                    
+
                     setTimeout(async () => {
                         utils.setLoading(this, false);
-                        
+
                         // 更新密码（本地+云端）
                         const email = localStorage.getItem('reset_email');
                         const savedUsers = JSON.parse(localStorage.getItem('registered_users') || '{}');
-                        
+
                         if (savedUsers[email]) {
                             // 更新本地密码
                             savedUsers[email].password = newPassword;
                             savedUsers[email].passwordResetAt = new Date().toISOString();
                             localStorage.setItem('registered_users', JSON.stringify(savedUsers));
-                            
+
                             // 更新云端密码
                             await cloudUtils.saveUserToCloud(email, savedUsers[email]);
                             console.log('✅ 密码已更新到本地和云端');
@@ -1208,7 +1264,7 @@
                             if (cloudUserData) {
                                 cloudUserData.password = newPassword;
                                 cloudUserData.passwordResetAt = new Date().toISOString();
-                                
+
                                 // 同步到本地和云端
                                 savedUsers[email] = cloudUserData;
                                 localStorage.setItem('registered_users', JSON.stringify(savedUsers));
@@ -1216,13 +1272,13 @@
                                 console.log('✅ 从云端更新密码并同步到本地');
                             }
                         }
-                        
+
                         // 清理临时数据
                         localStorage.removeItem('reset_code');
                         localStorage.removeItem('reset_email');
-                        
+
                         utils.showAlert(elements.forgotAlert, '密码重置成功，请使用新密码登录', 'success');
-                        
+
                         // 3秒后切换到登录页面
                         setTimeout(() => {
                             elements.tabs[0].click();
@@ -1232,14 +1288,14 @@
             });
 
             // 重新发送验证码
-            elements.resendCode?.addEventListener('click', function() {
+            elements.resendCode?.addEventListener('click', function () {
                 const code = Math.floor(100000 + Math.random() * 900000);
                 localStorage.setItem('reset_code', code);
                 utils.showAlert(elements.forgotAlert, `新验证码已发送（演示码: ${code}）`, 'info');
             });
 
             // 回车快捷键支持
-            document.addEventListener('keydown', function(e) {
+            document.addEventListener('keydown', function (e) {
                 if (e.key === 'Enter') {
                     const activeSection = document.querySelector('.form-section.active');
                     if (activeSection) {
@@ -1252,14 +1308,14 @@
             // 清除所有本地数据
             function clearAllLocalData() {
                 debugUtils.addLog('🗑️ 开始清除本地数据...');
-                
+
                 try {
                     const keysToRemove = [
                         'registered_users',
-                        'auth_token', 
+                        'auth_token',
                         'auth_user'
                     ];
-                    
+
                     // 清除注册用户数据
                     keysToRemove.forEach(key => {
                         if (localStorage.getItem(key)) {
@@ -1267,7 +1323,7 @@
                             debugUtils.addLog(`🗑️ 已清除: ${key}`);
                         }
                     });
-                    
+
                     // 清除所有planData_user_开头的云端用户数据
                     const allKeys = Object.keys(localStorage);
                     const userDataKeys = allKeys.filter(key => key.startsWith('planData_user_'));
@@ -1275,17 +1331,17 @@
                         localStorage.removeItem(key);
                         debugUtils.addLog(`🗑️ 已清除云端数据: ${key}`);
                     });
-                    
+
                     debugUtils.addLog('✅ 本地数据清除完成！', 'success');
                     debugUtils.addLog('💡 现在可以重新注册了', 'info');
-                    
+
                     // 3秒后提示用户刷新页面
                     setTimeout(() => {
                         if (confirm('数据已清除完成！是否刷新页面开始重新注册？')) {
                             window.location.reload();
                         }
                     }, 1000);
-                    
+
                 } catch (error) {
                     debugUtils.addLog(`❌ 清除数据失败: ${error.message}`, 'error');
                 }
@@ -1294,36 +1350,36 @@
             // 手动同步所有用户到云端
             async function manualSyncUsers() {
                 debugUtils.addLog('🔄 开始手动同步本地用户到云端...');
-                
+
                 try {
                     const localUsers = JSON.parse(localStorage.getItem('registered_users') || '{}');
                     const userEmails = Object.keys(localUsers);
-                    
+
                     debugUtils.addLog(`📊 发现本地用户: ${userEmails.length}个`);
-                    
+
                     if (userEmails.length === 0) {
                         debugUtils.addLog('ℹ️ 没有本地用户需要同步');
                         return;
                     }
-                    
+
                     // 逐个同步用户
                     for (const email of userEmails) {
                         const userData = localUsers[email];
                         debugUtils.addLog(`📤 同步用户: ${email}`);
-                        
+
                         const result = await cloudUtils.saveUserToCloud(email, userData);
                         if (result) {
                             debugUtils.addLog(`✅ ${email} 同步成功`, 'success');
                         } else {
                             debugUtils.addLog(`❌ ${email} 同步失败`, 'error');
                         }
-                        
+
                         // 添加小延迟避免请求过快
                         await new Promise(resolve => setTimeout(resolve, 500));
                     }
-                    
+
                     debugUtils.addLog('🎉 用户同步完成！', 'success');
-                    
+
                 } catch (error) {
                     debugUtils.addLog(`❌ 手动同步失败: ${error.message}`, 'error');
                 }
@@ -1332,33 +1388,33 @@
             // 测试云端连接
             async function testCloudConnection() {
                 debugUtils.addLog('🧪 开始测试云端连接...');
-                
+
                 try {
                     // 1. 检查LeanCloud状态
                     if (!window.leanCloudSync) {
                         debugUtils.addLog('❌ LeanCloud脚本未加载', 'error');
                         return;
                     }
-                    
+
                     debugUtils.addLog(`📊 LeanCloud状态: 初始化=${window.leanCloudSync.isInitialized}, 启用=${window.leanCloudSync.isEnabled}`);
-                    
+
                     // 2. 测试保存数据
                     const testData = {
                         test: true,
                         timestamp: new Date().toISOString(),
                         device: debugUtils.isMobile() ? 'mobile' : 'desktop'
                     };
-                    
+
                     debugUtils.addLog('📤 测试保存数据到云端...');
                     const saveResult = await cloudUtils.saveUserToCloud('test@example.com', testData);
-                    
+
                     if (saveResult) {
                         debugUtils.addLog('✅ 保存测试成功', 'success');
-                        
+
                         // 3. 测试读取数据
                         debugUtils.addLog('📥 测试从云端读取数据...');
                         const loadResult = await cloudUtils.loadUserFromCloud('test@example.com');
-                        
+
                         if (loadResult && loadResult.test) {
                             debugUtils.addLog('✅ 读取测试成功', 'success');
                             debugUtils.addLog('🎉 云端连接测试完成，功能正常！', 'success');
@@ -1368,7 +1424,7 @@
                     } else {
                         debugUtils.addLog('❌ 保存测试失败', 'error');
                     }
-                    
+
                 } catch (error) {
                     debugUtils.addLog(`❌ 云端连接测试失败: ${error.message}`, 'error');
                 }
@@ -1377,15 +1433,15 @@
             // 紧急恢复访问功能
             function emergencyRecovery() {
                 debugUtils.addLog('🆘 启动紧急恢复模式...');
-                
+
                 const email = document.getElementById('login-email').value.trim();
                 const password = document.getElementById('login-password').value.trim();
-                
+
                 if (!email || !password) {
                     debugUtils.addLog('❌ 请先输入邮箱和密码', 'error');
                     return;
                 }
-                
+
                 try {
                     // 创建临时用户数据
                     const tempUserData = {
@@ -1396,10 +1452,10 @@
                         lastLogin: new Date().toISOString(),
                         isEmergencyRecovery: true
                     };
-                    
+
                     // 保存到本地存储
                     const localUsers = JSON.parse(localStorage.getItem('users') || '[]');
-                    
+
                     // 检查是否已存在
                     const existingIndex = localUsers.findIndex(u => u.email === email);
                     if (existingIndex >= 0) {
@@ -1409,40 +1465,40 @@
                         localUsers.push(tempUserData);
                         debugUtils.addLog('✅ 创建新用户数据', 'success');
                     }
-                    
+
                     localStorage.setItem('users', JSON.stringify(localUsers));
-                    
+
                     // 设置当前登录用户
                     localStorage.setItem('currentUser', JSON.stringify({
                         email: email,
                         loginTime: new Date().toISOString(),
                         isEmergencyRecovery: true
                     }));
-                    
+
                     debugUtils.addLog('🎉 紧急恢复成功！正在跳转...', 'success');
-                    
+
                     // 跳转到主页面
                     setTimeout(() => {
                         const urlParams = new URLSearchParams(window.location.search);
                         const redirect = urlParams.get('redirect') || 'index.html';
                         window.location.href = redirect;
                     }, 1500);
-                    
+
                 } catch (error) {
                     debugUtils.addLog(`❌ 紧急恢复失败: ${error.message}`, 'error');
                 }
             }
-            
+
             // 页面加载时初始化云同步
             function initializeCloudSync() {
                 debugUtils.addLog('🚀 初始化云同步系统...');
-                
+
                 // 等待LeanCloud加载完成
                 const checkLeanCloud = setInterval(() => {
                     if (window.leanCloudSync && window.leanCloudSync.isEnabled) {
                         clearInterval(checkLeanCloud);
                         debugUtils.addLog('✅ LeanCloud已连接，开始同步用户数据...', 'success');
-                        
+
                         // 延迟同步，避免阻塞页面加载
                         setTimeout(() => {
                             cloudUtils.syncAllUsersToCloud().then(() => {
@@ -1457,17 +1513,17 @@
                         debugUtils.addLog('ℹ️ 将使用本地存储模式，跨设备功能受限', 'error');
                     }
                 }, 500);
-                
+
                 // 10秒后停止检查
                 setTimeout(() => clearInterval(checkLeanCloud), 10000);
             }
-            
+
             // 绑定调试按钮事件
             document.getElementById('test-cloud-btn')?.addEventListener('click', testCloudConnection);
             document.getElementById('sync-users-btn')?.addEventListener('click', manualSyncUsers);
             document.getElementById('clear-data-btn')?.addEventListener('click', clearAllLocalData);
             document.getElementById('emergency-recovery-btn')?.addEventListener('click', emergencyRecovery);
-            
+
             // 页面加载完成后初始化
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', initializeCloudSync);
@@ -1479,6 +1535,5 @@
         })();
     </script>
 </body>
+
 </html>
-
-
