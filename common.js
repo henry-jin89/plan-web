@@ -1257,21 +1257,24 @@ const MessageUtils = {
         messageEl.className = `message-toast message-${type}`;
         messageEl.textContent = message;
         
-        // 设置样式
+        // 设置样式 - 修改位置到底部中央，避免被顶部元素遮挡
         Object.assign(messageEl.style, {
             position: 'fixed',
-            top: '20px',
-            right: '20px',
-            padding: '12px 20px',
+            bottom: '80px',
+            left: '50%',
+            transform: 'translateX(-50%) translateY(100px)',
+            padding: '14px 24px',
             borderRadius: '8px',
             color: 'white',
             fontWeight: '500',
-            zIndex: '10000',
-            maxWidth: '300px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            transform: 'translateX(100%)',
+            zIndex: '999999',
+            maxWidth: '90%',
+            width: 'auto',
+            minWidth: '200px',
+            textAlign: 'center',
+            boxShadow: '0 6px 20px rgba(0,0,0,0.25)',
             transition: 'transform 0.3s ease',
-            fontSize: '14px'
+            fontSize: '15px'
         });
         
         // 设置背景色
@@ -1286,14 +1289,14 @@ const MessageUtils = {
         // 添加到页面
         document.body.appendChild(messageEl);
         
-        // 显示动画
+        // 显示动画 - 从底部滑入
         setTimeout(() => {
-            messageEl.style.transform = 'translateX(0)';
+            messageEl.style.transform = 'translateX(-50%) translateY(0)';
         }, 10);
         
-        // 自动隐藏
+        // 自动隐藏 - 向底部滑出
         setTimeout(() => {
-            messageEl.style.transform = 'translateX(100%)';
+            messageEl.style.transform = 'translateX(-50%) translateY(100px)';
             setTimeout(() => {
                 if (messageEl.parentNode) {
                     messageEl.parentNode.removeChild(messageEl);
