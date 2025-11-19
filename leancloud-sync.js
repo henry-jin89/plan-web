@@ -647,22 +647,27 @@
                     const cloudLastModifiedStr = cloudLastModified instanceof Date ?
                         cloudLastModified.toISOString() : cloudLastModified;
 
-                    // 🔑 关键修复：同时检查本地修改时间和同步时间，使用较新的那个
+                    // 🔑 关键修复：同时检查本地修改时间和同步时间
                     const localModified = localStorage.getItem('leancloud_local_modified');
                     const localLastSync = localStorage.getItem('leancloud_last_sync');
-                    // 🔑 优先使用本地修改时间（如果存在），因为本地修改时间表示用户刚刚保存了数据
-                    const compareTime = localModified || localLastSync;
 
                     console.log('☁️ 云端最后更新:', cloudLastModifiedStr);
                     console.log('💾 本地修改时间:', localModified);
                     console.log('💾 本地同步时间:', localLastSync);
-                    console.log('⚖️ 用于比较的时间:', compareTime);
 
-                    // 🔑 修复：如果本地有修改时间，且本地修改时间 >= 云端时间，说明本地数据更新，不覆盖
-                    if (localModified && new Date(localModified) >= new Date(cloudLastModified)) {
-                        console.log('✅ 本地数据已是最新（本地修改时间 >= 云端时间），跳过覆盖');
+                    // 🔑 核心修复：只有当本地修改时间晚于本地同步时间，才认为本地有未同步的修改
+                    const hasUnsyncedLocalChanges = localModified && localLastSync && 
+                        new Date(localModified) > new Date(localLastSync);
+                    
+                    if (hasUnsyncedLocalChanges) {
+                        console.log('⚠️ 检测到本地有未同步的修改，跳过云端数据拉取');
+                        console.log(`   本地修改: ${new Date(localModified).toLocaleString()}`);
+                        console.log(`   上次同步: ${new Date(localLastSync).toLocaleString()}`);
                         return;
                     }
+                    
+                    // 使用本地同步时间来比较（而不是修改时间）
+                    const compareTime = localLastSync;
 
                     // 🔑 修复：如果云端数据更新时间晚于本地时间（修改时间或同步时间中较新的）
                     if (cloudLastModified && (!compareTime || new Date(cloudLastModified) > new Date(compareTime))) {
