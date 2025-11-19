@@ -2070,3 +2070,10 @@ window.showModal = ModalUtils.show.bind(ModalUtils);
     document.addEventListener('DOMContentLoaded', createAuthDropdown);
     setTimeout(createAuthDropdown, 800);
 })();
+
+// 显式暴露全局对象到 window，确保诊断脚本能检测到
+window.StorageUtils = StorageUtils;
+window.DateUtils = DateUtils;
+window.TodoUtils = TodoUtils;
+window.ModalUtils = ModalUtils;
+

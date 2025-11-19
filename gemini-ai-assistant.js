@@ -18,7 +18,7 @@ class GeminiAIAssistant {
     getCurrentPageType() {
         const path = window.location.pathname;
         const filename = path.substring(path.lastIndexOf('/') + 1);
-        
+
         // 页面映射表
         const pageMap = {
             'index.html': 'all',           // 首页分析全部
@@ -34,10 +34,10 @@ class GeminiAIAssistant {
             'reflection_template.html': 'reflection',
             'monthly_schedule.html': 'schedule'
         };
-        
+
         return pageMap[filename] || 'all';
     }
-    
+
     /**
      * 获取页面中文名称
      */
@@ -64,16 +64,16 @@ class GeminiAIAssistant {
      */
     collectAllPlanData() {
         const currentPage = this.getCurrentPageType();
-        
+
         // 如果不是index.html，只收集当前页面数据
         if (currentPage !== 'all') {
             console.log(`📊 [AI分析] 当前页面: ${currentPage}，只分析本页数据`);
             return this.collectCurrentPageData(currentPage);
         }
-        
+
         // index.html 收集所有数据
         console.log('📊 [AI分析] 当前页面: index.html，分析全部数据');
-        
+
         const allData = {
             timestamp: new Date().toISOString(),
             plans: {},
@@ -131,7 +131,7 @@ class GeminiAIAssistant {
 
         return allData;
     }
-    
+
     /**
      * 收集当前页面的数据（仅分析本页内容）
      */
@@ -142,11 +142,11 @@ class GeminiAIAssistant {
             summary: {},
             pageType: pageType
         };
-        
+
         // 根据页面类型收集对应数据
         const dataKey = `planData_${pageType}`;
         const data = this.getPlanData(dataKey);
-        
+
         if (data && Object.keys(data).length > 0) {
             const pageNames = {
                 'day': '日计划',
@@ -161,14 +161,14 @@ class GeminiAIAssistant {
                 'reflection': '反思模板',
                 'schedule': '月度日程'
             };
-            
+
             allData.plans[pageType] = {
                 name: pageNames[pageType] || pageType,
                 data: data,
                 count: Object.keys(data).length
             };
         }
-        
+
         // 统计摘要
         allData.summary = {
             totalPlans: Object.keys(allData.plans).length,
@@ -176,9 +176,9 @@ class GeminiAIAssistant {
             hasData: Object.keys(allData.plans).length > 0,
             currentPage: pageType
         };
-        
+
         console.log(`📊 [AI分析] ${allData.plans[pageType]?.name || pageType} 数据:`, allData);
-        
+
         return allData;
     }
 
@@ -201,7 +201,7 @@ class GeminiAIAssistant {
     buildPrompt(planData) {
         const pageType = planData.pageType || 'all';
         const isCurrentPageOnly = pageType !== 'all';
-        
+
         // 根据页面类型自定义分析重点
         const pageAnalysisFocus = {
             'day': {
@@ -260,14 +260,14 @@ class GeminiAIAssistant {
                 tips: '日程管理、时间分配、生活平衡'
             }
         };
-        
+
         const currentFocus = pageAnalysisFocus[pageType] || {
             title: '综合计划分析',
             focus: '整体规划、多维度平衡、系统性思考',
             tips: '全局视角、系统规划、综合优化'
         };
-        
-        let prompt = isCurrentPageOnly 
+
+        let prompt = isCurrentPageOnly
             ? `你是一位专业的生活规划和时间管理专家。请专门分析用户的【${currentFocus.title}】数据，提供针对性的建议。
 
 📊 **${currentFocus.title}数据概览**：
@@ -291,7 +291,7 @@ class GeminiAIAssistant {
         Object.entries(planData.plans).forEach(([key, value]) => {
             prompt += `\n📋 **${value.name}**：\n`;
             prompt += `- 记录数: ${value.count}\n`;
-            
+
             // 提取关键信息（最多显示最近3条）
             const entries = Object.entries(value.data).slice(-3);
             entries.forEach(([date, content]) => {
@@ -364,10 +364,10 @@ class GeminiAIAssistant {
      */
     async getAISuggestions(planData) {
         const prompt = this.buildPrompt(planData);
-        
+
         try {
             console.log('🤖 正在调用 Gemini AI...');
-            
+
             const response = await fetch(`${this.apiUrl}?key=${this.apiKey}`, {
                 method: 'POST',
                 headers: {
@@ -393,7 +393,7 @@ class GeminiAIAssistant {
             }
 
             const result = await response.json();
-            
+
             if (result.candidates && result.candidates.length > 0) {
                 const suggestion = result.candidates[0].content.parts[0].text;
                 return {
@@ -422,17 +422,17 @@ class GeminiAIAssistant {
         try {
             // 获取历史建议
             const history = this.getSuggestionHistory();
-            
+
             // 添加新建议（保留最近10条）
             history.unshift(suggestionData);
             if (history.length > 10) {
                 history.splice(10);
             }
-            
+
             // 保存到 localStorage
             localStorage.setItem(this.storageKey, JSON.stringify(history));
             localStorage.setItem(this.lastAnalysisKey, suggestionData.timestamp);
-            
+
             console.log('✅ AI 建议已保存');
             return true;
         } catch (e) {
@@ -477,20 +477,20 @@ class GeminiAIAssistant {
             // 1. 收集数据
             console.log('📊 正在收集计划数据...');
             const planData = this.collectAllPlanData();
-            
+
             // 详细调试日志
             console.log('📊 [AI分析调试] 收集到的数据:', planData);
             console.log('📊 [AI分析调试] plans对象:', planData.plans);
             console.log('📊 [AI分析调试] summary:', planData.summary);
             console.log('📊 [AI分析调试] hasData:', planData.summary.hasData);
-            
+
             if (!planData.summary.hasData) {
                 this.isAnalyzing = false;
                 const pageType = planData.pageType || 'all';
-                const errorMessage = pageType === 'all' 
+                const errorMessage = pageType === 'all'
                     ? '请先在各个计划页面中添加一些内容，然后再使用 AI 分析功能。'
                     : `请先在${this.getPageName(pageType)}页面中添加一些内容，然后再使用 AI 分析功能。\n\n当前页面暂无保存的${this.getPageName(pageType)}数据。`;
-                
+
                 console.warn('⚠️ [AI分析] 没有检测到数据');
                 return {
                     success: false,
@@ -502,16 +502,16 @@ class GeminiAIAssistant {
             // 2. 调用 AI
             console.log('🤖 正在分析数据...');
             const result = await this.getAISuggestions(planData);
-            
+
             if (result.success) {
                 // 3. 保存结果
                 this.saveSuggestion(result);
                 console.log('✅ 分析完成！');
             }
-            
+
             this.isAnalyzing = false;
             return result;
-            
+
         } catch (error) {
             console.error('❌ 分析过程出错:', error);
             this.isAnalyzing = false;
@@ -566,26 +566,26 @@ class GeminiAIAssistant {
      */
     markdownToHtml(markdown) {
         let html = markdown;
-        
+
         // 标题
         html = html.replace(/### (.*?)$/gm, '<h3>$1</h3>');
         html = html.replace(/## (.*?)$/gm, '<h2>$1</h2>');
         html = html.replace(/# (.*?)$/gm, '<h1>$1</h1>');
-        
+
         // 粗体
         html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        
+
         // 列表
         html = html.replace(/^- (.*?)$/gm, '<li>$1</li>');
         html = html.replace(/^(\d+)\. (.*?)$/gm, '<li>$2</li>');
-        
+
         // 换行
         html = html.replace(/\n\n/g, '</p><p>');
         html = '<p>' + html + '</p>';
-        
+
         // 清理空段落
         html = html.replace(/<p>\s*<\/p>/g, '');
-        
+
         return html;
     }
 
@@ -594,7 +594,7 @@ class GeminiAIAssistant {
      */
     showHistory() {
         const history = this.getSuggestionHistory();
-        
+
         if (history.length === 0) {
             alert('暂无历史建议');
             return;
@@ -655,3 +655,4 @@ class GeminiAIAssistant {
 const geminiAssistant = new GeminiAIAssistant();
 
 console.log('🤖 Gemini AI 助手已加载');
+window.geminiAssistant = geminiAssistant;
