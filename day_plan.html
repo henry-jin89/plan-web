@@ -61,6 +61,13 @@
             </div>
         </div>
 
+        <!-- 同步状态指示器 -->
+        <div id="sync-status-indicator" style="background: rgba(76, 175, 80, 0.95); color: white; padding: 8px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 0.9em; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <span id="sync-status-icon">🟢</span>
+            <span id="sync-status-text">LeanCloud 已连接</span>
+            <button onclick="testSync()" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8em; cursor: pointer; margin-left: auto;">测试同步</button>
+        </div>
+
         <!-- AI智能分析区域 - 放在最顶部 -->
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px; padding: 24px; margin-bottom: 24px; box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);">
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 20px;">
@@ -454,6 +461,83 @@
     <script src="common.js"></script>
     <script src="day_plan.js"></script>
     <script src="force-fix-buttons.js"></script>  <!-- 强制修复所有按钮 -->
+    
+    <!-- 同步测试功能 -->
+    <script>
+        // 测试同步功能
+        async function testSync() {
+            const indicator = document.getElementById('sync-status-indicator');
+            const icon = document.getElementById('sync-status-icon');
+            const text = document.getElementById('sync-status-text');
+            
+            try {
+                // 显示测试中状态
+                icon.textContent = '🔄';
+                text.textContent = '正在测试同步...';
+                indicator.style.background = 'rgba(33, 150, 243, 0.95)';
+                
+                if (window.leanCloudSync && window.leanCloudSync.isEnabled) {
+                    // 先上传本地数据
+                    await window.leanCloudSync.syncToCloud();
+                    
+                    // 再检查云端更新
+                    await window.leanCloudSync.checkAndPullUpdates();
+                    
+                    // 显示成功状态
+                    icon.textContent = '✅';
+                    text.textContent = '同步测试成功！';
+                    indicator.style.background = 'rgba(76, 175, 80, 0.95)';
+                    
+                    // 3秒后恢复正常状态
+                    setTimeout(() => {
+                        icon.textContent = '🟢';
+                        text.textContent = 'LeanCloud 已连接';
+                    }, 3000);
+                    
+                } else {
+                    throw new Error('同步服务未启用');
+                }
+                
+            } catch (error) {
+                // 显示错误状态
+                icon.textContent = '❌';
+                text.textContent = '同步测试失败: ' + error.message;
+                indicator.style.background = 'rgba(244, 67, 54, 0.95)';
+                
+                // 5秒后恢复正常状态
+                setTimeout(() => {
+                    icon.textContent = '🟢';
+                    text.textContent = 'LeanCloud 已连接';
+                    indicator.style.background = 'rgba(76, 175, 80, 0.95)';
+                }, 5000);
+            }
+        }
+        
+        // 页面加载时检查同步状态
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                const indicator = document.getElementById('sync-status-indicator');
+                const icon = document.getElementById('sync-status-icon');
+                const text = document.getElementById('sync-status-text');
+                
+                if (window.leanCloudSync) {
+                    if (window.leanCloudSync.isEnabled) {
+                        icon.textContent = '🟢';
+                        text.textContent = 'LeanCloud 已连接';
+                        indicator.style.background = 'rgba(76, 175, 80, 0.95)';
+                    } else {
+                        icon.textContent = '⚠️';
+                        text.textContent = 'LeanCloud 未启用';
+                        indicator.style.background = 'rgba(255, 152, 0, 0.95)';
+                    }
+                } else {
+                    icon.textContent = '❌';
+                    text.textContent = 'LeanCloud 未加载';
+                    indicator.style.background = 'rgba(244, 67, 54, 0.95)';
+                }
+            }, 2000);
+        });
+    </script>
 
     <!-- 集成的任务编辑和删除功能修复 -->
     <script>
@@ -1364,8 +1448,8 @@
         }
 
         
-        /* 隐藏所有同步相关的通知和弹窗 */
-        [id*="sync"], [id*="notification"], [id*="indicator"], 
+        /* 隐藏所有同步相关的通知和弹窗，但保留我们的状态指示器 */
+        [id*="sync"]:not(#sync-status-indicator), [id*="notification"], [id*="indicator"]:not(#sync-status-indicator), 
         [class*="sync"], [class*="notification"], [class*="indicator"],
         .sync-notification, .zero-config-notification, 
         #auto-sync-indicator, #universal-sync-badge {
@@ -1373,6 +1457,14 @@
             visibility: hidden !important;
             opacity: 0 !important;
             pointer-events: none !important;
+        }
+        
+        /* 确保我们的同步状态指示器始终可见 */
+        #sync-status-indicator {
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
         }
 
     </style>

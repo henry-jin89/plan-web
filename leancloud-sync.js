@@ -228,12 +228,12 @@
                 }, 2000); // 滚动停止2秒后检查
             }, { passive: true });
 
-            // 🔑 新增：手机端触摸事件监听（防抖20秒）
+            // 🔑 新增：手机端触摸事件监听（防抖10秒，更频繁检测）
             let touchCheckTimer = null;
             let lastTouchCheck = 0;
             const touchHandler = () => {
                 const now = Date.now();
-                if (now - lastTouchCheck < 20000) return; // 20秒防抖
+                if (now - lastTouchCheck < 10000) return; // 10秒防抖（从20秒减少到10秒）
 
                 clearTimeout(touchCheckTimer);
                 touchCheckTimer = setTimeout(() => {
@@ -242,12 +242,25 @@
                         this.checkAndPullUpdates();
                         lastTouchCheck = Date.now();
                     }
-                }, 1500); // 触摸停止1.5秒后检查
+                }, 1000); // 触摸停止1秒后检查（从1.5秒减少到1秒）
             };
 
             // 监听触摸开始和触摸移动
             document.addEventListener('touchstart', touchHandler, { passive: true });
             document.addEventListener('touchmove', touchHandler, { passive: true });
+            
+            // 🔑 新增：手机端专用的更频繁轮询（检测是否为移动设备）
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            if (isMobile) {
+                console.log('📱 检测到移动设备，启用增强同步检测...');
+                // 移动设备每30秒检查一次云端更新（比桌面端更频繁）
+                setInterval(() => {
+                    if (this.isEnabled && !this.syncInProgress && !document.hidden) {
+                        console.log('📱 移动设备定期检查云端更新...');
+                        this.checkAndPullUpdates();
+                    }
+                }, 30 * 1000); // 30秒间隔
+            }
 
             // 页面关闭前同步
             window.addEventListener('beforeunload', () => {
