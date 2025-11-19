@@ -1264,10 +1264,29 @@
             
                 console.log('✅ 保存完成');
                 if (typeof MessageUtils !== 'undefined' && MessageUtils.success) {
-            MessageUtils.success('感恩记录保存成功！');
+            MessageUtils.success('感恩记录保存成功！正在同步到云端...');
                 } else {
                     alert('感恩记录保存成功！');
                 }
+            
+            // 🔑 立即触发云端同步并显示结果
+            if (window.leanCloudSync && window.leanCloudSync.isEnabled) {
+                console.log('🚀 立即同步到云端...');
+                if (window.leanCloudSync._syncDebounceTimer) {
+                    clearTimeout(window.leanCloudSync._syncDebounceTimer);
+                }
+                window.leanCloudSync.syncToCloud().then(() => {
+                    console.log('☁️ 云端同步已完成');
+                    if (typeof MessageUtils !== 'undefined' && MessageUtils.success) {
+                        MessageUtils.success('已同步到云端！');
+                    }
+                }).catch(err => {
+                    console.warn('云端同步失败，但本地数据已保存:', err);
+                    if (typeof MessageUtils !== 'undefined' && MessageUtils.warning) {
+                        MessageUtils.warning('云端同步失败，但本地已保存');
+                    }
+                });
+            }
             
             // 添加庆祝效果
                 const container = document.querySelector('.gratitude-container');
